@@ -3,7 +3,14 @@
   "builds": [
     { "src": "package.json", "use": "@vercel/next" }
   ],
-  "routes": [
-    { "src": "/(.*)", "dest": "/$1" }
+  "rewrites": [
+    {
+  "source": "/api/(.*)",
+  "destination": "https://nexenairis.com/api/$1"
+   },
+    {
+      "source": "/(.*)",
+      "destination": "/$1"
+    }
   ]
 }
