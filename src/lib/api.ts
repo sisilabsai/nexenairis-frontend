@@ -3,7 +3,7 @@ import { Conversation } from '@/types';
 import { Branch, BranchFormData } from '@/types/branch';
 
 // API Configuration  
-const API_BASE_URL = '/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 // Types
 export interface ApiResponse<T = any> {
