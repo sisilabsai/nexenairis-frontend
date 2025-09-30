@@ -1,0 +1,29 @@
+.aida-chat-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 15px 25px;
+  font-size: 1rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease-in-out;
+  z-index: 1001;
+}
+
+.aida-chat-button:hover {
+  background-color: #4338ca;
+  transform: translateY(-2px);
+}
+
+.aida-chat-button-icon {
+  width: 24px;
+  height: 24px;
+}

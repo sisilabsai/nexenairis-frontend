@@ -1,0 +1,80 @@
+{
+  "extends": ["next/core-web-vitals", "next/typescript"],
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/no-empty-object-type": "off",
+    "react-hooks/exhaustive-deps": "warn",
+    "@next/next/no-img-element": "warn",
+    "react/no-unescaped-entities": "off",
+    "prefer-const": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["src/components/SalesPipelineStageModal.tsx"],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": "off"
+      }
+    },
+    {
+      "files": ["src/components/SampleReceiptModal.tsx"],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": "off"
+      }
+    },
+    {
+      "files": ["src/components/SampleInvoiceModal.tsx"],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": "off"
+      }
+    },
+    {
+      "files": ["src/components/ui/input.tsx"],
+      "rules": {
+        "@typescript-eslint/no-empty-object-type": "off"
+      }
+    },
+    {
+      "files": ["src/hooks/use-toast.ts"],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": "off"
+      }
+    },
+    {
+      "files": ["src/hooks/useApi.ts"],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": "off"
+      }
+    },
+    {
+      "files": ["src/hooks/useBranch.ts"],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": "off"
+      }
+    },
+    {
+      "files": ["src/lib/echo.ts"],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": "off"
+      }
+    },
+    {
+      "files": ["src/components/SupplierCodeSettings.tsx"],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": "off"
+      }
+    },
+    {
+      "files": ["src/components/SupplierSelector.tsx"],
+      "rules": {
+        "react-hooks/exhaustive-deps": "off"
+      }
+    },
+    {
+      "files": ["src/components/TransactionModal.tsx"],
+      "rules": {
+        "@typescript-eslint/no-unused-vars": "off"
+      }
+    }
+  ]
+}

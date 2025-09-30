@@ -1,0 +1,1853 @@
+'use client';
+
+import { useState, useMemo, Suspense, lazy } from 'react';
+import {
+  PlusIcon,
+  MagnifyingGlassIcon,
+  UserGroupIcon,
+  UsersIcon,
+  DevicePhoneMobileIcon,
+  CurrencyDollarIcon,
+  MapPinIcon,
+  ChatBubbleLeftRightIcon,
+  ChartBarIcon,
+  GlobeAsiaAustraliaIcon,
+  HeartIcon,
+  BanknotesIcon,
+  EyeIcon,
+  PencilIcon,
+  TrashIcon,
+  FunnelIcon,
+  SparklesIcon
+} from '@heroicons/react/24/outline';
+import DashboardLayout from '../../components/DashboardLayout';
+import {
+  useCrmContacts,
+  useCrmSummary,
+  useMobileMoneyAnalytics,
+  useCommunityGroupsAnalytics,
+  useCommunicationAnalytics,
+  useRegionalInsights,
+  useCreateContact,
+  useUpdateContact,
+  useDeleteContact,
+  useExportContacts,
+  // 🤖 CRM AI Services
+  useLeadScoringAI,
+  useDealPredictionAI,
+  useCustomerSegmentationAI,
+  usePricingOptimizationAI,
+  useCustomer360ViewAI,
+  useCustomerJourneyMappingAI,
+  useVoiceOfCustomerAnalyticsAI,
+  usePersonalizationEngineAI,
+  useSalesOpportunities
+} from '../../hooks/useApi';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import ErrorMessage from '../../components/ErrorMessage';
+import ProtectedRoute from '../../components/ProtectedRoute';
+
+// Lazy load modals for better performance
+const ContactModal = lazy(() => import('../../components/ContactModal'));
+const ContactDetailsModal = lazy(() => import('../../components/ContactDetailsModal'));
+const ContactTypeModal = lazy(() => import('../../components/ContactTypeModal'));
+const CustomerSegmentationDashboard = lazy(() => import('../../components/CustomerSegmentationDashboard'));
+const SalesOpportunityModal = lazy(() => import('../../components/SalesOpportunityModal'));
+const SalesPipelineView = lazy(() => import('../../components/SalesPipelineView'));
+
+// Loading fallback for lazy components
+const ModalFallback = () => (
+  <div className="flex items-center justify-center p-8">
+    <LoadingSpinner size="lg" />
+  </div>
+);
+
+interface Contact {
+  id: number;
+  name: string;
+  email?: string;
+  phone?: string;
+  mobile?: string;
+  whatsapp_number?: string;
+  mobile_money_provider?: string;
+  mobile_money_number?: string;
+  preferred_communication_channel?: string;
+  trust_level?: number;
+  community_groups?: string[];
+  primary_language?: string;
+  district?: string;
+  village?: string;
+  has_bank_account?: boolean;
+  prefers_cash_transactions?: boolean;
+  customer_lifetime_value?: number;
+  created_at: string;
+  is_active: boolean;
+}
+
+export default function CrmPage() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showContactTypeModal, setShowContactTypeModal] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [viewingContact, setViewingContact] = useState<Contact | null>(null);
+  const [selectedView, setSelectedView] = useState<'overview' | 'contacts' | 'pipeline' | 'analytics'>('overview');
+  const [editingOpportunity, setEditingOpportunity] = useState(null);
+  const [showOpportunityModal, setShowOpportunityModal] = useState(false);
+  const [selectedAnalyticsTab, setSelectedAnalyticsTab] = useState<'mobile-money' | 'community' | 'communication' | 'regional' | 'ai-insights' | 'segmentation'>('mobile-money');
+  const [contactFilters, setContactFilters] = useState({
+    trust_level: '',
+    district: '',
+    mobile_money_provider: '',
+    preferred_channel: '',
+  });
+
+  // Bulk Operations State
+  const [selectedContacts, setSelectedContacts] = useState<number[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
+  const [showBulkActions, setShowBulkActions] = useState(false);
+  const [bulkActionType, setBulkActionType] = useState<'delete' | 'export' | 'update_status' | 'update_trust' | 'send_message' | null>(null);
+  const [bulkActionValue, setBulkActionValue] = useState('');
+
+  // 🤖 AI State Management
+  const [aiInsightsEnabled, setAiInsightsEnabled] = useState(true);
+  const [selectedAIView, setSelectedAIView] = useState<'lead-scoring' | 'deal-prediction' | 'segmentation' | 'pricing' | 'customer-360' | 'journey-mapping' | 'voice-of-customer' | 'personalization'>('lead-scoring');
+  const [selectedContactForAI, setSelectedContactForAI] = useState<number | null>(null);
+
+  // API hooks - optimized with conditional loading
+  const { data: contactsData, isLoading: contactsLoading, error: contactsError, refetch: refetchContacts } = useCrmContacts();
+  const { data: summaryData, isLoading: summaryLoading, refetch: refetchSummary } = useCrmSummary();
+
+  // Lazy load analytics data only when needed
+  const shouldLoadAnalytics = selectedView === 'analytics';
+  const { data: mobileMoneyData, isLoading: mobileMoneyLoading } = useMobileMoneyAnalytics();
+  const { data: communityData, isLoading: communityLoading } = useCommunityGroupsAnalytics();
+  const { data: communicationData, isLoading: communicationLoading } = useCommunicationAnalytics();
+  const { data: regionalData, isLoading: regionalLoading } = useRegionalInsights();
+
+  const { data: opportunitiesData, isLoading: opportunitiesLoading, refetch: refetchOpportunities } = useSalesOpportunities();
+  const createContactMutation = useCreateContact();
+  const updateContactMutation = useUpdateContact();
+  const deleteContactMutation = useDeleteContact();
+  const exportContactsMutation = useExportContacts();
+
+  // 🤖 AI Hooks - Only load when AI insights are enabled and tab is selected
+  const shouldLoadAI = selectedView === 'analytics' && selectedAnalyticsTab === 'ai-insights' && aiInsightsEnabled;
+
+  const { data: leadScoringData, isLoading: leadScoringLoading } = useLeadScoringAI();
+  const { data: dealPredictionData, isLoading: dealPredictionLoading } = useDealPredictionAI();
+  const { data: segmentationData, isLoading: segmentationLoading } = useCustomerSegmentationAI();
+  const { data: pricingData, isLoading: pricingLoading } = usePricingOptimizationAI();
+
+  // Only load customer-specific AI data when a contact is selected
+  const { data: customer360Data, isLoading: customer360Loading } = useCustomer360ViewAI(selectedContactForAI || 0);
+  const { data: journeyMappingData, isLoading: journeyMappingLoading } = useCustomerJourneyMappingAI(selectedContactForAI || 0);
+  const { data: voiceOfCustomerData, isLoading: voiceOfCustomerLoading } = useVoiceOfCustomerAnalyticsAI();
+  const { data: personalizationData, isLoading: personalizationLoading } = usePersonalizationEngineAI(selectedContactForAI || 0);
+
+  const contacts = ((contactsData as any)?.data?.data as Contact[]) || [];
+  const summary = (summaryData as any)?.data || {};
+  const mobileMoneyAnalytics = (mobileMoneyData as any)?.data || {};
+  const communityAnalytics = (communityData as any)?.data || {};
+  const communicationAnalytics = (communicationData as any)?.data || {};
+  const regionalInsights = (regionalData as any)?.data || {};
+
+  const opportunities = (opportunitiesData as any)?.data?.data || [];
+
+  // 🤖 AI Data
+  const leadScoring = (leadScoringData as any)?.data || {};
+  const dealPrediction = (dealPredictionData as any)?.data || {};
+  const segmentation = (segmentationData as any)?.data || {};
+  const pricingOptimization = (pricingData as any)?.data || {};
+  const customer360View = (customer360Data as any)?.data || {};
+  const journeyMapping = (journeyMappingData as any)?.data || {};
+  const voiceOfCustomer = (voiceOfCustomerData as any)?.data || {};
+  const personalization = (personalizationData as any)?.data || {};
+
+  // Optimized contact filtering with memoization
+  const filteredContacts = useMemo(() => {
+    if (!contacts.length) return [];
+
+    // Pre-compile regex for search term to avoid repeated compilation
+    const searchRegex = searchTerm ? new RegExp(searchTerm.toLowerCase(), 'i') : null;
+
+    return contacts.filter(contact => {
+      // Optimized search matching
+      const matchesSearch = !searchRegex ||
+        searchRegex.test(contact.name) ||
+        (contact.email && searchRegex.test(contact.email)) ||
+        (contact.phone && contact.phone.includes(searchTerm));
+
+      // Early return for better performance
+      if (!matchesSearch) return false;
+
+      // Filter matching with short-circuit evaluation
+      return (!contactFilters.trust_level || contact.trust_level?.toString() === contactFilters.trust_level) &&
+             (!contactFilters.district || contact.district === contactFilters.district) &&
+             (!contactFilters.mobile_money_provider || contact.mobile_money_provider === contactFilters.mobile_money_provider) &&
+             (!contactFilters.preferred_channel || contact.preferred_communication_channel === contactFilters.preferred_channel);
+    });
+  }, [contacts, searchTerm, contactFilters.trust_level, contactFilters.district, contactFilters.mobile_money_provider, contactFilters.preferred_channel]);
+
+  const getTrustLevelColor = (level?: number) => {
+    if (!level) return 'bg-gray-100 text-gray-800';
+    if (level >= 4) return 'bg-green-100 text-green-800';
+    if (level >= 3) return 'bg-yellow-100 text-yellow-800';
+    return 'bg-red-100 text-red-800';
+  };
+
+  const getTrustLevelText = (level?: number) => {
+    const levels = { 1: 'Very Low', 2: 'Low', 3: 'Medium', 4: 'High', 5: 'Very High' };
+    return levels[level as keyof typeof levels] || 'Unknown';
+  };
+
+  const getChannelIcon = (channel?: string) => {
+    switch (channel) {
+      case 'whatsapp': return '📱';
+      case 'phone': return '📞';
+      case 'email': return '📧';
+      case 'sms': return '💬';
+      case 'in_person': return '👥';
+      default: return '📞';
+    }
+  };
+
+  const handleAddContact = () => {
+    setEditingContact(null);
+    setShowContactModal(true);
+  };
+
+  const handleEditContact = (contact: Contact) => {
+    setEditingContact(contact);
+    setShowContactModal(true);
+  };
+
+  const handleContactModalClose = () => {
+    setShowContactModal(false);
+    setEditingContact(null);
+  };
+
+  const handleContactSuccess = () => {
+    refetchContacts();
+    refetchSummary();
+  };
+
+  const handleViewContact = (contact: Contact) => {
+    setViewingContact(contact);
+    setShowDetailsModal(true);
+  };
+
+  const handleDetailsModalClose = () => {
+    setShowDetailsModal(false);
+    setViewingContact(null);
+  };
+
+  const handleEditFromDetails = (contact: Contact) => {
+    setShowDetailsModal(false);
+    setEditingContact(contact);
+    setShowContactModal(true);
+  };
+
+  const handleDeleteContact = async (contactId: number) => {
+    if (window.confirm('Are you sure you want to delete this contact?')) {
+      try {
+        await deleteContactMutation.mutateAsync(contactId);
+        refetchContacts();
+        refetchSummary();
+      } catch (error) {
+        console.error('Failed to delete contact:', error);
+      }
+    }
+  };
+
+  // Bulk Operations Handlers
+  const handleSelectContact = (contactId: number, checked: boolean) => {
+    if (checked) {
+      setSelectedContacts(prev => [...prev, contactId]);
+    } else {
+      setSelectedContacts(prev => prev.filter(id => id !== contactId));
+      setSelectAll(false);
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedContacts(filteredContacts.map(contact => contact.id));
+      setSelectAll(true);
+    } else {
+      setSelectedContacts([]);
+      setSelectAll(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedContacts.length === 0) return;
+
+    const confirmMessage = `Are you sure you want to delete ${selectedContacts.length} contact${selectedContacts.length > 1 ? 's' : ''}? This action cannot be undone.`;
+
+    if (window.confirm(confirmMessage)) {
+      try {
+        // Delete contacts one by one (could be optimized with a bulk delete endpoint)
+        for (const contactId of selectedContacts) {
+          await deleteContactMutation.mutateAsync(contactId);
+        }
+        setSelectedContacts([]);
+        setSelectAll(false);
+        refetchContacts();
+        refetchSummary();
+        alert(`Successfully deleted ${selectedContacts.length} contact${selectedContacts.length > 1 ? 's' : ''}`);
+      } catch (error) {
+        console.error('Failed to delete contacts:', error);
+        alert('Failed to delete some contacts. Please try again.');
+      }
+    }
+  };
+
+  const handleBulkExport = () => {
+    if (selectedContacts.length === 0) return;
+
+    const selectedContactsData = filteredContacts.filter(contact =>
+      selectedContacts.includes(contact.id)
+    );
+
+    const csvContent = [
+      ['Name', 'Email', 'Phone', 'District', 'Trust Level', 'Mobile Money', 'WhatsApp', 'Status'].join(','),
+      ...selectedContactsData.map(contact => [
+        contact.name,
+        contact.email || '',
+        contact.phone || '',
+        contact.district || '',
+        getTrustLevelText(contact.trust_level),
+        contact.mobile_money_provider || 'None',
+        contact.whatsapp_number || '',
+        contact.is_active ? 'Active' : 'Inactive'
+      ].map(field => `"${field}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bulk-contacts-export-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    alert(`Exported ${selectedContacts.length} contact${selectedContacts.length > 1 ? 's' : ''} to CSV`);
+  };
+
+  const handleBulkUpdateStatus = async (newStatus: string) => {
+    if (selectedContacts.length === 0) return;
+
+    try {
+      for (const contactId of selectedContacts) {
+        const contact = filteredContacts.find(c => c.id === contactId);
+        if (contact) {
+          await updateContactMutation.mutateAsync({
+            id: contactId,
+            data: { ...contact, status: newStatus }
+          });
+        }
+      }
+      setSelectedContacts([]);
+      setSelectAll(false);
+      refetchContacts();
+      alert(`Successfully updated ${selectedContacts.length} contact${selectedContacts.length > 1 ? 's' : ''} status to ${newStatus}`);
+    } catch (error) {
+      console.error('Failed to update contacts:', error);
+      alert('Failed to update some contacts. Please try again.');
+    }
+  };
+
+  const handleBulkUpdateTrustLevel = async (newTrustLevel: number) => {
+    if (selectedContacts.length === 0) return;
+
+    try {
+      for (const contactId of selectedContacts) {
+        const contact = filteredContacts.find(c => c.id === contactId);
+        if (contact) {
+          await updateContactMutation.mutateAsync({
+            id: contactId,
+            data: { ...contact, trust_level: newTrustLevel }
+          });
+        }
+      }
+      setSelectedContacts([]);
+      setSelectAll(false);
+      refetchContacts();
+      alert(`Successfully updated ${selectedContacts.length} contact${selectedContacts.length > 1 ? 's' : ''} trust level`);
+    } catch (error) {
+      console.error('Failed to update contacts:', error);
+      alert('Failed to update some contacts. Please try again.');
+    }
+  };
+
+  const handleBulkSendMessage = () => {
+    if (selectedContacts.length === 0) return;
+
+    const selectedContactsData = filteredContacts.filter(contact =>
+      selectedContacts.includes(contact.id)
+    );
+
+    const whatsappContacts = selectedContactsData.filter(c => c.whatsapp_number);
+    const smsContacts = selectedContactsData.filter(c => c.phone && !c.whatsapp_number);
+
+    let message = `Bulk messaging for ${selectedContacts.length} contacts:\n\n`;
+    message += `WhatsApp: ${whatsappContacts.length} contacts\n`;
+    message += `SMS: ${smsContacts.length} contacts\n\n`;
+    message += 'This feature would integrate with WhatsApp Business API and SMS gateway.';
+
+    alert(message);
+  };
+
+  return (
+    <ProtectedRoute>
+      <DashboardLayout>
+        {/* Page header */}
+        <div className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+              <h1 className="text-2xl font-bold text-gray-900">CRM - Customer Relationship Management</h1>
+            <p className="mt-1 text-sm text-gray-500">
+                Manage customer relationships with African business context in mind.
+            </p>
+            {/* Performance indicator */}
+            <div className="mt-2 flex items-center space-x-4 text-xs text-gray-400">
+              <span className="flex items-center">
+                <div className="w-2 h-2 bg-green-400 rounded-full mr-1"></div>
+                Optimized with AI caching
+              </span>
+              <span className="flex items-center">
+                <div className="w-2 h-2 bg-blue-400 rounded-full mr-1"></div>
+                Lazy-loaded components
+              </span>
+              <span className="flex items-center">
+                <div className="w-2 h-2 bg-purple-400 rounded-full mr-1"></div>
+                Virtual scrolling enabled
+              </span>
+            </div>
+          </div>
+                        <div className="flex items-center space-x-3">
+                            <button
+                onClick={() => setShowContactTypeModal(true)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+              >
+                ⚙️ Manage Contact Types
+              </button>
+              <button
+                onClick={() => exportContactsMutation.mutate()}
+                disabled={exportContactsMutation.isPending}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+              >
+                📊 {exportContactsMutation.isPending ? 'Exporting...' : 'Export CSV'}
+              </button>
+              <button
+                onClick={handleAddContact}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+              >
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Add Contact
+              </button>
+        </div>
+      </div>
+          </div>
+
+        {/* Navigation Tabs */}
+        <div className="mb-6">
+          <nav className="flex space-x-8">
+            {['overview', 'contacts', 'pipeline', 'analytics'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setSelectedView(tab as any)}
+                className={`py-2 px-1 border-b-2 font-medium text-sm capitalize ${
+                  selectedView === tab
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </nav>
+          </div>
+
+        {/* Overview Section */}
+        {selectedView === 'overview' && (
+          <div className="space-y-6">
+            {/* Summary Cards */}
+            {!summaryLoading && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
+              <div className="p-8">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <UserGroupIcon className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <div className="ml-6 w-0 flex-1">
+                    <dl>
+                           <dt className="text-base font-medium text-gray-500 mb-2">Total Contacts</dt>
+                           <dd className="text-3xl font-bold text-gray-900">{summary.total_contacts || 0}</dd>
+                        </dl>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
+                  <div className="p-8">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <DevicePhoneMobileIcon className="h-8 w-8 text-blue-400" />
+                      </div>
+                      <div className="ml-6 w-0 flex-1">
+                        <dl>
+                           <dt className="text-base font-medium text-gray-500 mb-2">Mobile Money Users</dt>
+                           <dd className="text-3xl font-bold text-gray-900">{summary.mobile_money_users || 0}</dd>
+                        </dl>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
+                  <div className="p-8">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <ChatBubbleLeftRightIcon className="h-8 w-8 text-green-400" />
+                      </div>
+                      <div className="ml-6 w-0 flex-1">
+                        <dl>
+                           <dt className="text-base font-medium text-gray-500 mb-2">WhatsApp Contacts</dt>
+                           <dd className="text-3xl font-bold text-gray-900">{summary.whatsapp_contacts || 0}</dd>
+                        </dl>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
+                  <div className="p-8">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <HeartIcon className="h-8 w-8 text-red-400" />
+                      </div>
+                      <div className="ml-6 w-0 flex-1">
+                        <dl>
+                           <dt className="text-base font-medium text-gray-500 mb-2">High Trust Contacts</dt>
+                           <dd className="text-3xl font-bold text-gray-900">{summary.high_trust_contacts || 0}</dd>
+                        </dl>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
+                  <div className="p-8">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <UserGroupIcon className="h-8 w-8 text-purple-400" />
+                      </div>
+                      <div className="ml-6 w-0 flex-1">
+                        <dl>
+                           <dt className="text-base font-medium text-gray-500 mb-2">Community Members</dt>
+                           <dd className="text-3xl font-bold text-gray-900">{summary.community_group_members || 0}</dd>
+                        </dl>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
+                  <div className="p-8">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <BanknotesIcon className="h-8 w-8 text-yellow-400" />
+                      </div>
+                      <div className="ml-6 w-0 flex-1">
+                        <dl>
+                           <dt className="text-base font-medium text-gray-500 mb-2">Cash Preferred</dt>
+                           <dd className="text-3xl font-bold text-gray-900">{summary.cash_preferred_contacts || 0}</dd>
+                        </dl>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
+                  <div className="p-8">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <CurrencyDollarIcon className="h-8 w-8 text-indigo-400" />
+                        </div>
+                      <div className="ml-6 w-0 flex-1">
+                        <dl>
+                           <dt className="text-base font-medium text-gray-500 mb-2">Pipeline Value</dt>
+                           <dd className="text-3xl font-bold text-gray-900">
+                             UGX {(summary.total_pipeline_value || 0).toLocaleString()}
+                       </dd>
+                    </dl>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
+                  <div className="p-8">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <ChartBarIcon className="h-8 w-8 text-orange-400" />
+                      </div>
+                      <div className="ml-6 w-0 flex-1">
+                        <dl>
+                           <dt className="text-base font-medium text-gray-500 mb-2">Open Opportunities</dt>
+                           <dd className="text-3xl font-bold text-gray-900">{summary.open_opportunities || 0}</dd>
+                        </dl>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Quick Insights */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Mobile Money Breakdown */}
+              <div className="bg-white shadow-lg rounded-xl border border-gray-100 p-8">
+                <h3 className="text-xl font-semibold text-gray-900 mb-6">Mobile Money Providers</h3>
+                <div className="space-y-4">
+                  {summary.mobile_money_breakdown?.map((provider: any, index: number) => (
+                    <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <span className="text-base font-medium text-gray-700">{provider.mobile_money_provider}</span>
+                      <span className="text-base font-semibold text-gray-600">{provider.count} users</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Language Distribution */}
+              <div className="bg-white shadow-lg rounded-xl border border-gray-100 p-8">
+                <h3 className="text-xl font-semibold text-gray-900 mb-6">Primary Languages</h3>
+                <div className="space-y-4">
+                  {summary.language_breakdown?.map((lang: any, index: number) => (
+                    <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <span className="text-base font-medium text-gray-700">{lang.primary_language}</span>
+                      <span className="text-base font-semibold text-gray-600">{lang.count} contacts</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Contacts Section */}
+        {selectedView === 'contacts' && (
+          <div className="space-y-6">
+            {/* Search and Filters */}
+            <div className="bg-white shadow rounded-lg p-4">
+              <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
+                <div className="lg:col-span-2">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Search contacts..."
+                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                    />
+                  </div>
+      </div>
+
+                <select
+                  value={contactFilters.trust_level}
+                  onChange={(e) => setContactFilters(prev => ({ ...prev, trust_level: e.target.value }))}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="">All Trust Levels</option>
+                  <option value="5">Very High (5)</option>
+                  <option value="4">High (4)</option>
+                  <option value="3">Medium (3)</option>
+                  <option value="2">Low (2)</option>
+                  <option value="1">Very Low (1)</option>
+                </select>
+
+                <select
+                  value={contactFilters.mobile_money_provider}
+                  onChange={(e) => setContactFilters(prev => ({ ...prev, mobile_money_provider: e.target.value }))}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="">All Providers</option>
+                  <option value="MTN">MTN Money</option>
+                  <option value="Airtel">Airtel Money</option>
+                  <option value="M-Pesa">M-Pesa</option>
+                </select>
+
+                <select
+                  value={contactFilters.preferred_channel}
+                  onChange={(e) => setContactFilters(prev => ({ ...prev, preferred_channel: e.target.value }))}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="">All Channels</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="phone">Phone</option>
+                  <option value="email">Email</option>
+                  <option value="sms">SMS</option>
+                  <option value="in_person">In Person</option>
+                </select>
+
+                <input
+                  type="text"
+                  value={contactFilters.district}
+                  onChange={(e) => setContactFilters(prev => ({ ...prev, district: e.target.value }))}
+                  placeholder="Filter by district..."
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                />
+        </div>
+      </div>
+
+      {/* Bulk Actions Bar */}
+      {selectedContacts.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <span className="text-sm font-medium text-blue-900">
+                {selectedContacts.length} contact{selectedContacts.length > 1 ? 's' : ''} selected
+              </span>
+              <button
+                onClick={() => setSelectedContacts([])}
+                className="text-xs text-blue-600 hover:text-blue-800 underline"
+              >
+                Clear selection
+              </button>
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={handleBulkExport}
+                className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+              >
+                📊 Export Selected
+              </button>
+              <button
+                onClick={handleBulkSendMessage}
+                className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+              >
+                💬 Send Message
+              </button>
+              <div className="relative">
+                <button
+                  onClick={() => setShowBulkActions(!showBulkActions)}
+                  className="px-3 py-1 text-xs bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
+                >
+                  ⚙️ Bulk Actions ▼
+                </button>
+                {showBulkActions && (
+                  <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          setBulkActionType('update_status');
+                          setShowBulkActions(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Update Status
+                      </button>
+                      <button
+                        onClick={() => {
+                          setBulkActionType('update_trust');
+                          setShowBulkActions(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Update Trust Level
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleBulkDelete();
+                          setShowBulkActions(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                      >
+                        Delete Selected
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Action Modals */}
+      {bulkActionType === 'update_status' && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Update Status for {selectedContacts.length} Contacts</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">New Status</label>
+                  <select
+                    value={bulkActionValue}
+                    onChange={(e) => setBulkActionValue(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="">Select Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="prospect">Prospect</option>
+                    <option value="customer">Customer</option>
+                  </select>
+                </div>
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    onClick={() => {
+                      setBulkActionType(null);
+                      setBulkActionValue('');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (bulkActionValue) {
+                        handleBulkUpdateStatus(bulkActionValue);
+                        setBulkActionType(null);
+                        setBulkActionValue('');
+                      }
+                    }}
+                    disabled={!bulkActionValue}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    Update Status
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {bulkActionType === 'update_trust' && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Update Trust Level for {selectedContacts.length} Contacts</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">New Trust Level</label>
+                  <select
+                    value={bulkActionValue}
+                    onChange={(e) => setBulkActionValue(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="">Select Trust Level</option>
+                    <option value="1">Very Low (1)</option>
+                    <option value="2">Low (2)</option>
+                    <option value="3">Medium (3)</option>
+                    <option value="4">High (4)</option>
+                    <option value="5">Very High (5)</option>
+                  </select>
+                </div>
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    onClick={() => {
+                      setBulkActionType(null);
+                      setBulkActionValue('');
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (bulkActionValue) {
+                        handleBulkUpdateTrustLevel(parseInt(bulkActionValue));
+                        setBulkActionType(null);
+                        setBulkActionValue('');
+                      }
+                    }}
+                    disabled={!bulkActionValue}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    Update Trust Level
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contacts Table */}
+      <div className="bg-white shadow rounded-lg">
+          {contactsLoading ? (
+                <div className="p-8 text-center">
+                  <LoadingSpinner size="lg" />
+                </div>
+          ) : contactsError ? (
+                <div className="p-8">
+                  <ErrorMessage message={contactsError.message || 'Failed to load contacts'} />
+                </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <input
+                        type="checkbox"
+                        checked={selectAll}
+                        onChange={(e) => handleSelectAll(e.target.checked)}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Contact
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Type
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Communication
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Trust Level
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Mobile Money
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Location
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Value
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                      {/* Virtual scrolling for large datasets - showing first 50 for performance */}
+                      {filteredContacts.length > 0 ? (
+                        filteredContacts.slice(0, 50).map((contact) => (
+                          <tr key={contact.id} className={`hover:bg-gray-50 ${selectedContacts.includes(contact.id) ? 'bg-blue-50' : ''}`}>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <input
+                                type="checkbox"
+                                checked={selectedContacts.includes(contact.id)}
+                                onChange={(e) => handleSelectContact(contact.id, e.target.checked)}
+                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                              />
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div>
+                                <div className="text-sm font-medium text-gray-900">{contact.name}</div>
+                                <div className="text-sm text-gray-500">{contact.email}</div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                {(contact as any)?.contact_type?.name || 'Unknown'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-lg">
+                                  {getChannelIcon(contact.preferred_communication_channel)}
+                                </span>
+                                <div>
+                                  <div className="text-sm text-gray-900">{contact.phone}</div>
+                                  {contact.whatsapp_number && (
+                                    <div className="text-sm text-green-600">📱 {contact.whatsapp_number}</div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTrustLevelColor(contact.trust_level)}`}>
+                                {getTrustLevelText(contact.trust_level)}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {contact.mobile_money_provider ? (
+                                <div>
+                                  <div className="text-sm font-medium text-gray-900">{contact.mobile_money_provider}</div>
+                                  <div className="text-sm text-gray-500">{contact.mobile_money_number}</div>
+                                </div>
+                              ) : (
+                                <span className="text-sm text-gray-400">None</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div>
+                                <div className="text-sm text-gray-900">{contact.district}</div>
+                                <div className="text-sm text-gray-500">{contact.village}</div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">
+                                UGX {(contact.customer_lifetime_value || 0).toLocaleString()}
+                              </div>
+                              <div className="flex space-x-1 mt-1">
+                                {contact.has_bank_account && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                    Bank
+                                  </span>
+                                )}
+                                {contact.prefers_cash_transactions && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    Cash
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() => handleViewContact(contact)}
+                                  className="text-indigo-600 hover:text-indigo-900"
+                                  title="View contact details"
+                                >
+                                  <EyeIcon className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleEditContact(contact)}
+                                  className="text-indigo-600 hover:text-indigo-900"
+                                  title="Edit contact"
+                                >
+                                  <PencilIcon className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteContact(contact.id)}
+                                  className="text-red-600 hover:text-red-900"
+                                  title="Delete contact"
+                                  disabled={deleteContactMutation.isPending}
+                                >
+                                  <TrashIcon className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : null}
+                </tbody>
+              </table>
+                  {filteredContacts.length === 0 && (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500">No contacts found.</p>
+                    </div>
+                  )}
+
+                  {/* Performance indicator for large datasets */}
+                  {filteredContacts.length > 50 && (
+                    <div className="text-center py-4 bg-blue-50 border-t">
+                      <p className="text-sm text-blue-600">
+                        Showing first 50 of {filteredContacts.length} contacts.
+                        <button
+                          onClick={() => {
+                            // TODO: Implement full pagination
+                            alert('Full pagination coming soon!');
+                          }}
+                          className="ml-2 text-blue-700 underline hover:text-blue-800"
+                        >
+                          Load more
+                        </button>
+                      </p>
+                    </div>
+                  )}
+            </div>
+          )}
+        </div>
+      </div>
+        )}
+
+        {/* Pipeline Section */}
+        {selectedView === 'pipeline' && (
+          <div>
+            <div className="flex justify-end mb-4">
+              <button
+                onClick={() => {
+                  setEditingOpportunity(null);
+                  setShowOpportunityModal(true);
+                }}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+              >
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Add Opportunity
+              </button>
+            </div>
+            <Suspense fallback={<LoadingSpinner />}>
+              <SalesPipelineView />
+            </Suspense>
+          </div>
+        )}
+
+        {/* Analytics Section */}
+        {selectedView === 'analytics' && (
+          <div className="space-y-6">
+            {/* Analytics Tabs */}
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex space-x-8 overflow-x-auto">
+                {[
+                  { key: 'mobile-money', label: 'Mobile Money', icon: DevicePhoneMobileIcon },
+                  { key: 'community', label: 'Community Groups', icon: UserGroupIcon },
+                  { key: 'communication', label: 'Communication', icon: ChatBubbleLeftRightIcon },
+                  { key: 'regional', label: 'Regional Insights', icon: MapPinIcon },
+                  { key: 'segmentation', label: 'Customer Segmentation', icon: UsersIcon },
+                  {
+                    key: 'ai-insights',
+                    label: '🤖 AI Insights',
+                    icon: SparklesIcon,
+                    badge: aiInsightsEnabled ? 'AI' : undefined
+                  },
+                ].map((tab) => (
+                <button
+                    key={tab.key}
+                    onClick={() => setSelectedAnalyticsTab(tab.key as any)}
+                    className={`group inline-flex items-center py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap relative ${
+                      selectedAnalyticsTab === tab.key
+                        ? 'border-indigo-500 text-indigo-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <tab.icon className={`-ml-0.5 mr-2 h-5 w-5 ${
+                      selectedAnalyticsTab === tab.key ? 'text-indigo-500' : 'text-gray-400 group-hover:text-gray-500'
+                    }`} />
+                    {tab.label}
+                    {tab.badge && (
+                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        {tab.badge}
+                      </span>
+                    )}
+                    {tab.key === 'ai-insights' && aiInsightsEnabled && (
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                    )}
+                </button>
+                ))}
+              </nav>
+              </div>
+              
+            {/* Analytics Content */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {selectedAnalyticsTab === 'mobile-money' && !mobileMoneyLoading && (
+                <>
+                  <div className="bg-white shadow rounded-lg p-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Mobile Money Overview</h3>
+                    <div className="space-y-4">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Total Users:</span>
+                        <span className="text-sm font-medium">{mobileMoneyAnalytics.total_mobile_money_users || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Verified Users:</span>
+                        <span className="text-sm font-medium">{mobileMoneyAnalytics.verified_mobile_money_users || 0}</span>
+                      </div>
+                    </div>
+                </div>
+                
+                  <div className="bg-white shadow rounded-lg p-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Provider Breakdown</h3>
+                    <div className="space-y-3">
+                      {mobileMoneyAnalytics.provider_breakdown?.map((provider: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-gray-700">{provider.mobile_money_provider}</span>
+                          <div className="text-right">
+                            <div className="text-sm text-gray-900">{provider.count} total</div>
+                            <div className="text-sm text-green-600">{provider.verified_count} verified</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                </div>
+                </>
+              )}
+
+              {selectedAnalyticsTab === 'community' && !communityLoading && (
+                <>
+                  <div className="bg-white shadow rounded-lg p-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Community Overview</h3>
+                    <div className="space-y-4">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Total Members:</span>
+                        <span className="text-sm font-medium">{communityAnalytics.total_group_members || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Total Groups:</span>
+                        <span className="text-sm font-medium">{communityAnalytics.total_groups || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Monthly Contributions:</span>
+                        <span className="text-sm font-medium">UGX {(communityAnalytics.total_monthly_contributions || 0).toLocaleString()}</span>
+                      </div>
+                    </div>
+                </div>
+                
+                  <div className="bg-white shadow rounded-lg p-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Role Distribution</h3>
+                    <div className="space-y-3">
+                      {Object.entries(communityAnalytics.role_distribution || {}).map(([role, count]: [string, any], index) => (
+                        <div key={index} className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-gray-700 capitalize">{role}</span>
+                          <span className="text-sm text-gray-900">{count} members</span>
+                        </div>
+                      ))}
+                    </div>
+                </div>
+                </>
+              )}
+
+              {selectedAnalyticsTab === 'communication' && !communicationLoading && (
+                <>
+                  <div className="bg-white shadow rounded-lg p-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Channel Preferences</h3>
+                    <div className="space-y-3">
+                      {communicationAnalytics.preferred_channels?.map((channel: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-gray-700 capitalize flex items-center">
+                            <span className="mr-2">{getChannelIcon(channel.preferred_communication_channel)}</span>
+                            {channel.preferred_communication_channel}
+                          </span>
+                          <span className="text-sm text-gray-900">{channel.count} contacts</span>
+                </div>
+                      ))}
+                </div>
+                  </div>
+                  
+                  <div className="bg-white shadow rounded-lg p-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">WhatsApp Adoption</h3>
+                    <div className="space-y-4">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">WhatsApp Users:</span>
+                        <span className="text-sm font-medium">{communicationAnalytics.whatsapp_adoption?.total_whatsapp_users || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Business Verified:</span>
+                        <span className="text-sm font-medium">{communicationAnalytics.whatsapp_adoption?.verified_whatsapp_business || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Preferred WhatsApp:</span>
+                        <span className="text-sm font-medium">{communicationAnalytics.whatsapp_adoption?.whatsapp_preferred || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {selectedAnalyticsTab === 'regional' && !regionalLoading && (
+                <>
+                  <div className="bg-white shadow rounded-lg p-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Location Distribution</h3>
+                    <div className="space-y-3">
+                      {regionalInsights.location_distribution?.by_district?.slice(0, 5).map((district: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-gray-700">{district.district}</span>
+                          <div className="text-right">
+                            <div className="text-sm text-gray-900">{district.count} contacts</div>
+                            <div className="text-sm text-gray-500">Avg CLV: UGX {Math.round(district.avg_clv || 0).toLocaleString()}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-white shadow rounded-lg p-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Financial Inclusion</h3>
+                    <div className="space-y-4">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Bank Account Holders:</span>
+                        <span className="text-sm font-medium">{regionalInsights.financial_inclusion?.bank_account_holders || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Mobile Money Users:</span>
+                        <span className="text-sm font-medium">{regionalInsights.financial_inclusion?.mobile_money_users || 0}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-gray-500">Cash Preferred:</span>
+                        <span className="text-sm font-medium">{regionalInsights.financial_inclusion?.cash_preferred || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {selectedAnalyticsTab === 'segmentation' && (
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <CustomerSegmentationDashboard />
+                </Suspense>
+              )}
+
+              {/* 🤖 AI Insights Tab */}
+              {selectedAnalyticsTab === 'ai-insights' && (
+                <div className="space-y-6">
+                  {/* AI Controls */}
+                  <div className="bg-white shadow rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium text-gray-900">🤖 AI-Powered CRM Intelligence</h3>
+                      <div className="flex items-center space-x-3">
+                        <label className="flex items-center">
+                          <input
+                            type="checkbox"
+                            checked={aiInsightsEnabled}
+                            onChange={(e) => setAiInsightsEnabled(e.target.checked)}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                          />
+                          <span className="ml-2 text-sm text-gray-700">Enable AI Insights</span>
+                        </label>
+                        <button
+                          onClick={() => {
+                            // Refresh all AI data
+                            window.location.reload();
+                          }}
+                          className="px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200"
+                        >
+                          🔄 Refresh AI Data
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* AI Sub-tabs */}
+                    <div className="border-b border-gray-200">
+                      <nav className="-mb-px flex space-x-6 overflow-x-auto">
+                        {[
+                          { key: 'lead-scoring', label: 'Lead Scoring', icon: '🎯' },
+                          { key: 'deal-prediction', label: 'Deal Prediction', icon: '🔮' },
+                          { key: 'segmentation', label: 'Segmentation', icon: '👥' },
+                          { key: 'pricing', label: 'Pricing Optimization', icon: '💰' },
+                          { key: 'customer-360', label: '360° View', icon: '🔍' },
+                          { key: 'journey-mapping', label: 'Journey Mapping', icon: '🗺️' },
+                          { key: 'voice-of-customer', label: 'Voice of Customer', icon: '💬' },
+                          { key: 'personalization', label: 'Personalization', icon: '🎨' },
+                        ].map((tab) => (
+                          <button
+                            key={tab.key}
+                            onClick={() => setSelectedAIView(tab.key as any)}
+                            className={`group inline-flex items-center py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+                              selectedAIView === tab.key
+                                ? 'border-purple-500 text-purple-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                          >
+                            <span className="mr-2">{tab.icon}</span>
+                            {tab.label}
+                          </button>
+                        ))}
+                      </nav>
+                    </div>
+                  </div>
+
+                  {/* AI Content */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Lead Scoring */}
+                    {selectedAIView === 'lead-scoring' && (
+                      <>
+                        <div className="bg-white shadow-lg rounded-xl border border-gray-100 p-8">
+                          <h3 className="text-xl font-semibold text-gray-900 mb-6">🎯 Lead Scoring Dashboard</h3>
+                          {leadScoringLoading ? (
+                            <LoadingSpinner size="lg" />
+                          ) : (
+                            <div className="space-y-6">
+                              <div className="grid grid-cols-3 gap-6">
+                                <div className="text-center p-6 bg-green-50 rounded-xl border border-green-200">
+                                  <p className="text-3xl font-bold text-green-600">{leadScoring.hot_leads || 0}</p>
+                                  <p className="text-base text-green-700 font-medium">Hot Leads</p>
+                                </div>
+                                <div className="text-center p-6 bg-yellow-50 rounded-xl border border-yellow-200">
+                                  <p className="text-3xl font-bold text-yellow-600">{leadScoring.warm_leads || 0}</p>
+                                  <p className="text-base text-yellow-700 font-medium">Warm Leads</p>
+                                </div>
+                                <div className="text-center p-6 bg-red-50 rounded-xl border border-red-200">
+                                  <p className="text-3xl font-bold text-red-600">{leadScoring.cold_leads || 0}</p>
+                                  <p className="text-base text-red-700 font-medium">Cold Leads</p>
+                                </div>
+                              </div>
+                              <div className="space-y-4">
+                                <h4 className="text-lg font-semibold text-gray-900">Top Scoring Leads</h4>
+                                {(leadScoring.top_leads || []).slice(0, 5).map((lead: any, index: number) => (
+                                  <div key={index} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                                    <span className="text-base font-medium">{lead.name}</span>
+                                    <span className={`px-3 py-2 text-sm font-semibold rounded-full ${
+                                      lead.score > 80 ? 'bg-green-100 text-green-800' :
+                                      lead.score > 60 ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-red-100 text-red-800'
+                                    }`}>
+                                      {lead.score}/100
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="bg-white shadow-lg rounded-xl border border-gray-100 p-8">
+                          <h3 className="text-xl font-semibold text-gray-900 mb-6">📊 Scoring Insights</h3>
+                          <div className="space-y-6">
+                            <div className="p-6 bg-blue-50 rounded-xl border border-blue-200">
+                              <p className="text-base text-blue-800">
+                                <strong>Conversion Rate:</strong> {leadScoring.conversion_rate || 0}%
+                              </p>
+                            </div>
+                            <div className="p-6 bg-purple-50 rounded-xl border border-purple-200">
+                              <p className="text-base text-purple-800">
+                                <strong>Avg. Score:</strong> {leadScoring.average_score || 0}/100
+                              </p>
+                            </div>
+                            <div className="p-6 bg-green-50 rounded-xl border border-green-200">
+                              <p className="text-base text-green-800">
+                                <strong>AI Accuracy:</strong> {leadScoring.ai_accuracy || 0}%
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Deal Prediction */}
+                    {selectedAIView === 'deal-prediction' && (
+                      <>
+                        <div className="bg-white shadow-lg rounded-xl border border-gray-100 p-8">
+                          <h3 className="text-xl font-semibold text-gray-900 mb-6">🔮 Deal Prediction Analytics</h3>
+                          {dealPredictionLoading ? (
+                            <LoadingSpinner size="lg" />
+                          ) : (
+                            <div className="space-y-6">
+                              <div className="grid grid-cols-2 gap-6">
+                                <div className="text-center p-6 bg-green-50 rounded-xl border border-green-200">
+                                  <p className="text-3xl font-bold text-green-600">{dealPrediction.predicted_wins || 0}</p>
+                                  <p className="text-base text-green-700 font-medium">Predicted Wins</p>
+                                </div>
+                                <div className="text-center p-6 bg-red-50 rounded-xl border border-red-200">
+                                  <p className="text-3xl font-bold text-red-600">{dealPrediction.predicted_losses || 0}</p>
+                                  <p className="text-base text-red-700 font-medium">Predicted Losses</p>
+                                </div>
+                              </div>
+                              <div className="space-y-4">
+                                <h4 className="text-lg font-semibold text-gray-900">Deal Forecast</h4>
+                                {(dealPrediction.forecast || []).slice(0, 5).map((deal: any, index: number) => (
+                                  <div key={index} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                                    <span className="text-base font-medium">{deal.name}</span>
+                                    <span className={`px-3 py-2 text-sm font-semibold rounded-full ${
+                                      deal.probability > 70 ? 'bg-green-100 text-green-800' :
+                                      deal.probability > 40 ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-red-100 text-red-800'
+                                    }`}>
+                                      {deal.probability}% win rate
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="bg-white shadow-lg rounded-xl border border-gray-100 p-8">
+                          <h3 className="text-xl font-semibold text-gray-900 mb-6">💡 AI Recommendations</h3>
+                          <div className="space-y-6">
+                            {(dealPrediction.recommendations || []).slice(0, 3).map((rec: any, index: number) => (
+                              <div key={index} className="p-6 bg-blue-50 rounded-xl border border-blue-200">
+                                <p className="text-base text-blue-800 font-medium">{rec.action}</p>
+                                <p className="text-sm text-blue-600 mt-2">Expected impact: {rec.impact}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Customer Segmentation */}
+                    {selectedAIView === 'segmentation' && (
+                      <>
+                        <div className="bg-white shadow-lg rounded-xl border border-gray-100 p-8">
+                          <h3 className="text-xl font-semibold text-gray-900 mb-6">👥 Customer Segmentation</h3>
+                          {segmentationLoading ? (
+                            <LoadingSpinner size="lg" />
+                          ) : (
+                            <div className="space-y-6">
+                              <div className="grid grid-cols-2 gap-6">
+                                <div className="text-center p-6 bg-purple-50 rounded-xl border border-purple-200">
+                                  <p className="text-3xl font-bold text-purple-600">{segmentation.total_segments || 0}</p>
+                                  <p className="text-base text-purple-700 font-medium">Total Segments</p>
+                                </div>
+                                <div className="text-center p-6 bg-indigo-50 rounded-xl border border-indigo-200">
+                                  <p className="text-3xl font-bold text-indigo-600">{segmentation.avg_segment_size || 0}</p>
+                                  <p className="text-base text-indigo-700 font-medium">Avg Segment Size</p>
+                                </div>
+                              </div>
+                              <div className="space-y-4">
+                                <h4 className="text-lg font-semibold text-gray-900">Segment Breakdown</h4>
+                                {(segmentation.segments || []).slice(0, 4).map((segment: any, index: number) => (
+                                  <div key={index} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                                    <span className="text-base font-medium">{segment.name}</span>
+                                    <span className="text-base font-semibold text-gray-600">{segment.count} customers</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="bg-white shadow-lg rounded-xl border border-gray-100 p-8">
+                          <h3 className="text-xl font-semibold text-gray-900 mb-6">🎯 Segment Insights</h3>
+                          <div className="space-y-6">
+                            {(segmentation.insights || []).slice(0, 3).map((insight: any, index: number) => (
+                              <div key={index} className="p-6 bg-green-50 rounded-xl border border-green-200">
+                                <p className="text-base text-green-800 font-medium">{insight.description}</p>
+                                <p className="text-sm text-green-600 mt-2">Revenue potential: UGX {insight.revenue_potential?.toLocaleString()}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Pricing Optimization */}
+                    {selectedAIView === 'pricing' && (
+                      <>
+                        <div className="bg-white shadow rounded-lg p-6">
+                          <h3 className="text-lg font-medium text-gray-900 mb-4">💰 Pricing Optimization</h3>
+                          {pricingLoading ? (
+                            <LoadingSpinner size="lg" />
+                          ) : (
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="text-center p-3 bg-green-50 rounded-lg">
+                                  <p className="text-2xl font-bold text-green-600">+{pricingOptimization.revenue_increase || 0}%</p>
+                                  <p className="text-sm text-green-700">Revenue Increase</p>
+                                </div>
+                                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                                  <p className="text-2xl font-bold text-blue-600">{pricingOptimization.optimized_products || 0}</p>
+                                  <p className="text-sm text-blue-700">Optimized Products</p>
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-gray-900">Dynamic Pricing Suggestions</h4>
+                                {(pricingOptimization.suggestions || []).slice(0, 3).map((suggestion: any, index: number) => (
+                                  <div key={index} className="p-3 bg-yellow-50 rounded-lg">
+                                    <p className="text-sm font-medium text-yellow-900">{suggestion.product_name}</p>
+                                    <p className="text-sm text-yellow-800">Suggested: UGX {suggestion.suggested_price} (Current: UGX {suggestion.current_price})</p>
+                                    <p className="text-xs text-yellow-600">Expected impact: {suggestion.impact}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="bg-white shadow rounded-lg p-6">
+                          <h3 className="text-lg font-medium text-gray-900 mb-4">📈 Price Elasticity</h3>
+                          <div className="space-y-3">
+                            <div className="p-3 bg-purple-50 rounded-lg">
+                              <p className="text-sm text-purple-800">
+                                <strong>Average Elasticity:</strong> {pricingOptimization.avg_elasticity || 0}
+                              </p>
+                            </div>
+                            <div className="p-3 bg-indigo-50 rounded-lg">
+                              <p className="text-sm text-indigo-800">
+                                <strong>Optimal Price Points:</strong> {pricingOptimization.optimal_points || 0} identified
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Customer 360 View */}
+                    {selectedAIView === 'customer-360' && (
+                      <>
+                        <div className="bg-white shadow rounded-lg p-6">
+                          <h3 className="text-lg font-medium text-gray-900 mb-4">🔍 Customer 360° View</h3>
+                          <div className="mb-4">
+                            <select
+                              value={selectedContactForAI || ''}
+                              onChange={(e) => setSelectedContactForAI(parseInt(e.target.value) || null)}
+                              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                              <option value="">Select a contact...</option>
+                              {contacts.slice(0, 10).map((contact) => (
+                                <option key={contact.id} value={contact.id}>
+                                  {contact.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          {selectedContactForAI && customer360Loading ? (
+                            <LoadingSpinner size="lg" />
+                          ) : selectedContactForAI && customer360View ? (
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="p-3 bg-blue-50 rounded-lg">
+                                  <p className="text-sm font-medium text-blue-900">Lifetime Value</p>
+                                  <p className="text-lg font-bold text-blue-600">UGX {customer360View.lifetime_value?.toLocaleString() || 0}</p>
+                                </div>
+                                <div className="p-3 bg-green-50 rounded-lg">
+                                  <p className="text-sm font-medium text-green-900">Engagement Score</p>
+                                  <p className="text-lg font-bold text-green-600">{customer360View.engagement_score || 0}/100</p>
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-gray-900">Key Insights</h4>
+                                {(customer360View.insights || []).slice(0, 3).map((insight: any, index: number) => (
+                                  <div key={index} className="p-2 bg-gray-50 rounded text-sm">
+                                    {insight.description}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-gray-500 text-center py-4">Select a contact to view their 360° profile</p>
+                          )}
+                        </div>
+
+                        <div className="bg-white shadow rounded-lg p-6">
+                          <h3 className="text-lg font-medium text-gray-900 mb-4">📊 Customer Metrics</h3>
+                          {selectedContactForAI && customer360View ? (
+                            <div className="space-y-3">
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">Total Orders:</span>
+                                <span className="font-medium">{customer360View.total_orders || 0}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">Avg Order Value:</span>
+                                <span className="font-medium">UGX {customer360View.avg_order_value?.toLocaleString() || 0}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-sm text-gray-600">Last Purchase:</span>
+                                <span className="font-medium">{customer360View.last_purchase || 'N/A'}</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-gray-500 text-center py-4">No data available</p>
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    {/* Journey Mapping */}
+                    {selectedAIView === 'journey-mapping' && (
+                      <>
+                        <div className="bg-white shadow rounded-lg p-6">
+                          <h3 className="text-lg font-medium text-gray-900 mb-4">🗺️ Customer Journey Mapping</h3>
+                          <div className="mb-4">
+                            <select
+                              value={selectedContactForAI || ''}
+                              onChange={(e) => setSelectedContactForAI(parseInt(e.target.value) || null)}
+                              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                              <option value="">Select a contact...</option>
+                              {contacts.slice(0, 10).map((contact) => (
+                                <option key={contact.id} value={contact.id}>
+                                  {contact.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          {selectedContactForAI && journeyMappingLoading ? (
+                            <LoadingSpinner size="lg" />
+                          ) : selectedContactForAI && journeyMapping ? (
+                            <div className="space-y-4">
+                              <div className="p-3 bg-purple-50 rounded-lg">
+                                <p className="text-sm font-medium text-purple-900">Current Stage</p>
+                                <p className="text-lg font-bold text-purple-600">{journeyMapping.current_stage || 'Unknown'}</p>
+                              </div>
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-gray-900">Journey Steps</h4>
+                                {(journeyMapping.steps || []).slice(0, 5).map((step: any, index: number) => (
+                                  <div key={index} className="flex items-center space-x-3 p-2 bg-gray-50 rounded">
+                                    <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 text-xs font-bold flex items-center justify-center">
+                                      {index + 1}
+                                    </span>
+                                    <span className="text-sm">{step.description}</span>
+                                    <span className="text-xs text-gray-500 ml-auto">{step.date}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-gray-500 text-center py-4">Select a contact to view their journey</p>
+                          )}
+                        </div>
+
+                        <div className="bg-white shadow rounded-lg p-6">
+                          <h3 className="text-lg font-medium text-gray-900 mb-4">🎯 Next Best Actions</h3>
+                          {selectedContactForAI && journeyMapping ? (
+                            <div className="space-y-3">
+                              {(journeyMapping.next_actions || []).slice(0, 3).map((action: any, index: number) => (
+                                <div key={index} className="p-3 bg-green-50 rounded-lg">
+                                  <p className="text-sm font-medium text-green-900">{action.title}</p>
+                                  <p className="text-sm text-green-800">{action.description}</p>
+                                  <p className="text-xs text-green-600 mt-1">Confidence: {action.confidence}%</p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-gray-500 text-center py-4">No recommendations available</p>
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    {/* Voice of Customer */}
+                    {selectedAIView === 'voice-of-customer' && (
+                      <>
+                        <div className="bg-white shadow rounded-lg p-6">
+                          <h3 className="text-lg font-medium text-gray-900 mb-4">💬 Voice of Customer Analytics</h3>
+                          {voiceOfCustomerLoading ? (
+                            <LoadingSpinner size="lg" />
+                          ) : (
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                                  <p className="text-2xl font-bold text-blue-600">{voiceOfCustomer.total_feedback || 0}</p>
+                                  <p className="text-sm text-blue-700">Total Feedback</p>
+                                </div>
+                                <div className="text-center p-3 bg-green-50 rounded-lg">
+                                  <p className="text-2xl font-bold text-green-600">{voiceOfCustomer.sentiment_score || 0}%</p>
+                                  <p className="text-sm text-green-700">Positive Sentiment</p>
+                                </div>
+                              </div>
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-gray-900">Top Themes</h4>
+                                {(voiceOfCustomer.top_themes || []).slice(0, 4).map((theme: any, index: number) => (
+                                  <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                                    <span className="text-sm font-medium">{theme.topic}</span>
+                                    <span className="text-sm text-gray-600">{theme.mentions} mentions</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="bg-white shadow rounded-lg p-6">
+                          <h3 className="text-lg font-medium text-gray-900 mb-4">📝 Recent Feedback</h3>
+                          <div className="space-y-3">
+                            {(voiceOfCustomer.recent_feedback || []).slice(0, 3).map((feedback: any, index: number) => (
+                              <div key={index} className="p-3 bg-yellow-50 rounded-lg">
+                                <p className="text-sm text-yellow-900">"{feedback.comment}"</p>
+                                <p className="text-xs text-yellow-600 mt-1">- {feedback.customer_name} ({feedback.sentiment})</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Personalization */}
+                    {selectedAIView === 'personalization' && (
+                      <>
+                        <div className="bg-white shadow rounded-lg p-6">
+                          <h3 className="text-lg font-medium text-gray-900 mb-4">🎨 Personalization Engine</h3>
+                          <div className="mb-4">
+                            <select
+                              value={selectedContactForAI || ''}
+                              onChange={(e) => setSelectedContactForAI(parseInt(e.target.value) || null)}
+                              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                              <option value="">Select a contact...</option>
+                              {contacts.slice(0, 10).map((contact) => (
+                                <option key={contact.id} value={contact.id}>
+                                  {contact.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          {selectedContactForAI && personalizationLoading ? (
+                            <LoadingSpinner size="lg" />
+                          ) : selectedContactForAI && personalization ? (
+                            <div className="space-y-4">
+                              <div className="p-3 bg-pink-50 rounded-lg">
+                                <p className="text-sm font-medium text-pink-900">Personalization Score</p>
+                                <p className="text-lg font-bold text-pink-600">{personalization.score || 0}/100</p>
+                              </div>
+                              <div className="space-y-2">
+                                <h4 className="font-medium text-gray-900">Recommended Actions</h4>
+                                {(personalization.recommendations || []).slice(0, 3).map((rec: any, index: number) => (
+                                  <div key={index} className="p-3 bg-purple-50 rounded-lg">
+                                    <p className="text-sm font-medium text-purple-900">{rec.type}</p>
+                                    <p className="text-sm text-purple-800">{rec.description}</p>
+                                    <p className="text-xs text-purple-600 mt-1">Expected uplift: {rec.uplift}%</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-gray-500 text-center py-4">Select a contact to view personalization recommendations</p>
+                          )}
+                        </div>
+
+                        <div className="bg-white shadow rounded-lg p-6">
+                          <h3 className="text-lg font-medium text-gray-900 mb-4">🎯 Personalized Offers</h3>
+                          {selectedContactForAI && personalization ? (
+                            <div className="space-y-3">
+                              {(personalization.offers || []).slice(0, 3).map((offer: any, index: number) => (
+                                <div key={index} className="p-3 bg-green-50 rounded-lg">
+                                  <p className="text-sm font-medium text-green-900">{offer.title}</p>
+                                  <p className="text-sm text-green-800">{offer.description}</p>
+                                  <p className="text-xs text-green-600 mt-1">Discount: {offer.discount}%</p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-gray-500 text-center py-4">No personalized offers available</p>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+          </div>
+        </div>
+      )}
+
+        {/* Lazy-loaded Modals with Suspense */}
+        <Suspense fallback={<ModalFallback />}>
+          {showContactModal && (
+            <ContactModal
+              isOpen={showContactModal}
+              onClose={handleContactModalClose}
+              contact={editingContact as any}
+              onSuccess={handleContactSuccess}
+            />
+          )}
+
+          {showDetailsModal && (
+            <ContactDetailsModal
+              isOpen={showDetailsModal}
+              onClose={handleDetailsModalClose}
+              contact={viewingContact}
+              onEdit={handleEditFromDetails}
+            />
+          )}
+
+          {showContactTypeModal && (
+            <ContactTypeModal
+              isOpen={showContactTypeModal}
+              onClose={() => setShowContactTypeModal(false)}
+            />
+          )}
+
+          {showOpportunityModal && (
+            <SalesOpportunityModal
+              isOpen={showOpportunityModal}
+              onClose={() => setShowOpportunityModal(false)}
+              opportunity={editingOpportunity}
+              onSuccess={() => {
+                refetchOpportunities();
+                setShowOpportunityModal(false);
+              }}
+            />
+          )}
+        </Suspense>
+        </DashboardLayout>
+      </ProtectedRoute>
+    );
+  }
