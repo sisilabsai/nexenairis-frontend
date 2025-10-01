@@ -332,8 +332,9 @@ export default function HrPage() {
         'Accept': 'application/json',
       };
 
-      // Load NSSF contributions
-      const nssfResponse = await fetch('http://localhost:8000/api/hr/nssf-contributions', { headers });
+  // Load NSSF contributions
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.nexenairis.com/api';
+  const nssfResponse = await fetch(`${apiBase}/hr/nssf-contributions`, { headers, credentials: 'include' });
       if (nssfResponse.ok) {
         const nssfData = await nssfResponse.json();
         setNssfData(nssfData.data || []);
@@ -350,8 +351,8 @@ export default function HrPage() {
         return;
       }
 
-      // Load local holidays
-      const holidaysResponse = await fetch('http://localhost:8000/api/hr/local-holidays', { headers });
+  // Load local holidays
+  const holidaysResponse = await fetch(`${apiBase}/hr/local-holidays`, { headers, credentials: 'include' });
       if (holidaysResponse.ok) {
         const holidaysData = await holidaysResponse.json();
         // Ensure we always set an array, handle both direct array and paginated response
@@ -362,43 +363,43 @@ export default function HrPage() {
         setLocalHolidaysData([]);
       }
 
-      // Load wellness records
-      const wellnessResponse = await fetch('http://localhost:8000/api/hr/wellness-records', { headers });
+  // Load wellness records
+  const wellnessResponse = await fetch(`${apiBase}/hr/wellness-records`, { headers, credentials: 'include' });
       if (wellnessResponse.ok) {
         const wellnessData = await wellnessResponse.json();
         setWellnessData(wellnessData.data || []);
       }
 
-      // Load performance metrics
-      const performanceResponse = await fetch('http://localhost:8000/api/hr/performance-metrics', { headers });
+  // Load performance metrics
+  const performanceResponse = await fetch(`${apiBase}/hr/performance-metrics`, { headers, credentials: 'include' });
       if (performanceResponse.ok) {
         const performanceData = await performanceResponse.json();
         setPerformanceData(performanceData.data || []);
       }
 
-      // Load skills assessments
-      const skillsResponse = await fetch('http://localhost:8000/api/hr/skills-gap-analysis', { headers });
+  // Load skills assessments
+  const skillsResponse = await fetch(`${apiBase}/hr/skills-gap-analysis`, { headers, credentials: 'include' });
       if (skillsResponse.ok) {
         const skillsData = await skillsResponse.json();
         setSkillsData(skillsData.data || []);
       }
 
-      // Load attendance sessions
-      const attendanceResponse = await fetch('http://localhost:8000/api/hr/attendance-sessions', { headers });
+  // Load attendance sessions
+  const attendanceResponse = await fetch(`${apiBase}/hr/attendance-sessions`, { headers, credentials: 'include' });
       if (attendanceResponse.ok) {
         const attendanceData = await attendanceResponse.json();
         setAttendanceSessionsData(attendanceData.data || []);
       }
 
-      // Load payslip deliveries
-      const payslipResponse = await fetch('http://localhost:8000/api/hr/payslip-deliveries', { headers });
+  // Load payslip deliveries
+  const payslipResponse = await fetch(`${apiBase}/hr/payslip-deliveries`, { headers, credentials: 'include' });
       if (payslipResponse.ok) {
         const payslipData = await payslipResponse.json();
         setPayslipDeliveriesData(payslipData.data || []);
       }
 
-      // Load employee preferences
-      const preferencesResponse = await fetch('http://localhost:8000/api/hr/employee-preferences', { headers });
+  // Load employee preferences
+  const preferencesResponse = await fetch(`${apiBase}/hr/employee-preferences`, { headers, credentials: 'include' });
       if (preferencesResponse.ok) {
         const preferencesData = await preferencesResponse.json();
         setPreferencesData(preferencesData.data || []);
@@ -425,7 +426,8 @@ export default function HrPage() {
     const password = formData.get('password') as string;
 
     try {
-      const response = await fetch('http://localhost:8000/api/auth/login', {
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.nexenairis.com/api';
+  const response = await fetch(`${apiBase}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -513,12 +515,13 @@ export default function HrPage() {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.nexenairis.com/api';
 
       // Load all AI insights in parallel
       const [churnResponse, performanceResponse, compensationResponse] = await Promise.all([
-        fetch('http://localhost:8000/api/hr/ai/churn-prediction', { headers }),
-        fetch('http://localhost:8000/api/hr/ai/performance-prediction', { headers }),
-        fetch('http://localhost:8000/api/hr/ai/compensation-optimization', { headers })
+        fetch(`${apiBase}/hr/ai/churn-prediction`, { headers, credentials: 'include' }),
+        fetch(`${apiBase}/hr/ai/performance-prediction`, { headers, credentials: 'include' }),
+        fetch(`${apiBase}/hr/ai/compensation-optimization`, { headers, credentials: 'include' })
       ]);
 
       if (churnResponse.ok) {
@@ -566,12 +569,13 @@ export default function HrPage() {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.nexenairis.com/api';
 
       const [recruitmentResponse, successionResponse, learningResponse, engagementResponse] = await Promise.all([
-        fetch('http://localhost:8000/api/hr/talent/recruitment-ai', { headers }),
-        fetch('http://localhost:8000/api/hr/talent/succession-planning', { headers }),
-        fetch('http://localhost:8000/api/hr/talent/learning-management', { headers }),
-        fetch('http://localhost:8000/api/hr/talent/employee-engagement', { headers })
+        fetch(`${apiBase}/hr/talent/recruitment-ai`, { headers, credentials: 'include' }),
+        fetch(`${apiBase}/hr/talent/succession-planning`, { headers, credentials: 'include' }),
+        fetch(`${apiBase}/hr/talent/learning-management`, { headers, credentials: 'include' }),
+        fetch(`${apiBase}/hr/talent/employee-engagement`, { headers, credentials: 'include' })
       ]);
 
       const talentData = {
@@ -604,8 +608,9 @@ export default function HrPage() {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.nexenairis.com/api';
 
-      const response = await fetch('http://localhost:8000/api/hr/wellness/comprehensive-analysis', { headers });
+      const response = await fetch(`${apiBase}/hr/wellness/comprehensive-analysis`, { headers, credentials: 'include' });
       
       if (response.ok) {
         const data = await response.json();
@@ -636,7 +641,8 @@ export default function HrPage() {
         'Accept': 'application/json',
       };
 
-      const response = await fetch('http://localhost:8000/api/hr/diversity/comprehensive-analysis', { headers });
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.nexenairis.com/api';
+      const response = await fetch(`${apiBase}/hr/diversity/comprehensive-analysis`, { headers, credentials: 'include' });
       
       if (response.ok) {
         const data = await response.json();
@@ -667,7 +673,8 @@ export default function HrPage() {
         'Accept': 'application/json',
       };
 
-      const response = await fetch('http://localhost:8000/api/hr/analytics/comprehensive-workforce-insights', { headers });
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.nexenairis.com/api';
+      const response = await fetch(`${apiBase}/hr/analytics/comprehensive-workforce-insights`, { headers, credentials: 'include' });
       
       if (response.ok) {
         const data = await response.json();
