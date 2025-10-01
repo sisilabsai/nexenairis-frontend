@@ -50,7 +50,17 @@ export default function RegisterPage() {
   useEffect(() => {
     const fetchIndustries = async () => {
       try {
-        const response = await fetch('/api/industries');
+        // Use NEXT_PUBLIC_API_URL for absolute API path
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://api.nexenairis.com/api';
+        const response = await fetch(`${apiBase}/industries`, {
+          credentials: 'include',
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
         const data = await response.json();
         if (data.success) {
           setIndustries(data.data);
@@ -59,7 +69,6 @@ export default function RegisterPage() {
         console.error('Failed to fetch industries:', error);
       }
     };
-
     fetchIndustries();
   }, []);
 
