@@ -78,7 +78,7 @@ export default function LoginPage() {
     <>
       {isSuccess && (
         <Loader 
-          logoUrl="https://res.cloudinary.com/dc0uiujvn/image/upload/v1757190921/SINGO_logo_vpsb3e.png" 
+          logoUrl="https://res.cloudinary.com/dc0uiujvn/image/upload/v1757896917/logo_g2mak4.png" 
           message="Login Successful! Redirecting..." 
         />
       )}
