@@ -161,43 +161,45 @@ export default function RegisterPage() {
           message="Registration Successful! Redirecting..." 
         />
       )}
-      <div className="w-full max-w-lg">
-        <div className="text-center mb-8">
-          <h2 className="text-4xl font-extrabold text-gray-900">
+      <div className="w-full max-w-lg mx-auto px-4 sm:px-6">
+        <div className="text-center mb-6 sm:mb-8">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-900">
             Create an Account
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-xs sm:text-sm text-gray-600">
             Join NEXEN AIRIS to revolutionize your business.
           </p>
         </div>
 
-        <div className="mb-6 flex justify-center">
-          <div className="flex rounded-full bg-gray-200 p-1 shadow-inner">
+        <div className="mb-4 sm:mb-6 flex justify-center">
+          <div className="flex rounded-full bg-gray-200 p-1 shadow-inner w-full max-w-xs sm:max-w-none sm:w-auto">
             <button
               onClick={() => setRegistrationMode('new')}
-              className={`px-6 py-2 text-sm font-semibold rounded-full flex items-center transition-all duration-300 ${
+              className={`px-3 sm:px-6 py-2 text-xs sm:text-sm font-semibold rounded-full flex items-center transition-all duration-300 touch-manipulation flex-1 sm:flex-none justify-center ${
                 registrationMode === 'new' ? 'bg-white text-indigo-600 shadow-md' : 'text-gray-600'
               }`}
             >
-              <BuildingOffice2Icon className="h-5 w-5 mr-2" />
-              New Company
+              <BuildingOffice2Icon className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">New Company</span>
+              <span className="sm:hidden">New</span>
             </button>
             <button
               onClick={() => setRegistrationMode('existing')}
-              className={`px-6 py-2 text-sm font-semibold rounded-full flex items-center transition-all duration-300 ${
+              className={`px-3 sm:px-6 py-2 text-xs sm:text-sm font-semibold rounded-full flex items-center transition-all duration-300 touch-manipulation flex-1 sm:flex-none justify-center ${
                 registrationMode === 'existing' ? 'bg-white text-indigo-600 shadow-md' : 'text-gray-600'
               }`}
             >
-              <UserPlusIcon className="h-5 w-5 mr-2" />
-              Existing Company
+              <UserPlusIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Existing Company</span>
+              <span className="sm:hidden">Existing</span>
             </button>
           </div>
         </div>
 
-        <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+        <form className="space-y-4 sm:space-y-6" onSubmit={handleSubmit} noValidate>
           {errors.general && (
-            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md shadow-md">
-              <p>{errors.general}</p>
+            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 sm:p-4 rounded-md shadow-md">
+              <p className="text-sm">{errors.general}</p>
             </div>
           )}
 
@@ -215,27 +217,27 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center items-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300 ease-in-out transform hover:scale-105"
+              className="w-full flex justify-center items-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300 ease-in-out transform hover:scale-105 touch-manipulation min-h-[44px]"
             >
               {isLoading ? (
                 <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-3"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-t-2 border-b-2 border-white mr-3"></div>
                   <span>Creating Account...</span>
                 </>
               ) : (
                 <>
                   <span>Create Account</span>
-                  <ArrowRightIcon className="ml-2 h-5 w-5" />
+                  <ArrowRightIcon className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                 </>
               )}
             </button>
           </div>
         </form>
 
-        <div className="mt-8 text-center text-sm">
+        <div className="mt-6 sm:mt-8 text-center text-xs sm:text-sm">
           <p className="text-gray-600">
             Already have an account?{' '}
-            <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500 hover:underline">
+            <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500 hover:underline touch-manipulation">
               Sign In
             </Link>
           </p>
@@ -256,7 +258,7 @@ const FormField = ({ id, name, label, type = 'text', value, onChange, error, pla
       value={value}
       onChange={onChange}
       required={required}
-      className={`w-full px-4 py-3 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-md placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out`}
+      className={`w-full px-3 sm:px-4 py-3 text-sm sm:text-base border ${error ? 'border-red-500' : 'border-gray-300'} rounded-md placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out`}
       placeholder={placeholder}
     />
     {children}
@@ -265,8 +267,8 @@ const FormField = ({ id, name, label, type = 'text', value, onChange, error, pla
 );
 
 const NewCompanyFields = ({ formData, handleInputChange, errors, industries }: any) => (
-  <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
-    <h3 className="font-semibold text-gray-800">Company Information</h3>
+  <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 border rounded-lg bg-gray-50">
+    <h3 className="font-semibold text-sm sm:text-base text-gray-800">Company Information</h3>
     <FormField id="company_name" name="company_name" label="Company Name" value={formData.company_name} onChange={handleInputChange} error={errors.company_name} placeholder="Company Name *" required />
     <FormField id="company_email" name="company_email" label="Company Email" type="email" value={formData.company_email} onChange={handleInputChange} error={errors.company_email} placeholder="Company Email *" required />
     <div className="relative">
@@ -276,7 +278,7 @@ const NewCompanyFields = ({ formData, handleInputChange, errors, industries }: a
         value={formData.industry_id}
         onChange={handleInputChange}
         required
-        className={`w-full px-4 py-3 border ${errors.industry_id ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out`}
+        className={`w-full px-3 sm:px-4 py-3 text-sm sm:text-base border ${errors.industry_id ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out appearance-none bg-white`}
       >
         <option value="">Select an industry</option>
         {industries.map((industry: Industry) => (
@@ -292,8 +294,8 @@ const NewCompanyFields = ({ formData, handleInputChange, errors, industries }: a
 );
 
 const ExistingCompanyFields = ({ formData, handleInputChange, errors, tenants }: any) => (
-  <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
-    <h3 className="font-semibold text-gray-800">Select Your Company</h3>
+  <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 border rounded-lg bg-gray-50">
+    <h3 className="font-semibold text-sm sm:text-base text-gray-800">Select Your Company</h3>
     <div className="relative">
       <select
         id="tenant_id"
@@ -301,7 +303,7 @@ const ExistingCompanyFields = ({ formData, handleInputChange, errors, tenants }:
         value={formData.tenant_id}
         onChange={handleInputChange}
         required
-        className={`w-full px-4 py-3 border ${errors.tenant_id ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out`}
+        className={`w-full px-3 sm:px-4 py-3 text-sm sm:text-base border ${errors.tenant_id ? 'border-red-500' : 'border-gray-300'} rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out appearance-none bg-white`}
       >
         <option value="">Select a company</option>
         {tenants.map((tenant: Tenant) => (
@@ -314,12 +316,12 @@ const ExistingCompanyFields = ({ formData, handleInputChange, errors, tenants }:
 );
 
 const PersonalInformationFields = ({ formData, handleInputChange, errors }: any) => (
-  <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
-    <h3 className="font-semibold text-gray-800">Personal Information</h3>
+  <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 border rounded-lg bg-gray-50">
+    <h3 className="font-semibold text-sm sm:text-base text-gray-800">Personal Information</h3>
     <FormField id="name" name="name" label="Full Name" value={formData.name} onChange={handleInputChange} error={errors.name} placeholder="Full Name *" required />
     <FormField id="email" name="email" label="Email Address" type="email" value={formData.email} onChange={handleInputChange} error={errors.email} placeholder="Your Email *" required />
     <FormField id="phone" name="phone" label="Phone Number" type="tel" value={formData.phone} onChange={handleInputChange} error={errors.phone} placeholder="Phone Number" />
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
       <div>
         <label htmlFor="position" className="sr-only">Position</label>
         <select
@@ -327,7 +329,7 @@ const PersonalInformationFields = ({ formData, handleInputChange, errors }: any)
           name="position"
           value={formData.position}
           onChange={handleInputChange}
-          className={`w-full px-4 py-3 border ${errors.position ? 'border-red-500' : 'border-gray-300'} rounded-md placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out`}
+          className={`w-full px-3 sm:px-4 py-3 text-sm sm:text-base border ${errors.position ? 'border-red-500' : 'border-gray-300'} rounded-md placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out appearance-none bg-white`}
         >
           <option value="">Select a position</option>
           <option value="CEO">CEO</option>
@@ -346,7 +348,7 @@ const PersonalInformationFields = ({ formData, handleInputChange, errors }: any)
           name="department"
           value={formData.department}
           onChange={handleInputChange}
-          className={`w-full px-4 py-3 border ${errors.department ? 'border-red-500' : 'border-gray-300'} rounded-md placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out`}
+          className={`w-full px-3 sm:px-4 py-3 text-sm sm:text-base border ${errors.department ? 'border-red-500' : 'border-gray-300'} rounded-md placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out appearance-none bg-white`}
         >
           <option value="">Select a department</option>
           <option value="Executive">Executive</option>
@@ -364,16 +366,16 @@ const PersonalInformationFields = ({ formData, handleInputChange, errors }: any)
 );
 
 const AccountSecurityFields = ({ formData, handleInputChange, errors, showPassword, setShowPassword, showConfirmPassword, setShowConfirmPassword }: any) => (
-  <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
-    <h3 className="font-semibold text-gray-800">Account Security</h3>
+  <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 border rounded-lg bg-gray-50">
+    <h3 className="font-semibold text-sm sm:text-base text-gray-800">Account Security</h3>
     <FormField id="password" name="password" label="Password" type={showPassword ? 'text' : 'password'} value={formData.password} onChange={handleInputChange} error={errors.password} placeholder="Password *" required>
-      <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700" onClick={() => setShowPassword(!showPassword)}>
-        {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+      <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700 touch-manipulation" onClick={() => setShowPassword(!showPassword)}>
+        {showPassword ? <EyeSlashIcon className="h-4 w-4 sm:h-5 sm:w-5" /> : <EyeIcon className="h-4 w-4 sm:h-5 sm:w-5" />}
       </button>
     </FormField>
     <FormField id="password_confirmation" name="password_confirmation" label="Confirm Password" type={showConfirmPassword ? 'text' : 'password'} value={formData.password_confirmation} onChange={handleInputChange} error={errors.password_confirmation} placeholder="Confirm Password *" required>
-      <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
-        {showConfirmPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+      <button type="button" className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700 touch-manipulation" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+        {showConfirmPassword ? <EyeSlashIcon className="h-4 w-4 sm:h-5 sm:w-5" /> : <EyeIcon className="h-4 w-4 sm:h-5 sm:w-5" />}
       </button>
     </FormField>
   </div>

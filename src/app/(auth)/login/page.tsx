@@ -82,20 +82,20 @@ export default function LoginPage() {
           message="Login Successful! Redirecting..." 
         />
       )}
-      <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <h2 className="text-4xl font-extrabold text-gray-900">
+      <div className="w-full max-w-md mx-auto px-4 sm:px-6">
+        <div className="text-center mb-6 sm:mb-8 lg:mb-10">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-900">
             Welcome Back!
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-xs sm:text-sm text-gray-600">
             Sign in to continue to NEXEN AIRIS
           </p>
         </div>
 
-        <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+        <form className="space-y-4 sm:space-y-6" onSubmit={handleSubmit} noValidate>
           {errors.general && (
-            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md shadow-md">
-              <p>{errors.general}</p>
+            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-3 sm:p-4 rounded-md shadow-md">
+              <p className="text-sm">{errors.general}</p>
             </div>
           )}
 
@@ -108,7 +108,7 @@ export default function LoginPage() {
               required
               value={formData.email}
               onChange={handleInputChange}
-              className={`w-full px-4 py-3 border ${
+              className={`w-full px-3 sm:px-4 py-3 sm:py-3 text-sm sm:text-base border ${
                 errors.email ? 'border-red-500' : 'border-gray-300'
               } rounded-md placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out`}
               placeholder="Email address"
@@ -127,20 +127,20 @@ export default function LoginPage() {
               required
               value={formData.password}
               onChange={handleInputChange}
-              className={`w-full px-4 py-3 pr-10 border ${
+              className={`w-full px-3 sm:px-4 py-3 sm:py-3 pr-10 sm:pr-12 text-sm sm:text-base border ${
                 errors.password ? 'border-red-500' : 'border-gray-300'
               } rounded-md placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150 ease-in-out`}
               placeholder="Password"
             />
             <button
               type="button"
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700 touch-manipulation"
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? (
-                <EyeSlashIcon className="h-5 w-5" />
+                <EyeSlashIcon className="h-4 w-4 sm:h-5 sm:w-5" />
               ) : (
-                <EyeIcon className="h-5 w-5" />
+                <EyeIcon className="h-4 w-4 sm:h-5 sm:w-5" />
               )}
             </button>
             {errors.password && (
@@ -148,19 +148,19 @@ export default function LoginPage() {
             )}
           </div>
 
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between text-xs sm:text-sm">
             <div className="flex items-center">
               <input
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded touch-manipulation"
               />
               <label htmlFor="remember-me" className="ml-2 block text-gray-900">
                 Remember me
               </label>
             </div>
-            <Link href="/forgot-password" className="font-medium text-indigo-600 hover:text-indigo-500">
+            <Link href="/forgot-password" className="font-medium text-indigo-600 hover:text-indigo-500 text-center sm:text-left">
               Forgot your password?
             </Link>
           </div>
@@ -169,27 +169,27 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center items-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300 ease-in-out transform hover:scale-105"
+              className="w-full flex justify-center items-center py-3 sm:py-3 px-4 border border-transparent text-sm sm:text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300 ease-in-out transform hover:scale-105 touch-manipulation min-h-[44px]"
             >
               {isLoading ? (
                 <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-3"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-t-2 border-b-2 border-white mr-3"></div>
                   <span>Signing in...</span>
                 </>
               ) : (
                 <>
                   <span>Sign in</span>
-                  <ArrowRightIcon className="ml-2 h-5 w-5" />
+                  <ArrowRightIcon className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
                 </>
               )}
             </button>
           </div>
         </form>
 
-        <div className="mt-8 text-center text-sm">
+        <div className="mt-6 sm:mt-8 text-center text-xs sm:text-sm">
           <p className="text-gray-600">
             Don't have an account?{' '}
-            <Link href="/register" className="font-medium text-indigo-600 hover:text-indigo-500 hover:underline">
+            <Link href="/register" className="font-medium text-indigo-600 hover:text-indigo-500 hover:underline touch-manipulation">
               Sign up
             </Link>
           </p>

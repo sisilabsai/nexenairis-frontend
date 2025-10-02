@@ -80,29 +80,49 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Navigation */}
-      <nav className="relative z-50 px-6 py-4">
+      <nav className="relative z-50 px-4 sm:px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center">
-              <span className="text-white text-xl font-bold">S</span>
-            </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <img 
+              src="https://res.cloudinary.com/dc0uiujvn/image/upload/v1757896917/logo_g2mak4.png"
+              alt="NEXEN AIRIS Logo"
+              className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
+            />
+            <span className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
               NEXEN AIRIS
             </span>
           </div>
-          <div className="hidden md:flex items-center space-x-8">
-            <a href="#features" className="text-gray-700 hover:text-blue-600 transition-colors">Features</a>
-            <a href="#modules" className="text-gray-700 hover:text-blue-600 transition-colors">Modules</a>
-            <a href="#pricing" className="text-gray-700 hover:text-blue-600 transition-colors">Pricing</a>
+          
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-6 lg:space-x-8">
+            <a href="#features" className="text-gray-700 hover:text-blue-600 transition-colors text-sm lg:text-base">Features</a>
+            <a href="#modules" className="text-gray-700 hover:text-blue-600 transition-colors text-sm lg:text-base">Modules</a>
+            <a href="#pricing" className="text-gray-700 hover:text-blue-600 transition-colors text-sm lg:text-base">Pricing</a>
             <Link
               href="/login"
-              className="px-6 py-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+              className="px-4 lg:px-6 py-2 text-blue-600 hover:text-blue-700 font-medium transition-colors text-sm lg:text-base"
             >
               Sign In
             </Link>
             <Link
               href="/register"
-              className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+              className="px-4 lg:px-6 py-2 lg:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl text-sm lg:text-base"
+            >
+              Get Started
+            </Link>
+          </div>
+          
+          {/* Mobile Navigation */}
+          <div className="md:hidden flex items-center space-x-2">
+            <Link
+              href="/login"
+              className="px-3 py-2 text-blue-600 hover:text-blue-700 font-medium transition-colors text-sm"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/register"
+              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg text-sm"
             >
               Get Started
             </Link>
@@ -111,11 +131,11 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative px-6 py-20 lg:py-32">
+      <section className="relative px-4 sm:px-6 py-12 sm:py-20 lg:py-32">
         {/* Finance/Business SVG Background */}
         <svg
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 w-full h-full z-0 opacity-30"
+          className="pointer-events-none absolute inset-0 w-full h-full z-0 opacity-20 sm:opacity-30"
           viewBox="0 0 1200 600"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
@@ -191,9 +211,9 @@ export default function LandingPage() {
         </svg>
         <div className="max-w-7xl mx-auto text-center">
           <div className="relative z-10">
-            <h1 className="text-5xl lg:text-7xl font-bold text-gray-900 mb-8 leading-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold text-gray-900 mb-6 sm:mb-8 leading-tight">
               The Future of
-              <span className="block relative">
+              <span className="block relative mt-2 sm:mt-0">
                 <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
                   <Typewriter
                     words={['Business Management', 'AI-Powered Finance', 'African Innovation', 'Self-Driving ERP', 'Predictive Insights']}
@@ -220,49 +240,49 @@ export default function LandingPage() {
               </span>
               is Here
               </h1>
-            <p className="text-xl lg:text-2xl text-gray-600 mb-8 max-w-4xl mx-auto leading-relaxed">
+            <p className="text-base sm:text-lg lg:text-xl xl:text-2xl text-gray-600 mb-6 sm:mb-8 max-w-4xl mx-auto leading-relaxed px-4 sm:px-0">
               Self-driving, intelligent, and hyper-localized ERP system designed specifically for 
               <span className="font-semibold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent bg-size-200 animate-shimmer"> Ugandan and African businesses</span>. 
               Automate operations, get predictive insights, and scale effortlessly.
             </p>
 
             {/* Magical Stats Row */}
-            <div className="flex flex-wrap justify-center gap-8 mb-12">
-              <div className="flex items-center space-x-3 bg-white/70 backdrop-blur-sm rounded-2xl px-6 py-3 shadow-lg border border-white/30">
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            <div className="flex flex-wrap justify-center gap-3 sm:gap-6 lg:gap-8 mb-8 sm:mb-12 px-4 sm:px-0">
+              <div className="flex items-center space-x-2 sm:space-x-3 bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl px-3 sm:px-6 py-2 sm:py-3 shadow-lg border border-white/30">
+                <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full animate-pulse"></div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
                     <span className="magical-counter" data-target="95">0</span>%
                   </div>
-                  <div className="text-sm text-gray-600">Faster Operations</div>
+                  <div className="text-xs sm:text-sm text-gray-600">Faster Operations</div>
                 </div>
               </div>
               
-              <div className="flex items-center space-x-3 bg-white/70 backdrop-blur-sm rounded-2xl px-6 py-3 shadow-lg border border-white/30">
-                <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse" style={{animationDelay: '0.5s'}}></div>
+              <div className="flex items-center space-x-2 sm:space-x-3 bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl px-3 sm:px-6 py-2 sm:py-3 shadow-lg border border-white/30">
+                <div className="w-2 h-2 sm:w-3 sm:h-3 bg-blue-500 rounded-full animate-pulse" style={{animationDelay: '0.5s'}}></div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
                     <span className="magical-counter" data-target="500">0</span>+
                   </div>
-                  <div className="text-sm text-gray-600">African Businesses</div>
+                  <div className="text-xs sm:text-sm text-gray-600">African Businesses</div>
                 </div>
               </div>
               
-              <div className="flex items-center space-x-3 bg-white/70 backdrop-blur-sm rounded-2xl px-6 py-3 shadow-lg border border-white/30">
-                <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse" style={{animationDelay: '1s'}}></div>
+              <div className="flex items-center space-x-2 sm:space-x-3 bg-white/70 backdrop-blur-sm rounded-xl sm:rounded-2xl px-3 sm:px-6 py-2 sm:py-3 shadow-lg border border-white/30">
+                <div className="w-2 h-2 sm:w-3 sm:h-3 bg-purple-500 rounded-full animate-pulse" style={{animationDelay: '1s'}}></div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
                     UGX <span className="magical-counter" data-target="2">0</span>M+
                   </div>
-                  <div className="text-sm text-gray-600">Processed Daily</div>
+                  <div className="text-xs sm:text-sm text-gray-600">Processed Daily</div>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-12 sm:mb-16 px-4 sm:px-0">
               <div className="relative group">
                 {/* Floating micro-particles around CTA */}
-                <div className="absolute -inset-4 opacity-30 group-hover:opacity-70 transition-opacity duration-500">
+                <div className="hidden sm:block absolute -inset-4 opacity-30 group-hover:opacity-70 transition-opacity duration-500">
                   {[...Array(6)].map((_, i) => (
                     <div
                       key={i}
@@ -279,10 +299,10 @@ export default function LandingPage() {
                 
                 <Link
                   href="/register"
-                  className="magical-cta relative inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white text-lg font-semibold rounded-xl transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-105 overflow-hidden"
+                  className="magical-cta relative inline-flex items-center justify-center w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white text-base sm:text-lg font-semibold rounded-lg sm:rounded-xl transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-105 overflow-hidden"
                 >
                   <span className="relative z-10 flex items-center">
-                    <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                     Start Free Trial
@@ -292,9 +312,9 @@ export default function LandingPage() {
               </div>
 
               <div className="relative group">
-                <button className="relative inline-flex items-center justify-center px-8 py-4 border-2 border-gray-300 text-gray-700 text-lg font-semibold rounded-xl hover:border-blue-600 hover:text-blue-600 transition-all duration-300 bg-white/80 backdrop-blur-sm hover:shadow-lg transform hover:scale-105 overflow-hidden">
+                <button className="relative inline-flex items-center justify-center w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 border-2 border-gray-300 text-gray-700 text-base sm:text-lg font-semibold rounded-lg sm:rounded-xl hover:border-blue-600 hover:text-blue-600 transition-all duration-300 bg-white/80 backdrop-blur-sm hover:shadow-lg transform hover:scale-105 overflow-hidden">
                   <span className="relative z-10 flex items-center">
-                    <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M12 5v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     Watch Demo
@@ -308,7 +328,7 @@ export default function LandingPage() {
       </section>
 
       {/* AI Features Section */}
-      <section className="relative px-6 py-20 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 overflow-hidden">
+      <section id="features" className="relative px-4 sm:px-6 py-12 sm:py-20 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 overflow-hidden">
         {/* AI Particle Background */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="ai-particles">
@@ -332,29 +352,29 @@ export default function LandingPage() {
               <div className="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></div>
               AI-Powered Intelligence
             </div>
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 sm:mb-6">
               Powered by <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Artificial Intelligence</span>
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed px-4 sm:px-0">
               Experience the future of business management with our AI-powered autonomous core that learns and adapts to your business
               </p>
             </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-12 sm:mb-20 px-4 sm:px-0">
             {/* AI Core Feature */}
-            <div className="group relative p-8 rounded-3xl bg-white/70 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 border border-white/20">
+            <div className="group relative p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white/70 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 border border-white/20">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <div className="relative z-10">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform duration-500 shadow-lg">
-                  <svg className="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 sm:mb-6 mx-auto group-hover:scale-110 transition-transform duration-500 shadow-lg">
+                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
                     <circle cx="12" cy="12" r="3" className="animate-pulse"/>
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 text-center">
                   AI-Powered Autonomous Core
                 </h3>
-                <p className="text-gray-600 text-center leading-relaxed mb-6">
+                <p className="text-sm sm:text-base text-gray-600 text-center leading-relaxed mb-4 sm:mb-6">
                   AIDA Assistant provides conversational AI for business queries and decision support
                 </p>
                 <div className="flex justify-center">
@@ -366,19 +386,19 @@ export default function LandingPage() {
               </div>
 
             {/* Predictive Insights Feature */}
-            <div className="group relative p-8 rounded-3xl bg-white/70 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 border border-white/20">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="group relative p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white/70 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 border border-white/20">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-2xl sm:rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <div className="relative z-10">
-                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform duration-500 shadow-lg">
-                  <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 sm:mb-6 mx-auto group-hover:scale-110 transition-transform duration-500 shadow-lg">
+                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     <path className="animate-pulse" strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 text-center">
                   Predictive Business Insights
                 </h3>
-                <p className="text-gray-600 text-center leading-relaxed mb-6">
+                <p className="text-sm sm:text-base text-gray-600 text-center leading-relaxed mb-4 sm:mb-6">
                   Get AI-powered recommendations to make better business decisions
                 </p>
                 <div className="flex justify-center">
@@ -390,19 +410,19 @@ export default function LandingPage() {
               </div>
 
             {/* Automated Workflows Feature */}
-            <div className="group relative p-8 rounded-3xl bg-white/70 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 border border-white/20">
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            <div className="group relative p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-white/70 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 border border-white/20">
+              <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-emerald-500/10 rounded-2xl sm:rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               <div className="relative z-10">
-                <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center mb-6 mx-auto group-hover:scale-110 transition-transform duration-500 shadow-lg">
-                  <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 sm:mb-6 mx-auto group-hover:scale-110 transition-transform duration-500 shadow-lg">
+                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                     <circle cx="12" cy="12" r="2" className="animate-spin" style={{animationDuration: '3s'}}/>
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4 text-center">
                   Automated Workflows
                 </h3>
-                <p className="text-gray-600 text-center leading-relaxed mb-6">
+                <p className="text-sm sm:text-base text-gray-600 text-center leading-relaxed mb-4 sm:mb-6">
                   Self-learning business processes that adapt to your operations
                 </p>
                 <div className="flex justify-center">
@@ -415,37 +435,37 @@ export default function LandingPage() {
           </div>
 
           {/* Enhanced AIDA Assistant Showcase */}
-          <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-3xl p-8 lg:p-12 text-white overflow-hidden">
+          <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl sm:rounded-3xl p-6 sm:p-8 lg:p-12 text-white overflow-hidden mx-4 sm:mx-0">
             <div className="absolute inset-0 bg-black/10"></div>
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
             
             <div className="max-w-4xl mx-auto relative z-10">
-              <div className="w-20 h-20 bg-white/20 rounded-2xl flex items-center justify-center mb-6 mx-auto backdrop-blur-sm">
-                <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white/20 rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 sm:mb-6 mx-auto backdrop-blur-sm">
+                <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   <circle cx="12" cy="12" r="2" fill="currentColor" className="animate-pulse"/>
                 </svg>
               </div>
               
-              <h3 className="text-3xl lg:text-4xl font-bold mb-6 text-center">
+              <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6 text-center">
                 Meet AIDA, Your AI Business Assistant
               </h3>
-              <p className="text-xl text-blue-100 mb-8 leading-relaxed text-center">
+              <p className="text-base sm:text-lg lg:text-xl text-blue-100 mb-6 sm:mb-8 leading-relaxed text-center">
                 Ask questions, get insights, and automate tasks with conversational AI designed specifically 
                 for African business operations.
               </p>
               
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 mb-8">
-                <div className="text-sm text-blue-200 mb-2">Try asking AIDA:</div>
-                <div className="space-y-3">
-                  <div className="aida-demo-query bg-white/20 rounded-lg p-3 text-white cursor-pointer hover:bg-white/30 transition-colors">
+              <div className="bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 mb-6 sm:mb-8">
+                <div className="text-xs sm:text-sm text-blue-200 mb-2 sm:mb-3">Try asking AIDA:</div>
+                <div className="space-y-2 sm:space-y-3">
+                  <div className="aida-demo-query bg-white/20 rounded-lg p-3 text-white cursor-pointer hover:bg-white/30 transition-colors text-sm sm:text-base">
                     💬 "Show me today's sales performance"
                   </div>
-                  <div className="aida-demo-query bg-white/20 rounded-lg p-3 text-white cursor-pointer hover:bg-white/30 transition-colors">
+                  <div className="aida-demo-query bg-white/20 rounded-lg p-3 text-white cursor-pointer hover:bg-white/30 transition-colors text-sm sm:text-base">
                     📊 "Forecast next month's inventory needs"
                   </div>
-                  <div className="aida-demo-query bg-white/20 rounded-lg p-3 text-white cursor-pointer hover:bg-white/30 transition-colors">
+                  <div className="aida-demo-query bg-white/20 rounded-lg p-3 text-white cursor-pointer hover:bg-white/30 transition-colors text-sm sm:text-base">
                     💰 "Reconcile mobile money transactions"
                   </div>
                 </div>
@@ -463,7 +483,7 @@ export default function LandingPage() {
       </section>
 
             {/* Modules Section */}
-      <section className="relative px-6 py-20 bg-gradient-to-b from-white to-gray-50 overflow-hidden">
+      <section id="modules" className="relative px-4 sm:px-6 py-12 sm:py-20 bg-gradient-to-b from-white to-gray-50 overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute inset-0" style={{
@@ -479,31 +499,31 @@ export default function LandingPage() {
               </svg>
               Complete ERP Suite
             </div>
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 sm:mb-6">
               <span className="bg-gradient-to-r from-gray-900 to-blue-600 bg-clip-text text-transparent">
                 Complete Business Management Suite
               </span>
             </h2>
-            <p className="text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed px-4 sm:px-0">
               Everything you need to run your business efficiently, from finance to HR, all integrated into one powerful platform designed for African businesses
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 px-4 sm:px-0">
             {/* Finance & Accounting Module */}
-            <div className="group relative bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 border border-gray-100 overflow-hidden">
+            <div className="group relative bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-3 border border-gray-100 overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                <div className="px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">CORE</div>
+              <div className="absolute top-3 sm:top-4 right-3 sm:right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                <div className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 text-xs font-bold rounded-full">CORE</div>
               </div>
               <div className="relative z-10">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-3xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg">
-                  <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl sm:rounded-3xl flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg">
+                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Finance & Accounting</h3>
-                <p className="text-gray-600 mb-6 leading-relaxed">Complete financial management with bank reconciliation and mobile money integration</p>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-3 sm:mb-4">Finance & Accounting</h3>
+                <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 leading-relaxed">Complete financial management with bank reconciliation and mobile money integration</p>
                 <div className="space-y-3 mb-6">
                   <div className="flex items-center text-sm text-gray-700">
                     <svg className="w-4 h-4 text-green-500 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -802,7 +822,7 @@ export default function LandingPage() {
       </section>
 
       {/* African Localization Section */}
-      <section className="relative px-6 py-20 bg-gradient-to-br from-green-50 via-emerald-50 to-blue-50 overflow-hidden">
+      <section className="relative px-4 sm:px-6 py-12 sm:py-20 bg-gradient-to-br from-green-50 via-emerald-50 to-blue-50 overflow-hidden">
         {/* African Pattern Background */}
         <div className="absolute inset-0 opacity-10">
           <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -822,13 +842,13 @@ export default function LandingPage() {
               </svg>
               🌍 Built for Africa
             </div>
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 sm:mb-6">
               <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
                 Hyper-Localized
               </span>{' '}
               for African Business
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed px-4 sm:px-0">
               Designed specifically for the unique needs of African businesses, with local compliance, 
               mobile money integration, and cultural context built-in from day one.
             </p>
@@ -1028,7 +1048,7 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing Section */}
-      <section className="relative px-6 py-20 bg-gradient-to-b from-white via-gray-50 to-blue-50 overflow-hidden">
+      <section id="pricing" className="relative px-4 sm:px-6 py-12 sm:py-20 bg-gradient-to-b from-white via-gray-50 to-blue-50 overflow-hidden">
         {/* Background Decoration */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-20 left-10 w-32 h-32 bg-blue-500 rounded-full blur-3xl"></div>
@@ -1044,13 +1064,13 @@ export default function LandingPage() {
               </svg>
               💰 Transparent Pricing
             </div>
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 sm:mb-6">
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Simple, Transparent
               </span>{' '}
               Pricing
             </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-8">
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed mb-6 sm:mb-8 px-4 sm:px-0">
               Choose the plan that fits your business needs. No hidden fees, no surprises. 
               Start with a 30-day free trial on any plan.
             </p>
@@ -1181,25 +1201,25 @@ export default function LandingPage() {
       </section>
 
       {/* Simple CTA */}
-      <section className="px-6 py-20 bg-gradient-to-r from-blue-600 to-indigo-600">
+      <section className="px-4 sm:px-6 py-12 sm:py-20 bg-gradient-to-r from-blue-600 to-indigo-600">
         <div className="max-w-4xl mx-auto text-center text-white">
-          <h2 className="text-4xl font-bold mb-6">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">
             Ready to Transform Your Business?
           </h2>
-          <p className="text-xl text-blue-100 mb-8 leading-relaxed">
+          <p className="text-base sm:text-lg lg:text-xl text-blue-100 mb-6 sm:mb-8 leading-relaxed">
             Join hundreds of African businesses that have already modernized their operations 
             with NEXEN AIRIS. Start your free trial today.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4 sm:px-0">
             <Link
               href="/register"
-              className="inline-flex items-center justify-center px-8 py-4 bg-white text-blue-600 text-lg font-semibold rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-lg"
+              className="inline-flex items-center justify-center w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white text-blue-600 text-base sm:text-lg font-semibold rounded-lg sm:rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-lg"
             >
               Start Free Trial
             </Link>
             <Link
               href="/login"
-              className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white text-lg font-semibold rounded-xl hover:bg-white hover:text-blue-600 transition-all duration-200"
+              className="inline-flex items-center justify-center w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 border-2 border-white text-white text-base sm:text-lg font-semibold rounded-lg sm:rounded-xl hover:bg-white hover:text-blue-600 transition-all duration-200"
             >
               Sign In
             </Link>
@@ -1208,9 +1228,9 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="px-6 py-16 bg-gray-900 text-white">
+      <footer className="px-4 sm:px-6 py-12 sm:py-16 bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
             <div>
               <div className="flex items-center space-x-3 mb-4">
                 <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center">
@@ -1252,7 +1272,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>© 2024 NEXEN AIRIS. All rights reserved. Built with ❤️ for Africa.</p>
+            <p>© 2025 NEXEN AIRIS. All rights reserved. Built with ❤️ for Africa.</p>
         </div>
       </div>
       </footer>
