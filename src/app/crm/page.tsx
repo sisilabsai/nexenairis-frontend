@@ -18,7 +18,16 @@ import {
   PencilIcon,
   TrashIcon,
   FunnelIcon,
-  SparklesIcon
+  SparklesIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  StarIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  ArrowPathIcon,
+  Bars3Icon,
+  ChevronRightIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline';
 import DashboardLayout from '../../components/DashboardLayout';
 import {
@@ -92,6 +101,13 @@ export default function CrmPage() {
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [viewingContact, setViewingContact] = useState<Contact | null>(null);
   const [selectedView, setSelectedView] = useState<'overview' | 'contacts' | 'pipeline' | 'analytics'>('overview');
+  
+  // Mobile-specific states
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showQuickView, setShowQuickView] = useState(false);
+  const [quickViewContact, setQuickViewContact] = useState<Contact | null>(null);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [isGridView, setIsGridView] = useState(true);
   const [editingOpportunity, setEditingOpportunity] = useState(null);
   const [showOpportunityModal, setShowOpportunityModal] = useState(false);
   const [selectedAnalyticsTab, setSelectedAnalyticsTab] = useState<'mobile-money' | 'community' | 'communication' | 'regional' | 'ai-insights' | 'segmentation'>('mobile-money');
@@ -400,214 +416,394 @@ export default function CrmPage() {
 
     alert(message);
   };
+  
+  // Quick View Modal Handlers
+  const handleQuickView = (contact: Contact) => {
+    setQuickViewContact(contact);
+    setShowQuickView(true);
+  };
+  
+  const handleQuickViewClose = () => {
+    setShowQuickView(false);
+    setQuickViewContact(null);
+  };
+  
+  const handleQuickEdit = (contact: Contact) => {
+    setShowQuickView(false);
+    setEditingContact(contact);
+    setShowContactModal(true);
+  };
 
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        {/* Page header */}
-        <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-              <h1 className="text-2xl font-bold text-gray-900">CRM - Customer Relationship Management</h1>
-            <p className="mt-1 text-sm text-gray-500">
-                Manage customer relationships with African business context in mind.
-            </p>
-            {/* Performance indicator */}
-            <div className="mt-2 flex items-center space-x-4 text-xs text-gray-400">
-              <span className="flex items-center">
-                <div className="w-2 h-2 bg-green-400 rounded-full mr-1"></div>
-                Optimized with AI caching
-              </span>
-              <span className="flex items-center">
-                <div className="w-2 h-2 bg-blue-400 rounded-full mr-1"></div>
-                Lazy-loaded components
-              </span>
-              <span className="flex items-center">
-                <div className="w-2 h-2 bg-purple-400 rounded-full mr-1"></div>
-                Virtual scrolling enabled
-              </span>
+        {/* Mobile-Responsive Page Header */}
+        <div className="mb-6">
+          {/* Mobile Header */}
+          <div className="sm:hidden">
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 rounded-xl shadow-lg mb-4">
+              <div className="flex items-center justify-between">
+                <div className="text-white">
+                  <h1 className="text-xl font-bold">CRM</h1>
+                  <p className="text-blue-100 text-sm">Customer Management</p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+                  >
+                    <Bars3Icon className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+              
+              {/* Mobile Stats Row */}
+              <div className="flex justify-between mt-4 pt-4 border-t border-white/20">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-white">{summary.total_contacts || 0}</p>
+                  <p className="text-blue-100 text-xs">Contacts</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-white">{summary.whatsapp_contacts || 0}</p>
+                  <p className="text-blue-100 text-xs">WhatsApp</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-white">{summary.high_trust_contacts || 0}</p>
+                  <p className="text-blue-100 text-xs">High Trust</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Mobile Action Menu */}
+            {isMobileMenuOpen && (
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 mb-4">
+                <div className="p-4 space-y-3">
+                  <button
+                    onClick={() => {
+                      handleAddContact();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center justify-center px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all"
+                  >
+                    <PlusIcon className="h-5 w-5 mr-2" />
+                    Add New Contact
+                  </button>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => {
+                        setShowContactTypeModal(true);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center justify-center px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                    >
+                      <span className="mr-2">⚙️</span>
+                      Manage Types
+                    </button>
+                    <button
+                      onClick={() => {
+                        exportContactsMutation.mutate();
+                        setIsMobileMenuOpen(false);
+                      }}
+                      disabled={exportContactsMutation.isPending}
+                      className="flex items-center justify-center px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
+                    >
+                      <span className="mr-2">📊</span>
+                      {exportContactsMutation.isPending ? 'Exporting...' : 'Export'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Desktop Header */}
+          <div className="hidden sm:block">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">CRM - Customer Relationship Management</h1>
+                <p className="mt-1 text-sm text-gray-500">
+                  Manage customer relationships with African business context in mind.
+                </p>
+                {/* Performance indicator */}
+                <div className="mt-2 flex items-center space-x-4 text-xs text-gray-400">
+                  <span className="flex items-center">
+                    <div className="w-2 h-2 bg-green-400 rounded-full mr-1"></div>
+                    Optimized with AI caching
+                  </span>
+                  <span className="flex items-center">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full mr-1"></div>
+                    Lazy-loaded components
+                  </span>
+                  <span className="flex items-center">
+                    <div className="w-2 h-2 bg-purple-400 rounded-full mr-1"></div>
+                    Virtual scrolling enabled
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => setShowContactTypeModal(true)}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  ⚙️ Manage Contact Types
+                </button>
+                <button
+                  onClick={() => exportContactsMutation.mutate()}
+                  disabled={exportContactsMutation.isPending}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  📊 {exportContactsMutation.isPending ? 'Exporting...' : 'Export CSV'}
+                </button>
+                <button
+                  onClick={handleAddContact}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                >
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add Contact
+                </button>
+              </div>
             </div>
           </div>
-                        <div className="flex items-center space-x-3">
-                            <button
-                onClick={() => setShowContactTypeModal(true)}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
-              >
-                ⚙️ Manage Contact Types
-              </button>
-              <button
-                onClick={() => exportContactsMutation.mutate()}
-                disabled={exportContactsMutation.isPending}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
-              >
-                📊 {exportContactsMutation.isPending ? 'Exporting...' : 'Export CSV'}
-              </button>
-              <button
-                onClick={handleAddContact}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-              >
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Add Contact
-              </button>
         </div>
-      </div>
-          </div>
 
-        {/* Navigation Tabs */}
+        {/* Mobile-Responsive Navigation Tabs */}
         <div className="mb-6">
-          <nav className="flex space-x-8">
-            {['overview', 'contacts', 'pipeline', 'analytics'].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setSelectedView(tab as any)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm capitalize ${
-                  selectedView === tab
-                    ? 'border-indigo-500 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </nav>
+          {/* Mobile Tabs - Horizontal Scroll */}
+          <div className="sm:hidden">
+            <div className="flex space-x-1 p-1 bg-gray-100 rounded-xl overflow-x-auto">
+              {[
+                { key: 'overview', label: 'Overview', icon: ChartBarIcon },
+                { key: 'contacts', label: 'Contacts', icon: UserGroupIcon },
+                { key: 'pipeline', label: 'Pipeline', icon: CurrencyDollarIcon },
+                { key: 'analytics', label: 'Analytics', icon: SparklesIcon }
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setSelectedView(tab.key as any)}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
+                    selectedView === tab.key
+                      ? 'bg-white text-indigo-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  <tab.icon className="h-4 w-4" />
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
+          
+          {/* Desktop Tabs */}
+          <div className="hidden sm:block">
+            <nav className="flex space-x-8">
+              {['overview', 'contacts', 'pipeline', 'analytics'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setSelectedView(tab as any)}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm capitalize ${
+                    selectedView === tab
+                      ? 'border-indigo-500 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
 
         {/* Overview Section */}
         {selectedView === 'overview' && (
           <div className="space-y-6">
             {/* Summary Cards */}
             {!summaryLoading && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
-              <div className="p-8">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <UserGroupIcon className="h-8 w-8 text-gray-400" />
-                  </div>
-                  <div className="ml-6 w-0 flex-1">
-                    <dl>
-                           <dt className="text-base font-medium text-gray-500 mb-2">Total Contacts</dt>
-                           <dd className="text-3xl font-bold text-gray-900">{summary.total_contacts || 0}</dd>
-                        </dl>
-                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
-                  <div className="p-8">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <DevicePhoneMobileIcon className="h-8 w-8 text-blue-400" />
+              <>
+                {/* Mobile Cards - Single Column */}
+                <div className="sm:hidden space-y-4">
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-100 border border-blue-200 rounded-2xl p-6 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-blue-800 font-semibold text-sm mb-2">Total Contacts</p>
+                        <p className="text-4xl font-bold text-blue-900">{summary.total_contacts || 0}</p>
                       </div>
-                      <div className="ml-6 w-0 flex-1">
-                        <dl>
-                           <dt className="text-base font-medium text-gray-500 mb-2">Mobile Money Users</dt>
-                           <dd className="text-3xl font-bold text-gray-900">{summary.mobile_money_users || 0}</dd>
-                        </dl>
-                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
-                  <div className="p-8">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <ChatBubbleLeftRightIcon className="h-8 w-8 text-green-400" />
+                      <div className="p-4 bg-blue-500 rounded-2xl">
+                        <UserGroupIcon className="h-8 w-8 text-white" />
                       </div>
-                      <div className="ml-6 w-0 flex-1">
-                        <dl>
-                           <dt className="text-base font-medium text-gray-500 mb-2">WhatsApp Contacts</dt>
-                           <dd className="text-3xl font-bold text-gray-900">{summary.whatsapp_contacts || 0}</dd>
-                        </dl>
-                       </div>
                     </div>
                   </div>
-                </div>
-
-                <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
-                  <div className="p-8">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <HeartIcon className="h-8 w-8 text-red-400" />
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gradient-to-br from-green-50 to-emerald-100 border border-green-200 rounded-xl p-4 shadow-md">
+                      <div className="text-center">
+                        <DevicePhoneMobileIcon className="h-6 w-6 text-green-600 mx-auto mb-2" />
+                        <p className="text-green-800 font-semibold text-xs mb-1">Mobile Money</p>
+                        <p className="text-2xl font-bold text-green-900">{summary.mobile_money_users || 0}</p>
                       </div>
-                      <div className="ml-6 w-0 flex-1">
-                        <dl>
-                           <dt className="text-base font-medium text-gray-500 mb-2">High Trust Contacts</dt>
-                           <dd className="text-3xl font-bold text-gray-900">{summary.high_trust_contacts || 0}</dd>
-                        </dl>
-                       </div>
                     </div>
-                  </div>
-                </div>
-
-                <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
-                  <div className="p-8">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <UserGroupIcon className="h-8 w-8 text-purple-400" />
+                    
+                    <div className="bg-gradient-to-br from-purple-50 to-violet-100 border border-purple-200 rounded-xl p-4 shadow-md">
+                      <div className="text-center">
+                        <ChatBubbleLeftRightIcon className="h-6 w-6 text-purple-600 mx-auto mb-2" />
+                        <p className="text-purple-800 font-semibold text-xs mb-1">WhatsApp</p>
+                        <p className="text-2xl font-bold text-purple-900">{summary.whatsapp_contacts || 0}</p>
                       </div>
-                      <div className="ml-6 w-0 flex-1">
-                        <dl>
-                           <dt className="text-base font-medium text-gray-500 mb-2">Community Members</dt>
-                           <dd className="text-3xl font-bold text-gray-900">{summary.community_group_members || 0}</dd>
-                        </dl>
-                       </div>
                     </div>
                   </div>
-                </div>
-
-                <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
-                  <div className="p-8">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <BanknotesIcon className="h-8 w-8 text-yellow-400" />
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-gradient-to-br from-red-50 to-rose-100 border border-red-200 rounded-xl p-4 shadow-md">
+                      <div className="text-center">
+                        <HeartIcon className="h-6 w-6 text-red-500 mx-auto mb-2" />
+                        <p className="text-red-800 font-semibold text-xs mb-1">High Trust</p>
+                        <p className="text-2xl font-bold text-red-900">{summary.high_trust_contacts || 0}</p>
                       </div>
-                      <div className="ml-6 w-0 flex-1">
-                        <dl>
-                           <dt className="text-base font-medium text-gray-500 mb-2">Cash Preferred</dt>
-                           <dd className="text-3xl font-bold text-gray-900">{summary.cash_preferred_contacts || 0}</dd>
-                        </dl>
-                       </div>
+                    </div>
+                    
+                    <div className="bg-gradient-to-br from-yellow-50 to-amber-100 border border-yellow-200 rounded-xl p-4 shadow-md">
+                      <div className="text-center">
+                        <CurrencyDollarIcon className="h-6 w-6 text-yellow-600 mx-auto mb-2" />
+                        <p className="text-yellow-800 font-semibold text-xs mb-1">Pipeline</p>
+                        <p className="text-lg font-bold text-yellow-900">UGX {((summary.total_pipeline_value || 0) / 1000).toFixed(0)}K</p>
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
-                  <div className="p-8">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <CurrencyDollarIcon className="h-8 w-8 text-indigo-400" />
+                
+                {/* Desktop Cards - Grid Layout */}
+                <div className="hidden sm:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                  <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100 hover:shadow-xl transition-shadow">
+                    <div className="p-8">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                          <UserGroupIcon className="h-8 w-8 text-gray-400" />
                         </div>
-                      <div className="ml-6 w-0 flex-1">
-                        <dl>
-                           <dt className="text-base font-medium text-gray-500 mb-2">Pipeline Value</dt>
-                           <dd className="text-3xl font-bold text-gray-900">
-                             UGX {(summary.total_pipeline_value || 0).toLocaleString()}
-                       </dd>
-                    </dl>
-                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100">
-                  <div className="p-8">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <ChartBarIcon className="h-8 w-8 text-orange-400" />
+                        <div className="ml-6 w-0 flex-1">
+                          <dl>
+                            <dt className="text-base font-medium text-gray-500 mb-2">Total Contacts</dt>
+                            <dd className="text-3xl font-bold text-gray-900">{summary.total_contacts || 0}</dd>
+                          </dl>
+                        </div>
                       </div>
-                      <div className="ml-6 w-0 flex-1">
-                        <dl>
-                           <dt className="text-base font-medium text-gray-500 mb-2">Open Opportunities</dt>
-                           <dd className="text-3xl font-bold text-gray-900">{summary.open_opportunities || 0}</dd>
-                        </dl>
-                       </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100 hover:shadow-xl transition-shadow">
+                    <div className="p-8">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                          <DevicePhoneMobileIcon className="h-8 w-8 text-blue-400" />
+                        </div>
+                        <div className="ml-6 w-0 flex-1">
+                          <dl>
+                            <dt className="text-base font-medium text-gray-500 mb-2">Mobile Money Users</dt>
+                            <dd className="text-3xl font-bold text-gray-900">{summary.mobile_money_users || 0}</dd>
+                          </dl>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100 hover:shadow-xl transition-shadow">
+                    <div className="p-8">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                          <ChatBubbleLeftRightIcon className="h-8 w-8 text-green-400" />
+                        </div>
+                        <div className="ml-6 w-0 flex-1">
+                          <dl>
+                            <dt className="text-base font-medium text-gray-500 mb-2">WhatsApp Contacts</dt>
+                            <dd className="text-3xl font-bold text-gray-900">{summary.whatsapp_contacts || 0}</dd>
+                          </dl>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100 hover:shadow-xl transition-shadow">
+                    <div className="p-8">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                          <HeartIcon className="h-8 w-8 text-red-400" />
+                        </div>
+                        <div className="ml-6 w-0 flex-1">
+                          <dl>
+                            <dt className="text-base font-medium text-gray-500 mb-2">High Trust Contacts</dt>
+                            <dd className="text-3xl font-bold text-gray-900">{summary.high_trust_contacts || 0}</dd>
+                          </dl>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100 hover:shadow-xl transition-shadow">
+                    <div className="p-8">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                          <UserGroupIcon className="h-8 w-8 text-purple-400" />
+                        </div>
+                        <div className="ml-6 w-0 flex-1">
+                          <dl>
+                            <dt className="text-base font-medium text-gray-500 mb-2">Community Members</dt>
+                            <dd className="text-3xl font-bold text-gray-900">{summary.community_group_members || 0}</dd>
+                          </dl>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100 hover:shadow-xl transition-shadow">
+                    <div className="p-8">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                          <BanknotesIcon className="h-8 w-8 text-yellow-400" />
+                        </div>
+                        <div className="ml-6 w-0 flex-1">
+                          <dl>
+                            <dt className="text-base font-medium text-gray-500 mb-2">Cash Preferred</dt>
+                            <dd className="text-3xl font-bold text-gray-900">{summary.cash_preferred_contacts || 0}</dd>
+                          </dl>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100 hover:shadow-xl transition-shadow">
+                    <div className="p-8">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                          <CurrencyDollarIcon className="h-8 w-8 text-indigo-400" />
+                        </div>
+                        <div className="ml-6 w-0 flex-1">
+                          <dl>
+                            <dt className="text-base font-medium text-gray-500 mb-2">Pipeline Value</dt>
+                            <dd className="text-3xl font-bold text-gray-900">
+                              UGX {(summary.total_pipeline_value || 0).toLocaleString()}
+                            </dd>
+                          </dl>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-100 hover:shadow-xl transition-shadow">
+                    <div className="p-8">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                          <ChartBarIcon className="h-8 w-8 text-orange-400" />
+                        </div>
+                        <div className="ml-6 w-0 flex-1">
+                          <dl>
+                            <dt className="text-base font-medium text-gray-500 mb-2">Open Opportunities</dt>
+                            <dd className="text-3xl font-bold text-gray-900">{summary.open_opportunities || 0}</dd>
+                          </dl>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </>
             )}
 
             {/* Quick Insights */}
@@ -644,8 +840,92 @@ export default function CrmPage() {
         {/* Contacts Section */}
         {selectedView === 'contacts' && (
           <div className="space-y-6">
-            {/* Search and Filters */}
-            <div className="bg-white shadow rounded-lg p-4">
+            {/* Mobile Search Header */}
+            <div className="sm:hidden">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
+                <div className="relative mb-4">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search contacts..."
+                    className="block w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base"
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                  >
+                    <FunnelIcon className="h-4 w-4" />
+                    <span>Filters</span>
+                    <ChevronDownIcon className={`h-4 w-4 transition-transform ${mobileFiltersOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setIsGridView(!isGridView)}
+                      className={`p-2 rounded-lg transition-colors ${
+                        isGridView ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      <span className="text-sm font-medium">{isGridView ? 'Grid' : 'List'}</span>
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Mobile Filters Dropdown */}
+                {mobileFiltersOpen && (
+                  <div className="mt-4 space-y-3 pt-4 border-t border-gray-200">
+                    <select
+                      value={contactFilters.trust_level}
+                      onChange={(e) => setContactFilters(prev => ({ ...prev, trust_level: e.target.value }))}
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">All Trust Levels</option>
+                      <option value="5">Very High (5)</option>
+                      <option value="4">High (4)</option>
+                      <option value="3">Medium (3)</option>
+                      <option value="2">Low (2)</option>
+                      <option value="1">Very Low (1)</option>
+                    </select>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <select
+                        value={contactFilters.mobile_money_provider}
+                        onChange={(e) => setContactFilters(prev => ({ ...prev, mobile_money_provider: e.target.value }))}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        <option value="">All Providers</option>
+                        <option value="MTN">MTN Money</option>
+                        <option value="Airtel">Airtel Money</option>
+                        <option value="M-Pesa">M-Pesa</option>
+                      </select>
+                      
+                      <select
+                        value={contactFilters.preferred_channel}
+                        onChange={(e) => setContactFilters(prev => ({ ...prev, preferred_channel: e.target.value }))}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        <option value="">All Channels</option>
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="phone">Phone</option>
+                        <option value="email">Email</option>
+                        <option value="sms">SMS</option>
+                        <option value="in_person">In Person</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Desktop Search and Filters */}
+            <div className="hidden sm:block bg-white shadow rounded-lg p-4">
               <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
                 <div className="lg:col-span-2">
                   <div className="relative">
@@ -660,7 +940,7 @@ export default function CrmPage() {
                       className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                     />
                   </div>
-      </div>
+                </div>
 
                 <select
                   value={contactFilters.trust_level}
@@ -706,8 +986,118 @@ export default function CrmPage() {
                   placeholder="Filter by district..."
                   className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 />
-        </div>
-      </div>
+              </div>
+            </div>
+            
+            {/* Mobile Contact Cards */}
+            <div className="sm:hidden">
+              {contactsLoading ? (
+                <div className="flex justify-center py-12">
+                  <LoadingSpinner size="lg" />
+                </div>
+              ) : contactsError ? (
+                <div className="p-6">
+                  <ErrorMessage message={contactsError.message || 'Failed to load contacts'} />
+                </div>
+              ) : (
+                <div className={isGridView ? 'grid grid-cols-1 gap-4' : 'space-y-3'}>
+                  {filteredContacts.length > 0 ? (
+                    filteredContacts.slice(0, 20).map((contact) => (
+                      <div key={contact.id} className="bg-white rounded-xl shadow-md border border-gray-200 p-4 hover:shadow-lg transition-shadow">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-1">{contact.name}</h3>
+                            <p className="text-sm text-gray-500 mb-2">{contact.email || 'No email'}</p>
+                            
+                            <div className="flex items-center space-x-3 mb-3">
+                              <div className="flex items-center space-x-1">
+                                <PhoneIcon className="h-4 w-4 text-gray-400" />
+                                <span className="text-sm text-gray-600">{contact.phone || 'No phone'}</span>
+                              </div>
+                              {contact.whatsapp_number && (
+                                <div className="flex items-center space-x-1">
+                                  <span className="text-green-500">📱</span>
+                                  <span className="text-sm text-green-600">WhatsApp</span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center space-x-2 mb-3">
+                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTrustLevelColor(contact.trust_level)}`}>
+                                {getTrustLevelText(contact.trust_level)}
+                              </span>
+                              
+                              {contact.mobile_money_provider && (
+                                <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                  {contact.mobile_money_provider}
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div className="text-sm text-gray-500">
+                              <span>{contact.district}</span>
+                              {contact.village && <span>, {contact.village}</span>}
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col space-y-2 ml-4">
+                            <button
+                              onClick={() => handleQuickView(contact)}
+                              className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
+                            >
+                              <EyeIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleEditContact(contact)}
+                              className="p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {/* Mobile Action Row */}
+                        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                          <div className="text-sm font-medium text-gray-900">
+                            UGX {(contact.customer_lifetime_value || 0).toLocaleString()}
+                          </div>
+                          
+                          <div className="flex space-x-2">
+                            {contact.whatsapp_number && (
+                              <button className="p-2 bg-green-50 text-green-600 rounded-lg">
+                                <ChatBubbleLeftRightIcon className="h-4 w-4" />
+                              </button>
+                            )}
+                            <button className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                              <PhoneIcon className="h-4 w-4" />
+                            </button>
+                            {contact.email && (
+                              <button className="p-2 bg-gray-50 text-gray-600 rounded-lg">
+                                <EnvelopeIcon className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-12">
+                      <UserGroupIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500 font-medium">No contacts found</p>
+                      <p className="text-gray-400 text-sm">Try adjusting your search or filters</p>
+                    </div>
+                  )}
+                  
+                  {filteredContacts.length > 20 && (
+                    <div className="text-center py-4">
+                      <button className="px-6 py-3 bg-indigo-50 text-indigo-600 rounded-xl font-medium hover:bg-indigo-100 transition-colors">
+                        Load More ({filteredContacts.length - 20} remaining)
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
       {/* Bulk Actions Bar */}
       {selectedContacts.length > 0 && (
@@ -1807,6 +2197,161 @@ export default function CrmPage() {
           </div>
         </div>
       )}
+
+        {/* Quick View Modal */}
+        {showQuickView && quickViewContact && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+              {/* Modal Header with Gradient */}
+              <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6 rounded-t-2xl">
+                <div className="flex items-center justify-between text-white">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-1">{quickViewContact.name}</h2>
+                    <p className="text-blue-100 opacity-90">{quickViewContact.email || 'No email provided'}</p>
+                  </div>
+                  <button
+                    onClick={handleQuickViewClose}
+                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  >
+                    <XCircleIcon className="h-6 w-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 space-y-6">
+                {/* Contact Information */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 mb-1">Phone</p>
+                    <p className="text-base font-medium text-gray-900">{quickViewContact.phone || 'Not provided'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 mb-1">Trust Level</p>
+                    <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${getTrustLevelColor(quickViewContact.trust_level)}`}>
+                      {getTrustLevelText(quickViewContact.trust_level)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Communication Channels */}
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-3">Communication</p>
+                  <div className="space-y-2">
+                    {quickViewContact.whatsapp_number && (
+                      <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
+                        <div className="flex items-center space-x-3">
+                          <span className="text-green-500 text-lg">📱</span>
+                          <div>
+                            <p className="font-medium text-green-900">WhatsApp</p>
+                            <p className="text-sm text-green-700">{quickViewContact.whatsapp_number}</p>
+                          </div>
+                        </div>
+                        <button className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors">
+                          <ChatBubbleLeftRightIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-blue-500 text-lg">📞</span>
+                        <div>
+                          <p className="font-medium text-blue-900">Phone</p>
+                          <p className="text-sm text-blue-700">{quickViewContact.phone || 'Not provided'}</p>
+                        </div>
+                      </div>
+                      <button className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors">
+                        <PhoneIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                    
+                    {quickViewContact.email && (
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex items-center space-x-3">
+                          <span className="text-gray-500 text-lg">📧</span>
+                          <div>
+                            <p className="font-medium text-gray-900">Email</p>
+                            <p className="text-sm text-gray-700">{quickViewContact.email}</p>
+                          </div>
+                        </div>
+                        <button className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">
+                          <EnvelopeIcon className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Financial Information */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 mb-1">Customer Value</p>
+                    <p className="text-xl font-bold text-indigo-600">
+                      UGX {(quickViewContact.customer_lifetime_value || 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500 mb-1">Payment Preferences</p>
+                    <div className="flex space-x-2">
+                      {quickViewContact.mobile_money_provider && (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                          {quickViewContact.mobile_money_provider}
+                        </span>
+                      )}
+                      {quickViewContact.has_bank_account && (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">
+                          Bank
+                        </span>
+                      )}
+                      {quickViewContact.prefers_cash_transactions && (
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
+                          Cash
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Location Information */}
+                <div>
+                  <p className="text-sm font-medium text-gray-500 mb-2">Location</p>
+                  <div className="flex items-center space-x-2 text-gray-700">
+                    <MapPinIcon className="h-4 w-4 text-gray-400" />
+                    <span>{quickViewContact.district || 'Unknown district'}</span>
+                    {quickViewContact.village && (
+                      <>
+                        <span className="text-gray-400">•</span>
+                        <span>{quickViewContact.village}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => handleQuickEdit(quickViewContact)}
+                    className="flex items-center justify-center px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+                  >
+                    <PencilIcon className="h-5 w-5 mr-2" />
+                    Edit Contact
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleViewContact(quickViewContact);
+                      setShowQuickView(false);
+                    }}
+                    className="flex items-center justify-center px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                  >
+                    <EyeIcon className="h-5 w-5 mr-2" />
+                    Full Details
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Lazy-loaded Modals with Suspense */}
         <Suspense fallback={<ModalFallback />}>
