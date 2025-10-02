@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useApi } from '@/hooks/useApi';
-import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { 
   CameraIcon, 
   DevicePhoneMobileIcon, 
@@ -14,6 +13,13 @@ import {
   StopIcon
 } from '@heroicons/react/24/outline';
 import DashboardLayout from '@/components/DashboardLayout';
+
+// Declare BarcodeDetector for TypeScript
+declare global {
+  interface Window {
+    BarcodeDetector: any;
+  }
+}
 
 interface ScanResult {
   id: string;
@@ -39,9 +45,13 @@ export default function MobileScanPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [manualInput, setManualInput] = useState('');
   
   // Refs
-  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const scanTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Generate device name based on user agent
@@ -149,7 +159,7 @@ export default function MobileScanPage() {
     }
   }, [clearMessages]);
 
-  // Start QR scanner
+  // Start native camera scanner
   const startScanner = useCallback(async () => {
     if (scannerActive) return;
 
@@ -158,235 +168,58 @@ export default function MobileScanPage() {
       setError(null);
       setSuccess(null);
 
-      console.log('Starting scanner...');
+      console.log('Starting native camera scanner...');
 
-      // Check if the QR reader element exists
-      const qrReaderElement = document.getElementById("qr-reader");
-      if (!qrReaderElement) {
-        throw new Error('QR reader element not found. Please refresh the page.');
+      // Stop any existing stream
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
       }
 
-      // Clean up any existing scanner first
-      if (html5QrCodeRef.current) {
-        try {
-          await html5QrCodeRef.current.stop();
-          await html5QrCodeRef.current.clear();
-        } catch (e) {
-          console.log('No active scanner to stop:', e);
-        }
-        html5QrCodeRef.current = null;
+      // Clear any existing scan interval
+      if (scanIntervalRef.current) {
+        clearInterval(scanIntervalRef.current);
+        scanIntervalRef.current = null;
       }
 
-      // Wait a moment for cleanup
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Create new scanner instance
-      const html5QrCode = new Html5Qrcode("qr-reader", {
-        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-        verbose: false
-      });
-      
-      html5QrCodeRef.current = html5QrCode;
-
-      const qrCodeSuccessCallback = async (decodedText: string, decodedResult: any) => {
-        try {
-          console.log('QR Code scanned:', decodedText);
-          
-          // Temporarily pause scanning to process result
-          await html5QrCode.pause(true);
-          
-          if (!paired) {
-            // Try to parse as pairing QR code
-            let qrData;
-            try {
-              qrData = JSON.parse(decodedText);
-            } catch (parseErr) {
-              // If not JSON, treat as direct code
-              qrData = { code: decodedText };
-            }
-
-            if (qrData.code) {
-              setIsLoading(true);
-              const response = await post('/mobile/pair-device', {
-                code: qrData.code,
-                device_name: deviceName || `Mobile Device ${new Date().toLocaleString()}`,
-                device_uid: deviceUid,
-              });
-
-              if (response.success) {
-                setPaired(true);
-                localStorage.setItem('device_paired', 'true');
-                localStorage.setItem('device_name', deviceName || `Mobile Device ${new Date().toLocaleString()}`);
-                
-                const result: ScanResult = {
-                  id: Date.now().toString(),
-                  data: decodedText,
-                  timestamp: new Date().toISOString(),
-                  type: 'pairing',
-                  status: 'success',
-                  message: 'Device paired successfully!'
-                };
-                
-                setScanResults(prev => [result, ...prev]);
-                setSuccess('Device paired successfully! You can now scan products.');
-              } else {
-                throw new Error(response.message || 'Pairing failed');
-              }
-            } else {
-              throw new Error('Invalid pairing QR code format');
-            }
-          } else {
-            // Scan product
-            setIsLoading(true);
-            const response = await post('/mobile/scan-product', {
-              device_uid: deviceUid,
-              scanned_data: decodedText,
-            });
-
-            const result: ScanResult = {
-              id: Date.now().toString(),
-              data: decodedText,
-              timestamp: new Date().toISOString(),
-              type: 'product',
-              status: response.success ? 'success' : 'error',
-              message: response.success ? 'Product scanned successfully' : response.message || 'Scan failed'
-            };
-            
-            setScanResults(prev => [result, ...prev]);
-            
-            if (response.success) {
-              setSuccess(`Product scanned successfully: ${decodedText}`);
-            } else {
-              setError(`Failed to process scan: ${response.message || decodedText}`);
-            }
-          }
-          
-          // Clear messages and resume scanning after delay
-          setTimeout(() => {
-            setSuccess(null);
-            setError(null);
-            setIsLoading(false);
-            // Resume scanning after processing
-            if (html5QrCodeRef.current && scannerActive) {
-              html5QrCode.resume();
-            }
-          }, 2000);
-
-        } catch (err: any) {
-          console.error('Scan processing error:', err);
-          setError(err.response?.data?.message || err.message || 'Failed to process scan');
-          
-          const result: ScanResult = {
-            id: Date.now().toString(),
-            data: decodedText,
-            timestamp: new Date().toISOString(),
-            type: paired ? 'product' : 'pairing',
-            status: 'error',
-            message: err.response?.data?.message || err.message || 'Processing failed'
-          };
-          
-          setScanResults(prev => [result, ...prev]);
-          
-          // Resume scanning after error
-          setTimeout(() => {
-            setIsLoading(false);
-            if (html5QrCodeRef.current && scannerActive) {
-              html5QrCode.resume();
-            }
-          }, 2000);
+      // Try to get camera access
+      const constraints = {
+        video: {
+          facingMode: { ideal: 'environment' }, // Prefer back camera
+          width: { ideal: 1280, min: 640 },
+          height: { ideal: 720, min: 480 }
         }
       };
 
-      const qrCodeErrorCallback = (errorMessage: string) => {
-        // Ignore frequent "No QR code found" messages
-        if (!errorMessage.includes('No QR code found') && !errorMessage.includes('QR code parse error')) {
-          console.log('QR scan error:', errorMessage);
-        }
-      };
-
-      // Try different camera configurations for mobile compatibility
-      let cameraStarted = false;
-      const cameraConfigs: (string | MediaTrackConstraints)[] = [
-        // Try back camera first (preferred for scanning)
-        { facingMode: "environment" },
-        // Fallback to any available camera
-        { facingMode: "user" },
-        // Try with specific constraints
-        { 
-          facingMode: { ideal: "environment" },
-          width: { ideal: 640 },
-          height: { ideal: 480 }
-        },
-        // Most basic configuration - use device ID approach
-        { facingMode: "environment", width: { min: 320 }, height: { min: 240 } }
-      ];
-
-      const scanConfig = {
-        fps: 10,
-        qrbox: function(viewfinderWidth: number, viewfinderHeight: number) {
-          const minEdgePercentage = 0.7;
-          const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-          const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
-          return {
-            width: Math.max(qrboxSize, 200), // Minimum 200px
-            height: Math.max(qrboxSize, 200)
-          };
-        },
-        aspectRatio: 1.0
-      };
-
-      // Try each camera configuration until one works
-      let lastError: any = null;
-      
-      for (let i = 0; i < cameraConfigs.length && !cameraStarted; i++) {
-        try {
-          console.log(`Trying camera config ${i + 1}:`, cameraConfigs[i]);
-          
-          await html5QrCode.start(
-            cameraConfigs[i],
-            scanConfig,
-            qrCodeSuccessCallback,
-            qrCodeErrorCallback
-          );
-          
-          cameraStarted = true;
-          console.log(`Camera started successfully with config ${i + 1}`);
-          break;
-          
-        } catch (configErr: any) {
-          lastError = configErr;
-          console.warn(`Camera config ${i + 1} failed:`, configErr.message, configErr);
-          
-          // Try to clean up before next attempt
-          try {
-            await html5QrCode.clear();
-          } catch (clearErr) {
-            console.log('Clear error after failed config:', clearErr);
-          }
-          
-          // If this isn't the last config, continue trying
-          if (i < cameraConfigs.length - 1) {
-            // Wait a bit before trying next config
-            await new Promise(resolve => setTimeout(resolve, 200));
-            continue;
-          }
-        }
-      }
-      
-      if (!cameraStarted) {
-        throw lastError || new Error('Unable to start camera with any configuration');
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (backCameraError) {
+        console.log('Back camera failed, trying front camera');
+        // Fallback to front camera
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user' }
+        });
       }
 
-      if (cameraStarted) {
-        setScannerActive(true);
-        setCameraPermission('granted');
-        setSuccess('Scanner started! Point your camera at a QR code.');
-      } else {
-        throw new Error('Unable to start camera with any configuration');
+      streamRef.current = stream;
+
+      // Set up video element
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute('playsinline', 'true');
+        await videoRef.current.play();
       }
-      
+
+      setScannerActive(true);
+      setCameraPermission('granted');
+      setSuccess('Camera started! Point at a QR code to scan.');
+
+      // Start scanning for QR codes
+      startQRCodeDetection();
+
     } catch (err: any) {
-      console.error('Failed to start scanner:', err);
+      console.error('Failed to start camera:', err);
       
       let errorMessage = 'Failed to start camera';
       
@@ -396,12 +229,9 @@ export default function MobileScanPage() {
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         errorMessage = 'No camera found on this device.';
         setCameraPermission('denied');
-      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+      } else if (err.name === 'NotReadableError') {
         errorMessage = 'Camera is already in use by another application.';
         setCameraPermission('denied');
-      } else if (err.name === 'OverconstrainedError' || err.name === 'ConstraintNotSatisfiedError') {
-        errorMessage = 'Camera constraints not supported. Trying basic camera access...';
-        setCameraPermission('prompt');
       } else {
         errorMessage = err.message || 'Unknown camera error occurred';
         setCameraPermission('prompt');
@@ -409,41 +239,184 @@ export default function MobileScanPage() {
       
       setError(errorMessage);
       
-      // Clean up failed scanner
-      if (html5QrCodeRef.current) {
-        try {
-          await html5QrCodeRef.current.clear();
-        } catch (e) {
-          console.log('Cleanup error:', e);
-        }
-        html5QrCodeRef.current = null;
-      }
-      
     } finally {
       setIsLoading(false);
     }
-  }, [scannerActive, paired, deviceName, deviceUid, post]);
+  }, [scannerActive]);
+
+  // QR Code detection using canvas and BarcodeDetector API
+  const startQRCodeDetection = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+
+    if (!context) return;
+
+    // Set up scanning interval
+    scanIntervalRef.current = setInterval(async () => {
+      if (!video.videoWidth || !video.videoHeight || isLoading) return;
+
+      try {
+        // Set canvas size to match video
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        // Draw current video frame to canvas
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Try to detect QR codes using browser's native barcode detection API if available
+        if ('BarcodeDetector' in window) {
+          const barcodeDetector = new window.BarcodeDetector({ formats: ['qr_code'] });
+          const barcodes = await barcodeDetector.detect(canvas);
+          
+          if (barcodes.length > 0) {
+            const qrCode = barcodes[0];
+            handleQRCodeDetected(qrCode.rawValue);
+          }
+        }
+      } catch (err) {
+        // Silently handle detection errors
+        console.log('Barcode detection error:', err);
+      }
+    }, 500); // Check every 500ms
+  }, [isLoading]);
+
+  // Handle QR code detection
+  const handleQRCodeDetected = useCallback(async (decodedText: string) => {
+    if (!decodedText || isLoading) return;
+
+    try {
+      console.log('QR Code detected:', decodedText);
+      setIsLoading(true);
+
+      // Stop scanning temporarily
+      if (scanIntervalRef.current) {
+        clearInterval(scanIntervalRef.current);
+        scanIntervalRef.current = null;
+      }
+
+      if (!paired) {
+        // Try to parse as pairing QR code
+        let qrData;
+        try {
+          qrData = JSON.parse(decodedText);
+        } catch (parseErr) {
+          // If not JSON, treat as direct code
+          qrData = { code: decodedText };
+        }
+
+        if (qrData.code) {
+          const response = await post('/mobile/pair-device', {
+            code: qrData.code,
+            device_name: deviceName || `Mobile Device ${new Date().toLocaleString()}`,
+            device_uid: deviceUid,
+          });
+
+          if (response.success) {
+            setPaired(true);
+            localStorage.setItem('device_paired', 'true');
+            localStorage.setItem('device_name', deviceName || `Mobile Device ${new Date().toLocaleString()}`);
+            
+            const result: ScanResult = {
+              id: Date.now().toString(),
+              data: decodedText,
+              timestamp: new Date().toISOString(),
+              type: 'pairing',
+              status: 'success',
+              message: 'Device paired successfully!'
+            };
+            
+            setScanResults(prev => [result, ...prev]);
+            setSuccess('Device paired successfully! You can now scan products.');
+          } else {
+            throw new Error(response.message || 'Pairing failed');
+          }
+        } else {
+          throw new Error('Invalid pairing QR code format');
+        }
+      } else {
+        // Scan product
+        const response = await post('/mobile/scan-product', {
+          device_uid: deviceUid,
+          scanned_data: decodedText,
+        });
+
+        const result: ScanResult = {
+          id: Date.now().toString(),
+          data: decodedText,
+          timestamp: new Date().toISOString(),
+          type: 'product',
+          status: response.success ? 'success' : 'error',
+          message: response.success ? 'Product scanned successfully' : response.message || 'Scan failed'
+        };
+        
+        setScanResults(prev => [result, ...prev]);
+        
+        if (response.success) {
+          setSuccess(`Product scanned successfully: ${decodedText}`);
+        } else {
+          setError(`Failed to process scan: ${response.message || decodedText}`);
+        }
+      }
+
+      // Resume scanning after delay
+      setTimeout(() => {
+        setSuccess(null);
+        setError(null);
+        setIsLoading(false);
+        if (scannerActive) {
+          startQRCodeDetection();
+        }
+      }, 2000);
+
+    } catch (err: any) {
+      console.error('Scan processing error:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to process scan');
+      
+      const result: ScanResult = {
+        id: Date.now().toString(),
+        data: decodedText,
+        timestamp: new Date().toISOString(),
+        type: paired ? 'product' : 'pairing',
+        status: 'error',
+        message: err.response?.data?.message || err.message || 'Processing failed'
+      };
+      
+      setScanResults(prev => [result, ...prev]);
+      
+      // Resume scanning after error
+      setTimeout(() => {
+        setIsLoading(false);
+        if (scannerActive) {
+          startQRCodeDetection();
+        }
+      }, 2000);
+    }
+  }, [paired, deviceName, deviceUid, post, isLoading, scannerActive, startQRCodeDetection]);
 
   // Stop scanner
   const stopScanner = useCallback(async () => {
-    if (html5QrCodeRef.current && scannerActive) {
-      try {
-        await html5QrCodeRef.current.stop();
-        setScannerActive(false);
-      } catch (err) {
-        console.error('Error stopping scanner:', err);
-      }
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current);
+      scanIntervalRef.current = null;
     }
-  }, [scannerActive]);
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+
+    setScannerActive(false);
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (html5QrCodeRef.current) {
-        html5QrCodeRef.current.stop().catch(console.error);
-      }
+      stopScanner();
     };
-  }, []);
+  }, [stopScanner]);
 
   // Request camera permission and start scanner
   const handleStartScanning = async () => {
@@ -475,6 +448,14 @@ export default function MobileScanPage() {
     setDeviceName('');
     setScanResults([]);
     stopScanner();
+  };
+
+  // Handle manual input
+  const handleManualSubmit = async () => {
+    if (!manualInput.trim()) return;
+    
+    await handleQRCodeDetected(manualInput.trim());
+    setManualInput('');
   };
 
   return (
@@ -695,11 +676,34 @@ export default function MobileScanPage() {
 
               {scannerActive && (
                 <div>
-                  <div 
-                    id="qr-reader" 
-                    className="w-full min-h-[400px] bg-black rounded-lg overflow-hidden relative"
-                    style={{ minHeight: '400px', width: '100%' }}
-                  ></div>
+                  <div className="relative">
+                    <video 
+                      ref={videoRef}
+                      className="w-full h-64 bg-black rounded-lg object-cover"
+                      playsInline
+                      muted
+                    />
+                    <canvas 
+                      ref={canvasRef}
+                      className="hidden"
+                    />
+                    
+                    {/* Scanning overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="border-2 border-white border-dashed w-48 h-48 rounded-lg"></div>
+                    </div>
+                    
+                    {/* BarcodeDetector support indicator */}
+                    {'BarcodeDetector' in window ? (
+                      <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                        Native Scanner Active
+                      </div>
+                    ) : (
+                      <div className="absolute top-2 left-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded">
+                        Manual Input Only
+                      </div>
+                    )}
+                  </div>
                   
                   {isLoading && (
                     <div className="mt-4 flex items-center justify-center">
@@ -732,6 +736,32 @@ export default function MobileScanPage() {
               )}
             </div>
           </div>
+
+          {/* Manual Input (if BarcodeDetector not supported) */}
+          {scannerActive && !('BarcodeDetector' in window) && (
+            <div className="mt-4 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+              <h3 className="text-sm font-medium text-gray-900 mb-2">Manual Input</h3>
+              <p className="text-xs text-gray-600 mb-3">
+                Your browser doesn't support automatic QR scanning. Please enter the code manually:
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={manualInput}
+                  onChange={(e) => setManualInput(e.target.value)}
+                  placeholder="Enter QR code or barcode"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={handleManualSubmit}
+                  disabled={!manualInput.trim() || isLoading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm"
+                >
+                  Submit
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Device Status */}
           {paired && (
