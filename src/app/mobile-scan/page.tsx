@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useApi } from '@/hooks/useApi';
-import { Html5QrcodeScanner, Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from 'html5-qrcode';
 import { 
   CameraIcon, 
   DevicePhoneMobileIcon, 
@@ -10,8 +10,8 @@ import {
   ExclamationTriangleIcon,
   XCircleIcon,
   QrCodeIcon,
-  BoltIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  StopIcon
 } from '@heroicons/react/24/outline';
 import DashboardLayout from '@/components/DashboardLayout';
 
@@ -21,6 +21,7 @@ interface ScanResult {
   timestamp: string;
   type: 'pairing' | 'product';
   status: 'success' | 'error';
+  message?: string;
 }
 
 export default function MobileScanPage() {
@@ -32,7 +33,7 @@ export default function MobileScanPage() {
   const [deviceUid, setDeviceUid] = useState('');
   
   // Camera and scanning state
-  const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt' | 'checking'>('checking');
+  const [cameraPermission, setCameraPermission] = useState<'granted' | 'denied' | 'prompt' | 'checking'>('prompt');
   const [scannerActive, setScannerActive] = useState(false);
   const [scanResults, setScanResults] = useState<ScanResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,23 +41,55 @@ export default function MobileScanPage() {
   const [success, setSuccess] = useState<string | null>(null);
   
   // Refs
-  const scannerRef = useRef<HTMLDivElement>(null);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const scanTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize device UID
+  // Generate device name based on user agent
+  const getDeviceName = useCallback(() => {
+    const userAgent = navigator.userAgent;
+    if (/iPhone/i.test(userAgent)) return 'iPhone';
+    if (/iPad/i.test(userAgent)) return 'iPad';
+    if (/Android/i.test(userAgent)) return 'Android Device';
+    if (/Windows/i.test(userAgent)) return 'Windows Device';
+    if (/Mac/i.test(userAgent)) return 'Mac Device';
+    return 'Mobile Device';
+  }, []);
+
+  // Initialize device UID and check pairing status
   useEffect(() => {
-    const uid = localStorage.getItem('device_uid') || `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    localStorage.setItem('device_uid', uid);
+    let uid = localStorage.getItem('device_uid');
+    if (!uid) {
+      uid = `mobile_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem('device_uid', uid);
+    }
     setDeviceUid(uid);
+
+    // Set default device name if not set
+    const savedName = localStorage.getItem('device_name');
+    if (!savedName) {
+      const defaultName = getDeviceName();
+      setDeviceName(defaultName);
+      localStorage.setItem('device_name', defaultName);
+    } else {
+      setDeviceName(savedName);
+    }
 
     // Check if device was previously paired
     const wasPaired = localStorage.getItem('device_paired') === 'true';
-    const pairedDeviceName = localStorage.getItem('device_name');
-    
-    if (wasPaired && pairedDeviceName) {
+    if (wasPaired) {
       setPaired(true);
-      setDeviceName(pairedDeviceName);
     }
+  }, [getDeviceName]);
+
+  // Clear messages after timeout
+  const clearMessages = useCallback(() => {
+    if (scanTimeoutRef.current) {
+      clearTimeout(scanTimeoutRef.current);
+    }
+    scanTimeoutRef.current = setTimeout(() => {
+      setSuccess(null);
+      setError(null);
+    }, 4000);
   }, []);
 
   // Check camera permissions
@@ -66,64 +99,53 @@ export default function MobileScanPage() {
       setCameraPermission('checking');
       setError(null);
       
-      // First check if getUserMedia is available
+      // Check if getUserMedia is available
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Camera API not supported in this browser');
       }
 
-      // Set a timeout for the permission request
-      const permissionPromise = navigator.mediaDevices.getUserMedia({ 
+      // Try to get camera permission
+      const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
-          facingMode: { ideal: 'environment' } // Prefer back camera but allow front camera as fallback
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
         } 
       });
-
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Camera permission request timed out')), 8000)
-      );
-
-      // Try to get camera permission with timeout
-      const stream = await Promise.race([permissionPromise, timeoutPromise]) as MediaStream;
       
-      // Stop the stream immediately as we just needed to check permission
+      // Stop the stream immediately - we just needed to check permission
       stream.getTracks().forEach(track => track.stop());
       
       console.log('Camera permission granted');
       setCameraPermission('granted');
-      setSuccess('Camera access granted! You can now start scanning.');
+      setSuccess('Camera access granted! Click "Start Scanning" to begin.');
+      clearMessages();
       return true;
     } catch (err: any) {
       console.error('Camera permission error:', err);
       
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         setCameraPermission('denied');
-        setError('Camera access denied. Please allow camera access in your browser settings and try again.');
+        setError('Camera access denied. Please allow camera access and try again.');
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         setCameraPermission('denied');
         setError('No camera found on this device.');
       } else if (err.name === 'NotReadableError') {
         setCameraPermission('denied');
         setError('Camera is already in use by another application.');
-      } else if (err.message.includes('timed out')) {
-        setCameraPermission('prompt');
-        setError('Camera permission request timed out. Click "Request Camera Access" to try again.');
       } else {
         setCameraPermission('prompt');
-        setError(`Camera error: ${err.message}. Click "Request Camera Access" to try again.`);
+        setError(`Camera error: ${err.message}`);
       }
       
+      clearMessages();
       return false;
     }
-  }, []);
-
-  // Check camera permissions on component mount
-  useEffect(() => {
-    checkCameraPermissions();
-  }, [checkCameraPermissions]);
+  }, [clearMessages]);
 
   // Start QR scanner
   const startScanner = useCallback(async () => {
-    if (!scannerRef.current || scannerActive) return;
+    if (scannerActive) return;
 
     try {
       setIsLoading(true);
@@ -137,6 +159,7 @@ export default function MobileScanPage() {
       if (html5QrCodeRef.current) {
         try {
           await html5QrCodeRef.current.stop();
+          await html5QrCodeRef.current.clear();
         } catch (e) {
           console.log('No active scanner to stop');
         }
@@ -153,6 +176,9 @@ export default function MobileScanPage() {
       const qrCodeSuccessCallback = async (decodedText: string, decodedResult: any) => {
         try {
           console.log('QR Code scanned:', decodedText);
+          
+          // Temporarily pause scanning to process result
+          await html5QrCode.pause(true);
           
           if (!paired) {
             // Try to parse as pairing QR code
@@ -182,11 +208,14 @@ export default function MobileScanPage() {
                   data: decodedText,
                   timestamp: new Date().toISOString(),
                   type: 'pairing',
-                  status: 'success'
+                  status: 'success',
+                  message: 'Device paired successfully!'
                 };
                 
                 setScanResults(prev => [result, ...prev]);
                 setSuccess('Device paired successfully! You can now scan products.');
+              } else {
+                throw new Error(response.message || 'Pairing failed');
               }
             } else {
               throw new Error('Invalid pairing QR code format');
@@ -204,7 +233,8 @@ export default function MobileScanPage() {
               data: decodedText,
               timestamp: new Date().toISOString(),
               type: 'product',
-              status: response.success ? 'success' : 'error'
+              status: response.success ? 'success' : 'error',
+              message: response.success ? 'Product scanned successfully' : response.message || 'Scan failed'
             };
             
             setScanResults(prev => [result, ...prev]);
@@ -212,15 +242,20 @@ export default function MobileScanPage() {
             if (response.success) {
               setSuccess(`Product scanned successfully: ${decodedText}`);
             } else {
-              setError(`Failed to process scan: ${decodedText}`);
+              setError(`Failed to process scan: ${response.message || decodedText}`);
             }
           }
           
-          // Clear messages after 3 seconds
+          // Clear messages and resume scanning after delay
           setTimeout(() => {
             setSuccess(null);
             setError(null);
-          }, 3000);
+            setIsLoading(false);
+            // Resume scanning after processing
+            if (html5QrCodeRef.current && scannerActive) {
+              html5QrCode.resume();
+            }
+          }, 2000);
 
         } catch (err: any) {
           console.error('Scan processing error:', err);
@@ -231,34 +266,55 @@ export default function MobileScanPage() {
             data: decodedText,
             timestamp: new Date().toISOString(),
             type: paired ? 'product' : 'pairing',
-            status: 'error'
+            status: 'error',
+            message: err.response?.data?.message || err.message || 'Processing failed'
           };
           
           setScanResults(prev => [result, ...prev]);
-        } finally {
-          setIsLoading(false);
+          
+          // Resume scanning after error
+          setTimeout(() => {
+            setIsLoading(false);
+            if (html5QrCodeRef.current && scannerActive) {
+              html5QrCode.resume();
+            }
+          }, 2000);
         }
       };
 
       const qrCodeErrorCallback = (errorMessage: string) => {
         // Ignore frequent "No QR code found" messages
-        if (!errorMessage.includes('No QR code found')) {
+        if (!errorMessage.includes('No QR code found') && !errorMessage.includes('QR code parse error')) {
           console.log('QR scan error:', errorMessage);
         }
       };
 
-      // Start scanning with back camera
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 }
+      // Start scanning with better camera configuration
+      const cameraConfig = {
+        facingMode: { ideal: "environment" }, // Prefer back camera
+        width: { min: 640, ideal: 1280, max: 1920 },
+        height: { min: 480, ideal: 720, max: 1080 }
+      };
+
+      const scanConfig = {
+        fps: 10, // Reduce FPS for better performance
+        qrbox: function(viewfinderWidth: number, viewfinderHeight: number) {
+          const minEdgePercentage = 0.7; // 70% of the smaller edge
+          const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+          const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
+          return {
+            width: qrboxSize,
+            height: qrboxSize
+          };
         },
-        qrCodeSuccessCallback,
-        qrCodeErrorCallback
-      );
+        aspectRatio: 1.0 // Square scanning area
+      };
+
+      await html5QrCode.start(cameraConfig, scanConfig, qrCodeSuccessCallback, qrCodeErrorCallback);
 
       setScannerActive(true);
+      setSuccess('Scanner started! Point your camera at a QR code.');
+      
     } catch (err: any) {
       console.error('Failed to start scanner:', err);
       setError(`Failed to start camera: ${err.message}`);
@@ -363,20 +419,20 @@ export default function MobileScanPage() {
             </div>
           )}
 
-          {/* Manual Camera Access Button (always visible when not active) */}
-          {!scannerActive && (
+          {/* Manual Camera Access Button (when not active and permission not granted) */}
+          {!scannerActive && cameraPermission !== 'granted' && (
             <div className="mb-4 text-center">
               <button
                 onClick={checkCameraPermissions}
                 disabled={isLoading || cameraPermission === 'checking'}
-                className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
                 {isLoading || cameraPermission === 'checking' ? (
                   <ArrowPathIcon className="w-4 h-4 mr-2 animate-spin" />
                 ) : (
                   <CameraIcon className="w-4 h-4 mr-2" />
                 )}
-                {cameraPermission === 'checking' ? 'Checking...' : 'Check Camera Access'}
+                {cameraPermission === 'checking' ? 'Checking Camera...' : 'Request Camera Access'}
               </button>
             </div>
           )}
@@ -428,17 +484,37 @@ export default function MobileScanPage() {
                 </div>
               )}
 
-              {(cameraPermission === 'granted' || cameraPermission === 'prompt') && !scannerActive && (
+              {cameraPermission === 'granted' && !scannerActive && (
+                <div className="text-center py-8">
+                  <CameraIcon className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Ready to Scan</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    {paired 
+                      ? 'Point your camera at a product barcode to scan inventory' 
+                      : 'Point your camera at the admin\'s QR code to pair this device'
+                    }
+                  </p>
+                  <button
+                    onClick={handleStartScanning}
+                    disabled={isLoading}
+                    className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                  >
+                    {isLoading ? (
+                      <ArrowPathIcon className="w-5 h-5 mr-2 animate-spin" />
+                    ) : (
+                      <CameraIcon className="w-5 h-5 mr-2" />
+                    )}
+                    {isLoading ? 'Starting Camera...' : 'Start Scanning'}
+                  </button>
+                </div>
+              )}
+
+              {cameraPermission === 'prompt' && !scannerActive && (
                 <div className="text-center py-8">
                   <CameraIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    {cameraPermission === 'granted' ? 'Ready to Scan' : 'Camera Access Needed'}
-                  </h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Camera Access Needed</h3>
                   <p className="text-sm text-gray-600 mb-4">
-                    {cameraPermission === 'granted' 
-                      ? (paired ? 'Point your camera at a product barcode' : 'Point your camera at the admin\'s QR code')
-                      : 'Click the button below to request camera access'
-                    }
+                    Click the button below to request camera access and start scanning
                   </p>
                   <button
                     onClick={handleStartScanning}
@@ -450,27 +526,37 @@ export default function MobileScanPage() {
                     ) : (
                       <CameraIcon className="w-5 h-5 mr-2" />
                     )}
-                    {isLoading ? 'Starting Camera...' : (cameraPermission === 'granted' ? 'Start Scanning' : 'Request Camera Access')}
+                    {isLoading ? 'Starting Camera...' : 'Start Camera & Scan'}
                   </button>
                 </div>
               )}
 
               {scannerActive && (
                 <div>
-                  <div id="qr-reader" ref={scannerRef} className="w-full"></div>
+                  <div id="qr-reader" className="w-full min-h-[300px] bg-black rounded-lg overflow-hidden"></div>
+                  
+                  {isLoading && (
+                    <div className="mt-4 flex items-center justify-center">
+                      <ArrowPathIcon className="w-5 h-5 mr-2 animate-spin text-blue-600" />
+                      <span className="text-sm text-blue-600">Processing scan...</span>
+                    </div>
+                  )}
                   
                   <div className="mt-4 flex justify-center space-x-3">
                     <button
                       onClick={stopScanner}
-                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                      disabled={isLoading}
+                      className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
                     >
+                      <StopIcon className="w-4 h-4 mr-2" />
                       Stop Scanning
                     </button>
                     
                     {paired && (
                       <button
                         onClick={handleResetPairing}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        disabled={isLoading}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                       >
                         Unpair Device
                       </button>
@@ -510,15 +596,20 @@ export default function MobileScanPage() {
                         <p className="text-sm font-medium text-gray-900 truncate">
                           {result.data}
                         </p>
+                        {result.message && (
+                          <p className={`text-xs ${result.status === 'success' ? 'text-green-600' : 'text-red-600'} mb-1`}>
+                            {result.message}
+                          </p>
+                        )}
                         <p className="text-xs text-gray-500">
                           {new Date(result.timestamp).toLocaleString()} • {result.type}
                         </p>
                       </div>
                       <div className="ml-2">
                         {result.status === 'success' ? (
-                          <CheckCircleIcon className="w-4 h-4 text-green-500" />
+                          <CheckCircleIcon className="w-5 h-5 text-green-500" />
                         ) : (
-                          <XCircleIcon className="w-4 h-4 text-red-500" />
+                          <XCircleIcon className="w-5 h-5 text-red-500" />
                         )}
                       </div>
                     </div>
