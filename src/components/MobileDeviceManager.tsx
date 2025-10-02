@@ -100,9 +100,14 @@ export default function MobileDeviceManager() {
         const newCode = (response.data as any);
         setGeneratedCode(newCode);
 
-        // Generate QR code URL for display
-        const qrData = JSON.parse(newCode.qr_code_data);
-        setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(JSON.stringify(qrData))}`);
+        // Use QR code URL from backend response or generate one
+        if (newCode.qr_code_url) {
+          setQrCodeUrl(newCode.qr_code_url);
+        } else {
+          // Fallback: Generate QR code URL for display
+          const qrData = newCode.qr_code_data;
+          setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`);
+        }
 
         // Reload codes list
         await loadConnectionCodes();
