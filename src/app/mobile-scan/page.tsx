@@ -62,6 +62,7 @@ export default function MobileScanPage() {
   // Check camera permissions
   const checkCameraPermissions = useCallback(async () => {
     try {
+      console.log('Checking camera permissions...');
       setCameraPermission('checking');
       
       // First check if getUserMedia is available
@@ -69,16 +70,24 @@ export default function MobileScanPage() {
         throw new Error('Camera API not supported in this browser');
       }
 
-      // Try to get camera permission
-      const stream = await navigator.mediaDevices.getUserMedia({ 
+      // Set a timeout for the permission request
+      const permissionPromise = navigator.mediaDevices.getUserMedia({ 
         video: { 
-          facingMode: 'environment' // Use back camera if available
+          facingMode: { ideal: 'environment' } // Prefer back camera but allow front camera as fallback
         } 
       });
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Camera permission request timed out')), 10000)
+      );
+
+      // Try to get camera permission with timeout
+      const stream = await Promise.race([permissionPromise, timeoutPromise]) as MediaStream;
       
       // Stop the stream immediately as we just needed to check permission
       stream.getTracks().forEach(track => track.stop());
       
+      console.log('Camera permission granted');
       setCameraPermission('granted');
       return true;
     } catch (err: any) {
@@ -86,21 +95,29 @@ export default function MobileScanPage() {
       
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         setCameraPermission('denied');
-        setError('Camera access denied. Please allow camera access and refresh the page.');
+        setError('Camera access denied. Please allow camera access and try again.');
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         setCameraPermission('denied');
         setError('No camera found on this device.');
       } else if (err.name === 'NotReadableError') {
         setCameraPermission('denied');
         setError('Camera is already in use by another application.');
+      } else if (err.message.includes('timed out')) {
+        setCameraPermission('prompt');
+        setError('Camera permission request timed out. Please click "Start Scanning" to try again.');
       } else {
-        setCameraPermission('denied');
-        setError(`Camera error: ${err.message}`);
+        setCameraPermission('prompt');
+        setError(`Camera error: ${err.message}. Click "Start Scanning" to try again.`);
       }
       
       return false;
     }
   }, []);
+
+  // Check camera permissions on component mount
+  useEffect(() => {
+    checkCameraPermissions();
+  }, [checkCameraPermissions]);
 
   // Start QR scanner
   const startScanner = useCallback(async () => {
@@ -361,24 +378,35 @@ export default function MobileScanPage() {
                   <p className="text-sm text-gray-600 mb-4">
                     Please allow camera access to scan QR codes and barcodes.
                   </p>
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <ArrowPathIcon className="w-4 h-4 mr-2" />
-                    Retry Camera Access
-                  </button>
+                  <div className="space-y-2">
+                    <button
+                      onClick={checkCameraPermissions}
+                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mr-2"
+                    >
+                      <ArrowPathIcon className="w-4 h-4 mr-2" />
+                      Try Again
+                    </button>
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                    >
+                      <ArrowPathIcon className="w-4 h-4 mr-2" />
+                      Reload Page
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {cameraPermission === 'granted' && !scannerActive && (
+              {(cameraPermission === 'granted' || cameraPermission === 'prompt') && !scannerActive && (
                 <div className="text-center py-8">
                   <CameraIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Ready to Scan</h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {cameraPermission === 'granted' ? 'Ready to Scan' : 'Camera Access Needed'}
+                  </h3>
                   <p className="text-sm text-gray-600 mb-4">
-                    {paired 
-                      ? 'Point your camera at a product barcode' 
-                      : 'Point your camera at the admin\'s QR code'
+                    {cameraPermission === 'granted' 
+                      ? (paired ? 'Point your camera at a product barcode' : 'Point your camera at the admin\'s QR code')
+                      : 'Click the button below to request camera access'
                     }
                   </p>
                   <button
@@ -391,7 +419,7 @@ export default function MobileScanPage() {
                     ) : (
                       <CameraIcon className="w-5 h-5 mr-2" />
                     )}
-                    {isLoading ? 'Starting Camera...' : 'Start Scanning'}
+                    {isLoading ? 'Starting Camera...' : (cameraPermission === 'granted' ? 'Start Scanning' : 'Request Camera Access')}
                   </button>
                 </div>
               )}
