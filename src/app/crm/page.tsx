@@ -433,6 +433,91 @@ export default function CrmPage() {
     setEditingContact(contact);
     setShowContactModal(true);
   };
+  
+  // Communication Action Handlers
+  const handleCallContact = (phoneNumber: string) => {
+    if (!phoneNumber) {
+      alert('No phone number available for this contact');
+      return;
+    }
+    // Clean phone number (remove spaces, dashes, etc.)
+    const cleanNumber = phoneNumber.replace(/[^+\d]/g, '');
+    window.open(`tel:${cleanNumber}`, '_self');
+  };
+  
+  const handleEmailContact = (email: string, contactName: string) => {
+    if (!email) {
+      alert('No email address available for this contact');
+      return;
+    }
+    const subject = encodeURIComponent(`Hello ${contactName}`);
+    const body = encodeURIComponent(`Dear ${contactName},\n\nI hope this message finds you well.\n\nBest regards`);
+    window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_self');
+  };
+  
+  const handleSMSContact = (phoneNumber: string, contactName: string) => {
+    if (!phoneNumber) {
+      alert('No phone number available for SMS');
+      return;
+    }
+    // Clean phone number
+    const cleanNumber = phoneNumber.replace(/[^+\d]/g, '');
+    const message = encodeURIComponent(`Hello ${contactName}, `);
+    
+    // Check if it's iOS or Android for SMS handling
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isAndroid = /Android/.test(navigator.userAgent);
+    
+    if (isIOS) {
+      window.open(`sms:${cleanNumber}&body=${message}`, '_self');
+    } else if (isAndroid) {
+      window.open(`sms:${cleanNumber}?body=${message}`, '_self');
+    } else {
+      // Fallback for other platforms
+      window.open(`sms:${cleanNumber}?body=${message}`, '_self');
+    }
+  };
+  
+  const handleWhatsAppContact = (whatsappNumber: string, contactName: string) => {
+    if (!whatsappNumber) {
+      alert('No WhatsApp number available for this contact');
+      return;
+    }
+    // Clean WhatsApp number and ensure it has country code
+    let cleanNumber = whatsappNumber.replace(/[^+\d]/g, '');
+    
+    // If number doesn't start with +, assume it's Uganda (+256) and add country code
+    if (!cleanNumber.startsWith('+')) {
+      // Remove leading zero if present for Uganda numbers
+      if (cleanNumber.startsWith('0')) {
+        cleanNumber = cleanNumber.substring(1);
+      }
+      // Add Uganda country code if it doesn't start with 256
+      if (!cleanNumber.startsWith('256')) {
+        cleanNumber = '256' + cleanNumber;
+      }
+    } else {
+      // Remove + for WhatsApp API
+      cleanNumber = cleanNumber.substring(1);
+    }
+    
+    const message = encodeURIComponent(`Hello ${contactName}, I hope you're doing well!`);
+    
+    // Try WhatsApp API first, then fallback to web
+    const whatsappUrl = `https://wa.me/${cleanNumber}?text=${message}`;
+    const whatsappAppUrl = `whatsapp://send?phone=${cleanNumber}&text=${message}`;
+    
+    // Try to open WhatsApp app first, then fallback to web
+    try {
+      window.open(whatsappAppUrl, '_self');
+      // If app doesn't open within 2 seconds, open web version
+      setTimeout(() => {
+        window.open(whatsappUrl, '_blank');
+      }, 2000);
+    } catch (error) {
+      window.open(whatsappUrl, '_blank');
+    }
+  };
 
   return (
     <ProtectedRoute>
@@ -1064,15 +1149,38 @@ export default function CrmPage() {
                           
                           <div className="flex space-x-2">
                             {contact.whatsapp_number && (
-                              <button className="p-2 bg-green-50 text-green-600 rounded-lg">
+                              <button 
+                                onClick={() => handleWhatsAppContact(contact.whatsapp_number!, contact.name)}
+                                className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors active:scale-95"
+                                title={`WhatsApp ${contact.name}`}
+                              >
                                 <ChatBubbleLeftRightIcon className="h-4 w-4" />
                               </button>
                             )}
-                            <button className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                              <PhoneIcon className="h-4 w-4" />
-                            </button>
+                            {contact.phone && (
+                              <button 
+                                onClick={() => handleCallContact(contact.phone!)}
+                                className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors active:scale-95"
+                                title={`Call ${contact.name}`}
+                              >
+                                <PhoneIcon className="h-4 w-4" />
+                              </button>
+                            )}
+                            {contact.phone && (
+                              <button 
+                                onClick={() => handleSMSContact(contact.phone!, contact.name)}
+                                className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors active:scale-95"
+                                title={`SMS ${contact.name}`}
+                              >
+                                <span className="text-sm font-bold">SMS</span>
+                              </button>
+                            )}
                             {contact.email && (
-                              <button className="p-2 bg-gray-50 text-gray-600 rounded-lg">
+                              <button 
+                                onClick={() => handleEmailContact(contact.email!, contact.name)}
+                                className="p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors active:scale-95"
+                                title={`Email ${contact.name}`}
+                              >
                                 <EnvelopeIcon className="h-4 w-4" />
                               </button>
                             )}
@@ -1349,14 +1457,55 @@ export default function CrmPage() {
                               </span>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center space-x-2">
-                                <span className="text-lg">
-                                  {getChannelIcon(contact.preferred_communication_channel)}
-                                </span>
-                                <div>
-                                  <div className="text-sm text-gray-900">{contact.phone}</div>
+                              <div className="flex items-center space-x-3">
+                                <div className="flex items-center space-x-2">
                                   {contact.whatsapp_number && (
-                                    <div className="text-sm text-green-600">📱 {contact.whatsapp_number}</div>
+                                    <button 
+                                      onClick={() => handleWhatsAppContact(contact.whatsapp_number!, contact.name)}
+                                      className="p-1.5 bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors active:scale-95"
+                                      title="WhatsApp"
+                                    >
+                                      <ChatBubbleLeftRightIcon className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                  {contact.phone && (
+                                    <>
+                                      <button 
+                                        onClick={() => handleCallContact(contact.phone!)}
+                                        className="p-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors active:scale-95"
+                                        title="Call"
+                                      >
+                                        <PhoneIcon className="h-3 w-3" />
+                                      </button>
+                                      <button 
+                                        onClick={() => handleSMSContact(contact.phone!, contact.name)}
+                                        className="p-1.5 bg-purple-50 text-purple-600 rounded-md hover:bg-purple-100 transition-colors active:scale-95"
+                                        title="SMS"
+                                      >
+                                        <span className="text-xs font-bold">SMS</span>
+                                      </button>
+                                    </>
+                                  )}
+                                  {contact.email && (
+                                    <button 
+                                      onClick={() => handleEmailContact(contact.email!, contact.name)}
+                                      className="p-1.5 bg-gray-50 text-gray-600 rounded-md hover:bg-gray-100 transition-colors active:scale-95"
+                                      title="Email"
+                                    >
+                                      <EnvelopeIcon className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                </div>
+                                <div className="ml-2">
+                                  <div className="text-sm text-gray-900 flex items-center">
+                                    <span className="mr-1">{getChannelIcon(contact.preferred_communication_channel)}</span>
+                                    {contact.phone || 'No phone'}
+                                  </div>
+                                  {contact.whatsapp_number && (
+                                    <div className="text-sm text-green-600">📱 WhatsApp</div>
+                                  )}
+                                  {contact.email && (
+                                    <div className="text-sm text-gray-500">{contact.email}</div>
                                   )}
                                 </div>
                               </div>
@@ -2247,24 +2396,53 @@ export default function CrmPage() {
                             <p className="text-sm text-green-700">{quickViewContact.whatsapp_number}</p>
                           </div>
                         </div>
-                        <button className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors">
+                        <button 
+                          onClick={() => handleWhatsAppContact(quickViewContact.whatsapp_number!, quickViewContact.name)}
+                          className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors active:scale-95"
+                          title="Open WhatsApp"
+                        >
                           <ChatBubbleLeftRightIcon className="h-4 w-4" />
                         </button>
                       </div>
                     )}
                     
-                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="flex items-center space-x-3">
-                        <span className="text-blue-500 text-lg">📞</span>
-                        <div>
-                          <p className="font-medium text-blue-900">Phone</p>
-                          <p className="text-sm text-blue-700">{quickViewContact.phone || 'Not provided'}</p>
+                    {quickViewContact.phone && (
+                      <>
+                        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="flex items-center space-x-3">
+                            <span className="text-blue-500 text-lg">📞</span>
+                            <div>
+                              <p className="font-medium text-blue-900">Phone Call</p>
+                              <p className="text-sm text-blue-700">{quickViewContact.phone}</p>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => handleCallContact(quickViewContact.phone!)}
+                            className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors active:scale-95"
+                            title="Make a call"
+                          >
+                            <PhoneIcon className="h-4 w-4" />
+                          </button>
                         </div>
-                      </div>
-                      <button className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors">
-                        <PhoneIcon className="h-4 w-4" />
-                      </button>
-                    </div>
+                        
+                        <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg border border-purple-200">
+                          <div className="flex items-center space-x-3">
+                            <span className="text-purple-500 text-lg">💬</span>
+                            <div>
+                              <p className="font-medium text-purple-900">SMS Message</p>
+                              <p className="text-sm text-purple-700">{quickViewContact.phone}</p>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => handleSMSContact(quickViewContact.phone!, quickViewContact.name)}
+                            className="p-2 bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition-colors active:scale-95"
+                            title="Send SMS"
+                          >
+                            <span className="text-xs font-bold">SMS</span>
+                          </button>
+                        </div>
+                      </>
+                    )}
                     
                     {quickViewContact.email && (
                       <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -2275,9 +2453,20 @@ export default function CrmPage() {
                             <p className="text-sm text-gray-700">{quickViewContact.email}</p>
                           </div>
                         </div>
-                        <button className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors">
+                        <button 
+                          onClick={() => handleEmailContact(quickViewContact.email!, quickViewContact.name)}
+                          className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors active:scale-95"
+                          title="Send email"
+                        >
                           <EnvelopeIcon className="h-4 w-4" />
                         </button>
+                      </div>
+                    )}
+                    
+                    {!quickViewContact.phone && !quickViewContact.email && !quickViewContact.whatsapp_number && (
+                      <div className="text-center py-4 text-gray-500">
+                        <p className="text-sm">No communication methods available</p>
+                        <p className="text-xs">Please update contact information</p>
                       </div>
                     )}
                   </div>
