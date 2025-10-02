@@ -36,7 +36,9 @@ import {
   GiftIcon,
   DevicePhoneMobileIcon,
   TruckIcon,
-  CalendarIcon
+  CalendarIcon,
+  MagnifyingGlassIcon,
+ 
 } from '@heroicons/react/24/outline';
 import {
   Chart as ChartJS,
@@ -470,6 +472,24 @@ export default function InventoryPage() {
   
   // Category filter state
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  
+  // Search functionality
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Quick view modal
+  const [showQuickView, setShowQuickView] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+
+  // Handle quick view
+  const handleQuickView = (product: any) => {
+    setSelectedProduct(product);
+    setShowQuickView(true);
+  };
+
+  const closeQuickView = () => {
+    setShowQuickView(false);
+    setSelectedProduct(null);
+  };
 
   // 💰 SALES & POS STATE
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -480,7 +500,7 @@ export default function InventoryPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [productSearch, setProductSearch] = useState('');
-  const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
+  // Removed duplicate filteredProducts state; useMemo is used below
   const [smartRecommendations, setSmartRecommendations] = useState<SmartRecommendation[]>([]);
   const [dynamicPricing, setDynamicPricing] = useState<DynamicPricing[]>([]);
   const [salesAnalytics, setSalesAnalytics] = useState<any>(null);
@@ -1440,8 +1460,7 @@ export default function InventoryPage() {
   // Product search functionality
   const searchProducts = (searchTerm: string) => {
     if (!searchTerm.trim()) {
-      setFilteredProducts([]);
-      return;
+      return [];
     }
     
     const filtered = products.filter(product => 
@@ -1450,7 +1469,7 @@ export default function InventoryPage() {
       product.category?.toLowerCase().includes(searchTerm.toLowerCase())
     ).slice(0, 10);
     
-    setFilteredProducts(filtered);
+    return filtered;
   };
 
   // Handle barcode scan for sales
@@ -1836,10 +1855,66 @@ export default function InventoryPage() {
     ],
   }), [demandForecasts]);
 
+  // Filtered products based on search and filters
+  const filteredProducts = useMemo(() => {
+    if (!products || products.length === 0) return [];
+    
+    let filtered = products;
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(product => 
+        product.name?.toLowerCase().includes(query) ||
+        product.sku?.toLowerCase().includes(query) ||
+        product.category?.toLowerCase().includes(query) ||
+        product.supplier_name?.toLowerCase().includes(query) ||
+        product.description?.toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply category filter
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(product => product.category_id?.toString() === selectedCategory);
+    }
+    
+    // Apply status filter
+    if (selectedStatus !== 'all') {
+      switch (selectedStatus) {
+        case 'in-stock':
+          filtered = filtered.filter(p => (p.current_stock || 0) > (p.min_stock_level || 0));
+          break;
+        case 'low-stock':
+          filtered = filtered.filter(p => (p.current_stock || 0) <= (p.min_stock_level || 0) && (p.current_stock || 0) > 0);
+          break;
+        case 'out-of-stock':
+          filtered = filtered.filter(p => (p.current_stock || 0) === 0);
+          break;
+      }
+    }
+    
+    // Apply expiry filter
+    if (selectedExpiryFilter !== 'all') {
+      switch (selectedExpiryFilter) {
+        case 'expired':
+          filtered = filtered.filter(p => p.has_expiry && p.expiry_date && getExpiryStatus(p.expiry_date) === 'expired');
+          break;
+        case 'expiring-soon':
+          filtered = filtered.filter(p => p.has_expiry && p.expiry_date && getExpiryStatus(p.expiry_date) === 'expiring-soon');
+          break;
+        case 'no-expiry':
+          filtered = filtered.filter(p => !p.has_expiry || !p.expiry_date);
+          break;
+      }
+    }
+    
+    return filtered;
+  }, [products, searchQuery, selectedCategory, selectedStatus, selectedExpiryFilter]);
+
   const stockLevelDistribution = useMemo(() => {
-    const inStock = products.filter(p => p.current_stock > p.min_stock_level).length;
-    const lowStock = products.filter(p => p.current_stock <= p.min_stock_level && p.current_stock > 0).length;
-    const outOfStock = products.filter(p => p.current_stock === 0).length;
+    const inStock = filteredProducts.filter(p => p.current_stock > p.min_stock_level).length;
+    const lowStock = filteredProducts.filter(p => p.current_stock <= p.min_stock_level && p.current_stock > 0).length;
+    const outOfStock = filteredProducts.filter(p => p.current_stock === 0).length;
     
     return {
       labels: ['In Stock', 'Low Stock', 'Out of Stock'],
@@ -2575,22 +2650,6 @@ export default function InventoryPage() {
                   icon: SparklesIcon, 
                   color: 'purple',
                   badge: inventoryAlerts.filter(a => a.priority === 'critical' || a.priority === 'high').length
-                },
-                { 
-                  key: 'sales', 
-                  label: 'POS', 
-                  icon: ShoppingCartIcon, 
-                  color: 'green',
-                  badge: cart.length > 0 ? cart.length : undefined
-                },
-                { key: 'scanner', label: 'Scanner', icon: QrCodeIcon, color: 'blue' },
-                { key: 'tracking', label: 'Track', icon: MapPinIcon, color: 'gray' },
-                { 
-                  key: 'mobile-devices', 
-                  label: 'Devices', 
-                  icon: DevicePhoneMobileIcon, 
-                  color: 'emerald',
-                  badge: connectedDevices.filter(d => d.is_online).length > 0 ? connectedDevices.filter(d => d.is_online).length : undefined
                 }
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -2634,22 +2693,6 @@ export default function InventoryPage() {
                 icon: SparklesIcon, 
                 color: 'purple',
                 badge: inventoryAlerts.filter(a => a.priority === 'critical' || a.priority === 'high').length
-              },
-              { 
-                key: 'sales', 
-                label: 'POS Terminal', 
-                icon: ShoppingCartIcon, 
-                color: 'green',
-                badge: cart.length > 0 ? cart.length : undefined
-              },
-              { key: 'scanner', label: 'Barcode Scanner', icon: QrCodeIcon, color: 'blue' },
-              { key: 'tracking', label: 'Asset Tracking', icon: MapPinIcon, color: 'gray' },
-              { 
-                key: 'mobile-devices', 
-                label: '📱 Mobile Pairing', 
-                icon: DevicePhoneMobileIcon, 
-                color: 'emerald',
-                badge: connectedDevices.filter(d => d.is_online).length > 0 ? connectedDevices.filter(d => d.is_online).length : undefined
               }
             ].map((tab) => {
               const Icon = tab.icon;
@@ -2823,6 +2866,32 @@ export default function InventoryPage() {
       {/* Products Tab */}
       {activeTab === 'products' && (
         <>
+          {/* Real-time Search */}
+          <div className="mb-4 sm:mb-6">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                placeholder="Search products by name, SKU, category, or supplier..."
+              />
+              {searchQuery && (
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Mobile-Responsive Advanced Filters */}
           <div className="mb-4 sm:mb-6">
             {/* Mobile Filters Layout */}
@@ -2855,12 +2924,39 @@ export default function InventoryPage() {
                     </button>
                   ))}
                   {categories.length > 3 && (
-                    <button
-                      onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                      className="px-3 py-2 text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-full"
-                    >
-                      +{categories.length - 3}
-                    </button>
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                        className="px-3 py-2 text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-full flex items-center"
+                      >
+                        +{categories.length - 3}
+                        <ChevronDownIcon className={`h-3 w-3 ml-1 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                      </button>
+                      
+                      {/* Mobile Category Dropdown */}
+                      {showCategoryDropdown && (
+                        <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto">
+                          <div className="py-1">
+                            {categories.slice(3).map((category: any) => (
+                              <button
+                                key={category.id}
+                                onClick={() => {
+                                  setSelectedCategory(category.id.toString());
+                                  setShowCategoryDropdown(false);
+                                }}
+                                className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-50 transition-colors ${
+                                  selectedCategory === category.id.toString()
+                                    ? 'bg-indigo-50 text-indigo-700 font-medium'
+                                    : 'text-gray-700 hover:text-gray-900'
+                                }`}
+                              >
+                                {category.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -3107,7 +3203,7 @@ export default function InventoryPage() {
                 <>
                   {/* Mobile Cards Layout */}
                   <div className="sm:hidden space-y-4">
-                    {products.map((product: any) => (
+                    {filteredProducts.map((product: any) => (
                       <div key={product.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
                         <div className="p-4">
                           {/* Card Header */}
@@ -3221,31 +3317,44 @@ export default function InventoryPage() {
                           </div>
 
                           {/* Action Buttons */}
-                          <div className="flex space-x-2 pt-2 border-t border-gray-100">
+                          <div className="space-y-2 pt-2 border-t border-gray-100">
+                            {/* Primary Action - Quick View */}
                             <button 
-                              onClick={() => handleRestockProduct(product)}
-                              className="flex-1 flex items-center justify-center px-3 py-2 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-md transition-colors"
-                              title="Restock"
+                              onClick={() => handleQuickView(product)}
+                              className="w-full flex items-center justify-center px-3 py-2 text-xs font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors"
+                              title="Quick View"
                             >
-                              <PlusIcon className="h-3 w-3 mr-1" />
-                              Restock
+                              <EyeIcon className="h-3 w-3 mr-1" />
+                              Quick View Details
                             </button>
-                            <button 
-                              onClick={() => handleEditProduct(product)}
-                              className="flex-1 flex items-center justify-center px-3 py-2 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-md transition-colors"
-                              title="Edit"
-                            >
-                              <PencilIcon className="h-3 w-3 mr-1" />
-                              Edit
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteProduct(product.id)}
-                              className="flex-1 flex items-center justify-center px-3 py-2 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-md transition-colors"
-                              title="Delete"
-                            >
-                              <TrashIcon className="h-3 w-3 mr-1" />
-                              Delete
-                            </button>
+                            
+                            {/* Secondary Actions */}
+                            <div className="flex space-x-2">
+                              <button 
+                                onClick={() => handleRestockProduct(product)}
+                                className="flex-1 flex items-center justify-center px-3 py-2 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-md transition-colors"
+                                title="Restock"
+                              >
+                                <PlusIcon className="h-3 w-3 mr-1" />
+                                Restock
+                              </button>
+                              <button 
+                                onClick={() => handleEditProduct(product)}
+                                className="flex-1 flex items-center justify-center px-3 py-2 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-md transition-colors"
+                                title="Edit"
+                              >
+                                <PencilIcon className="h-3 w-3 mr-1" />
+                                Edit
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteProduct(product.id)}
+                                className="flex-1 flex items-center justify-center px-3 py-2 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-md transition-colors"
+                                title="Delete"
+                              >
+                                <TrashIcon className="h-3 w-3 mr-1" />
+                                Delete
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -3290,7 +3399,7 @@ export default function InventoryPage() {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {products.map((product: any) => (
+                        {filteredProducts.map((product: any) => (
                           <tr key={product.id}>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
@@ -5976,6 +6085,183 @@ Total: UGX ${transaction.total_amount?.toLocaleString()}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   🖨️ Print
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick View Modal */}
+      {showQuickView && selectedProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 rounded-t-2xl">
+              <div className="flex items-center justify-between text-white">
+                <div className="flex items-center space-x-3">
+                  <div className="h-10 w-10 rounded-lg bg-white bg-opacity-20 flex items-center justify-center">
+                    <CubeIcon className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold">{selectedProduct.name}</h3>
+                    <p className="text-sm opacity-90">SKU: {selectedProduct.sku}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeQuickView}
+                  className="h-8 w-8 rounded-full bg-white bg-opacity-20 flex items-center justify-center hover:bg-opacity-30 transition-colors"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Product Overview */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Current Stock</p>
+                  <p className="text-2xl font-bold text-gray-900">{selectedProduct.current_stock || 0}</p>
+                  <p className="text-xs text-gray-500">Min: {selectedProduct.min_stock_level || 0}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Selling Price</p>
+                  <p className="text-2xl font-bold text-gray-900">UGX {selectedProduct.selling_price?.toLocaleString() || 0}</p>
+                  {selectedProduct.cost_price && (
+                    <p className="text-xs text-gray-500">Cost: UGX {selectedProduct.cost_price.toLocaleString()}</p>
+                  )}
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Status</p>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                    (selectedProduct.current_stock || 0) === 0 
+                      ? 'bg-red-100 text-red-800'
+                      : (selectedProduct.current_stock || 0) <= (selectedProduct.min_stock_level || 0)
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-green-100 text-green-800'
+                  }`}>
+                    {(selectedProduct.current_stock || 0) === 0 ? 'Out of Stock' : 
+                     (selectedProduct.current_stock || 0) <= (selectedProduct.min_stock_level || 0) ? 'Low Stock' : 'In Stock'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Product Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-gray-900 border-b pb-2">Product Information</h4>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Category:</span>
+                      <span className="text-sm font-medium text-gray-900">{selectedProduct.category || 'N/A'}</span>
+                    </div>
+                    
+                    {selectedProduct.description && (
+                      <div className="flex flex-col">
+                        <span className="text-sm text-gray-600 mb-1">Description:</span>
+                        <span className="text-sm text-gray-900">{selectedProduct.description}</span>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Active:</span>
+                      <span className={`text-sm font-medium ${selectedProduct.is_active ? 'text-green-600' : 'text-red-600'}`}>
+                        {selectedProduct.is_active ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+
+                    {selectedProduct.barcode && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Barcode:</span>
+                        <span className="text-sm font-mono text-gray-900">{selectedProduct.barcode}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-gray-900 border-b pb-2">Supplier & Expiry</h4>
+                  
+                  <div className="space-y-3">
+                    {selectedProduct.supplier_name ? (
+                      <div className="flex flex-col">
+                        <span className="text-sm text-gray-600 mb-1">Supplier:</span>
+                        <div>
+                          <span className="text-sm font-medium text-gray-900">{selectedProduct.supplier_name}</span>
+                          {selectedProduct.supplier_code && (
+                            <span className="text-sm text-gray-500 ml-2">({selectedProduct.supplier_code})</span>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Supplier:</span>
+                        <span className="text-sm text-gray-500">No supplier assigned</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Has Expiry:</span>
+                      <span className={`text-sm font-medium ${selectedProduct.has_expiry ? 'text-green-600' : 'text-gray-500'}`}>
+                        {selectedProduct.has_expiry ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+
+                    {selectedProduct.has_expiry && selectedProduct.expiry_date && (
+                      <div className="flex flex-col">
+                        <span className="text-sm text-gray-600 mb-1">Expiry Date:</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-900">{selectedProduct.expiry_date}</span>
+                          <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                            getExpiryStatus(selectedProduct.expiry_date) === 'expired' 
+                              ? 'bg-red-100 text-red-800'
+                              : getExpiryStatus(selectedProduct.expiry_date) === 'expiring-soon'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-green-100 text-green-800'
+                          }`}>
+                            {getDaysUntilExpiry(selectedProduct.expiry_date)} days
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+                <button
+                  onClick={() => {
+                    handleRestockProduct(selectedProduct);
+                    closeQuickView();
+                  }}
+                  className="flex-1 flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                >
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Restock Product
+                </button>
+                <button
+                  onClick={() => {
+                    handleEditProduct(selectedProduct);
+                    closeQuickView();
+                  }}
+                  className="flex-1 flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+                >
+                  <PencilIcon className="h-4 w-4 mr-2" />
+                  Edit Product
+                </button>
+                <button
+                  onClick={() => {
+                    handleDeleteProduct(selectedProduct.id);
+                    closeQuickView();
+                  }}
+                  className="flex-1 flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                >
+                  <TrashIcon className="h-4 w-4 mr-2" />
+                  Delete Product
                 </button>
               </div>
             </div>
