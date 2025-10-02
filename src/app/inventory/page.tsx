@@ -34,7 +34,9 @@ import {
   StarIcon,
   HeartIcon,
   GiftIcon,
-  DevicePhoneMobileIcon
+  DevicePhoneMobileIcon,
+  TruckIcon,
+  CalendarIcon
 } from '@heroicons/react/24/outline';
 import {
   Chart as ChartJS,
@@ -3090,7 +3092,7 @@ export default function InventoryPage() {
             </div>
           </div>
 
-          {/* Products Table */}
+          {/* Mobile-Responsive Products Section */}
           <div className="bg-white shadow rounded-lg">
             <div className="px-4 py-5 sm:p-6">
               <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Products</h3>
@@ -3102,87 +3104,108 @@ export default function InventoryPage() {
                   onRetry={refetchProducts}
                 />
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Product
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          SKU
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Category
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Stock
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Supplier
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Expiry
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Price
-                        </th>
-<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-  Status
-</th>
-<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-  Active
-</th>
-<th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-  Actions
-</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {products.map((product: any) => (
-                        <tr key={product.id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="flex-shrink-0 h-10 w-10">
-                                <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                  <CubeIcon className="h-5 w-5 text-gray-500" />
+                <>
+                  {/* Mobile Cards Layout */}
+                  <div className="sm:hidden space-y-4">
+                    {products.map((product: any) => (
+                      <div key={product.id} className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+                        <div className="p-4">
+                          {/* Card Header */}
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center flex-1 min-w-0">
+                              <div className="flex-shrink-0 h-12 w-12">
+                                <div className="h-12 w-12 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 flex items-center justify-center">
+                                  <CubeIcon className="h-6 w-6 text-white" />
                                 </div>
                               </div>
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                              <div className="ml-3 flex-1 min-w-0">
+                                <h4 className="text-sm font-semibold text-gray-900 truncate">
+                                  {product.name}
+                                </h4>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  SKU: {product.sku}
+                                </p>
                               </div>
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {product.sku}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {product.category}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <div className="flex items-center">
-                              <span className="mr-2">{product.current_stock || 0}</span>
-                              {(product.current_stock || 0) <= (product.min_stock_level || 0) && (
-                                <ExclamationTriangleIcon className="h-4 w-4 text-yellow-500" />
-                              )}
+                            
+                            {/* Active Status Toggle */}
+                            <div className="flex-shrink-0 ml-3">
+                              <label className="switch">
+                                <input
+                                  type="checkbox"
+                                  checked={product.is_active}
+                                  onChange={() => toggleProductStatusMutation.mutate(product.id)}
+                                />
+                                <span className="slider round"></span>
+                              </label>
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {product.supplier_name ? (
-                              <div>
-                                <div className="font-medium text-gray-900">{product.supplier_name}</div>
-                                {product.supplier_code && (
-                                  <div className="text-xs text-gray-500">{product.supplier_code}</div>
+                          </div>
+
+                          {/* Card Content Grid */}
+                          <div className="grid grid-cols-2 gap-3 mb-3">
+                            {/* Stock Information */}
+                            <div className="space-y-1">
+                              <div className="flex items-center">
+                                <span className="text-xs text-gray-500">Stock:</span>
+                                <span className="ml-1 text-sm font-medium text-gray-900">
+                                  {product.current_stock || 0}
+                                </span>
+                                {(product.current_stock || 0) <= (product.min_stock_level || 0) && (
+                                  <ExclamationTriangleIcon className="h-3 w-3 text-yellow-500 ml-1" />
                                 )}
                               </div>
-                            ) : (
-                              <span className="text-gray-400">No supplier</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {product.has_expiry && product.expiry_date ? (
-                              <div className="flex items-center">
-                                <span className={`px-2 py-1 text-xs rounded-full ${
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                (product.current_stock || 0) === 0 
+                                  ? 'bg-red-100 text-red-800'
+                                  : (product.current_stock || 0) <= (product.min_stock_level || 0)
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-green-100 text-green-800'
+                              }`}>
+                                {(product.current_stock || 0) === 0 ? 'Out of Stock' : 
+                                 (product.current_stock || 0) <= (product.min_stock_level || 0) ? 'Low Stock' : 'In Stock'}
+                              </span>
+                            </div>
+
+                            {/* Price */}
+                            <div className="text-right">
+                              <p className="text-xs text-gray-500">Price</p>
+                              <p className="text-sm font-semibold text-gray-900">
+                                UGX {product.selling_price?.toLocaleString() || 0}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Additional Information */}
+                          <div className="space-y-2 mb-3">
+                            {/* Category */}
+                            <div className="flex items-center text-xs">
+                              <FolderIcon className="h-3 w-3 text-gray-400 mr-1" />
+                              <span className="text-gray-500">Category:</span>
+                              <span className="ml-1 text-gray-900">{product.category}</span>
+                            </div>
+
+                            {/* Supplier */}
+                            <div className="flex items-center text-xs">
+                              <TruckIcon className="h-3 w-3 text-gray-400 mr-1" />
+                              <span className="text-gray-500">Supplier:</span>
+                              {product.supplier_name ? (
+                                <div className="ml-1">
+                                  <span className="text-gray-900">{product.supplier_name}</span>
+                                  {product.supplier_code && (
+                                    <span className="text-gray-500 ml-1">({product.supplier_code})</span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="ml-1 text-gray-400">No supplier</span>
+                              )}
+                            </div>
+
+                            {/* Expiry Information */}
+                            <div className="flex items-center text-xs">
+                              <CalendarIcon className="h-3 w-3 text-gray-400 mr-1" />
+                              <span className="text-gray-500">Expiry:</span>
+                              {product.has_expiry && product.expiry_date ? (
+                                <span className={`ml-1 px-2 py-0.5 text-xs rounded-full font-medium ${
                                   getExpiryStatus(product.expiry_date) === 'expired' 
                                     ? 'bg-red-100 text-red-800'
                                     : getExpiryStatus(product.expiry_date) === 'expiring-soon'
@@ -3191,66 +3214,195 @@ export default function InventoryPage() {
                                 }`}>
                                   {getDaysUntilExpiry(product.expiry_date)} days
                                 </span>
-                              </div>
-                            ) : (
-                              <span className="text-gray-400">No expiry</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            UGX {product.selling_price?.toLocaleString() || 0}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              (product.current_stock || 0) === 0 
-                                ? 'bg-red-100 text-red-800'
-                                : (product.current_stock || 0) <= (product.min_stock_level || 0)
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-green-100 text-green-800'
-                            }`}>
-                              {(product.current_stock || 0) === 0 ? 'Out of Stock' : 
-                               (product.current_stock || 0) <= (product.min_stock_level || 0) ? 'Low Stock' : 'In Stock'}
-                            </span>
-                          </td>
-<td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-  <label className="switch">
-    <input
-      type="checkbox"
-      checked={product.is_active}
-      onChange={() => toggleProductStatusMutation.mutate(product.id)}
-    />
-    <span className="slider round"></span>
-  </label>
-</td>
-<td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-  <div className="flex space-x-2">
-    <button 
-      onClick={() => handleRestockProduct(product)}
-      className="text-green-600 hover:text-green-900"
-      title="Restock"
-    >
-      <PlusIcon className="h-4 w-4" />
-    </button>
-    <button 
-      onClick={() => handleEditProduct(product)}
-      className="text-indigo-600 hover:text-indigo-900"
-      title="Edit"
-    >
-      <PencilIcon className="h-4 w-4" />
-    </button>
-    <button 
-      onClick={() => handleDeleteProduct(product.id)}
-      className="text-red-600 hover:text-red-900"
-      title="Delete"
-    >
-      <TrashIcon className="h-4 w-4" />
-    </button>
-  </div>
-</td>
+                              ) : (
+                                <span className="ml-1 text-gray-400">No expiry</span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex space-x-2 pt-2 border-t border-gray-100">
+                            <button 
+                              onClick={() => handleRestockProduct(product)}
+                              className="flex-1 flex items-center justify-center px-3 py-2 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 rounded-md transition-colors"
+                              title="Restock"
+                            >
+                              <PlusIcon className="h-3 w-3 mr-1" />
+                              Restock
+                            </button>
+                            <button 
+                              onClick={() => handleEditProduct(product)}
+                              className="flex-1 flex items-center justify-center px-3 py-2 text-xs font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 rounded-md transition-colors"
+                              title="Edit"
+                            >
+                              <PencilIcon className="h-3 w-3 mr-1" />
+                              Edit
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteProduct(product.id)}
+                              className="flex-1 flex items-center justify-center px-3 py-2 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-md transition-colors"
+                              title="Delete"
+                            >
+                              <TrashIcon className="h-3 w-3 mr-1" />
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop Table Layout */}
+                  <div className="hidden sm:block overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Product
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            SKU
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Category
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Stock
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Supplier
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Expiry
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Price
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Active
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions
+                          </th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {products.map((product: any) => (
+                          <tr key={product.id}>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0 h-10 w-10">
+                                  <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                    <CubeIcon className="h-5 w-5 text-gray-500" />
+                                  </div>
+                                </div>
+                                <div className="ml-4">
+                                  <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {product.sku}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {product.category}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              <div className="flex items-center">
+                                <span className="mr-2">{product.current_stock || 0}</span>
+                                {(product.current_stock || 0) <= (product.min_stock_level || 0) && (
+                                  <ExclamationTriangleIcon className="h-4 w-4 text-yellow-500" />
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {product.supplier_name ? (
+                                <div>
+                                  <div className="font-medium text-gray-900">{product.supplier_name}</div>
+                                  {product.supplier_code && (
+                                    <div className="text-xs text-gray-500">{product.supplier_code}</div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-gray-400">No supplier</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {product.has_expiry && product.expiry_date ? (
+                                <div className="flex items-center">
+                                  <span className={`px-2 py-1 text-xs rounded-full ${
+                                    getExpiryStatus(product.expiry_date) === 'expired' 
+                                      ? 'bg-red-100 text-red-800'
+                                      : getExpiryStatus(product.expiry_date) === 'expiring-soon'
+                                      ? 'bg-yellow-100 text-yellow-800'
+                                      : 'bg-green-100 text-green-800'
+                                  }`}>
+                                    {getDaysUntilExpiry(product.expiry_date)} days
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-gray-400">No expiry</span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                              UGX {product.selling_price?.toLocaleString() || 0}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                (product.current_stock || 0) === 0 
+                                  ? 'bg-red-100 text-red-800'
+                                  : (product.current_stock || 0) <= (product.min_stock_level || 0)
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-green-100 text-green-800'
+                              }`}>
+                                {(product.current_stock || 0) === 0 ? 'Out of Stock' : 
+                                 (product.current_stock || 0) <= (product.min_stock_level || 0) ? 'Low Stock' : 'In Stock'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <label className="switch">
+                                <input
+                                  type="checkbox"
+                                  checked={product.is_active}
+                                  onChange={() => toggleProductStatusMutation.mutate(product.id)}
+                                />
+                                <span className="slider round"></span>
+                              </label>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex space-x-2">
+                                <button 
+                                  onClick={() => handleRestockProduct(product)}
+                                  className="text-green-600 hover:text-green-900"
+                                  title="Restock"
+                                >
+                                  <PlusIcon className="h-4 w-4" />
+                                </button>
+                                <button 
+                                  onClick={() => handleEditProduct(product)}
+                                  className="text-indigo-600 hover:text-indigo-900"
+                                  title="Edit"
+                                >
+                                  <PencilIcon className="h-4 w-4" />
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteProduct(product.id)}
+                                  className="text-red-600 hover:text-red-900"
+                                  title="Delete"
+                                >
+                                  <TrashIcon className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               )}
             </div>
           </div>
