@@ -64,6 +64,7 @@ export default function MobileScanPage() {
     try {
       console.log('Checking camera permissions...');
       setCameraPermission('checking');
+      setError(null);
       
       // First check if getUserMedia is available
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -78,7 +79,7 @@ export default function MobileScanPage() {
       });
 
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Camera permission request timed out')), 10000)
+        setTimeout(() => reject(new Error('Camera permission request timed out')), 8000)
       );
 
       // Try to get camera permission with timeout
@@ -89,13 +90,14 @@ export default function MobileScanPage() {
       
       console.log('Camera permission granted');
       setCameraPermission('granted');
+      setSuccess('Camera access granted! You can now start scanning.');
       return true;
     } catch (err: any) {
       console.error('Camera permission error:', err);
       
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         setCameraPermission('denied');
-        setError('Camera access denied. Please allow camera access and try again.');
+        setError('Camera access denied. Please allow camera access in your browser settings and try again.');
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         setCameraPermission('denied');
         setError('No camera found on this device.');
@@ -104,10 +106,10 @@ export default function MobileScanPage() {
         setError('Camera is already in use by another application.');
       } else if (err.message.includes('timed out')) {
         setCameraPermission('prompt');
-        setError('Camera permission request timed out. Please click "Start Scanning" to try again.');
+        setError('Camera permission request timed out. Click "Request Camera Access" to try again.');
       } else {
         setCameraPermission('prompt');
-        setError(`Camera error: ${err.message}. Click "Start Scanning" to try again.`);
+        setError(`Camera error: ${err.message}. Click "Request Camera Access" to try again.`);
       }
       
       return false;
@@ -361,6 +363,24 @@ export default function MobileScanPage() {
             </div>
           )}
 
+          {/* Manual Camera Access Button (always visible when not active) */}
+          {!scannerActive && (
+            <div className="mb-4 text-center">
+              <button
+                onClick={checkCameraPermissions}
+                disabled={isLoading || cameraPermission === 'checking'}
+                className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                {isLoading || cameraPermission === 'checking' ? (
+                  <ArrowPathIcon className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <CameraIcon className="w-4 h-4 mr-2" />
+                )}
+                {cameraPermission === 'checking' ? 'Checking...' : 'Check Camera Access'}
+              </button>
+            </div>
+          )}
+
           {/* Camera Scanner */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             <div className="p-4">
@@ -368,6 +388,7 @@ export default function MobileScanPage() {
                 <div className="text-center py-8">
                   <ArrowPathIcon className="w-8 h-8 text-gray-400 mx-auto mb-2 animate-spin" />
                   <p className="text-sm text-gray-600">Checking camera permissions...</p>
+                  <p className="text-xs text-gray-500 mt-2">This may take a few seconds...</p>
                 </div>
               )}
 
@@ -376,23 +397,33 @@ export default function MobileScanPage() {
                   <XCircleIcon className="w-12 h-12 text-red-400 mx-auto mb-4" />
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Camera Access Required</h3>
                   <p className="text-sm text-gray-600 mb-4">
-                    Please allow camera access to scan QR codes and barcodes.
+                    To use the scanner, please allow camera access in your browser.
                   </p>
-                  <div className="space-y-2">
-                    <button
-                      onClick={checkCameraPermissions}
-                      className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mr-2"
-                    >
-                      <ArrowPathIcon className="w-4 h-4 mr-2" />
-                      Try Again
-                    </button>
-                    <button
-                      onClick={() => window.location.reload()}
-                      className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                    >
-                      <ArrowPathIcon className="w-4 h-4 mr-2" />
-                      Reload Page
-                    </button>
+                  <div className="space-y-3">
+                    <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                      <button
+                        onClick={checkCameraPermissions}
+                        disabled={isLoading}
+                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                      >
+                        {isLoading ? (
+                          <ArrowPathIcon className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <CameraIcon className="w-4 h-4 mr-2" />
+                        )}
+                        Request Camera Access
+                      </button>
+                      <button
+                        onClick={() => window.location.reload()}
+                        className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                      >
+                        <ArrowPathIcon className="w-4 h-4 mr-2" />
+                        Reload Page
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                      If the button doesn't work, manually enable camera access in your browser settings for this website.
+                    </p>
                   </div>
                 </div>
               )}
