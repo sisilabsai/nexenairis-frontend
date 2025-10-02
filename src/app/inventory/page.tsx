@@ -2429,36 +2429,67 @@ export default function InventoryPage() {
             </div>
           </div>
         )}
-        {/* Page header */}
-        <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Inventory Management</h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Manage your products, categories, and track stock levels.
-            </p>
+        {/* Mobile-First Page Header */}
+        <div className="mb-6 sm:mb-8">
+          {/* Mobile Header */}
+          <div className="sm:hidden">
+            <div className="flex flex-col space-y-4">
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Inventory Management</h1>
+                <p className="mt-1 text-xs text-gray-500">
+                  Manage products & stock levels
+                </p>
+              </div>
+              <div className="flex flex-col space-y-2">
+                <button 
+                  onClick={handleAddProduct}
+                  className="w-full flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                >
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add Product
+                </button>
+                <button 
+                  onClick={handleAddCategory}
+                  className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <FolderIcon className="h-4 w-4 mr-2" />
+                  Add Category
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="flex space-x-3">
-            <button 
-              onClick={handleAddCategory}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
-            >
-              <FolderIcon className="h-4 w-4 mr-2" />
-              Add Category
-            </button>
-            <button 
-              onClick={handleAddProduct}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
-            >
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Add Product
-            </button>
+
+          {/* Desktop Header */}
+          <div className="hidden sm:block">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Inventory Management</h1>
+                <p className="mt-1 text-sm text-gray-500">
+                  Manage your products, categories, and track stock levels.
+                </p>
+              </div>
+              <div className="flex space-x-3">
+                <button 
+                  onClick={handleAddCategory}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <FolderIcon className="h-4 w-4 mr-2" />
+                  Add Category
+                </button>
+                <button 
+                  onClick={handleAddProduct}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700"
+                >
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add Product
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Inventory Overview */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+      {/* Mobile-First Inventory Overview */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mb-6 sm:mb-8">
         {statsLoading ? (
           <div className="col-span-full">
             <LoadingSpinner size="lg" className="py-8" />
@@ -2472,29 +2503,53 @@ export default function InventoryPage() {
           </div>
         ) : (
           inventoryStats.map((stat: any) => (
-            <div key={stat.name} className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <CubeIcon className="h-6 w-6 text-gray-400" />
+            <div key={stat.name} className="bg-white overflow-hidden shadow rounded-lg hover:shadow-xl transition-shadow">
+              <div className="p-4 sm:p-5">
+                {/* Mobile Layout */}
+                <div className="sm:hidden">
+                  <div className="flex items-center justify-between mb-2">
+                    <CubeIcon className="h-5 w-5 text-gray-400" />
+                    <div className={`text-xs font-semibold ${
+                      stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {stat.change}
+                    </div>
                   </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">{stat.name}</dt>
-                      <dd className="flex items-baseline">
-                        <div className="text-2xl font-semibold text-gray-900">{stat.value}</div>
-                        <div className={`ml-2 flex items-baseline text-sm font-semibold ${
-                          stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
-                        }`}>
-                          {stat.change}
-                        </div>
+                  <dl>
+                    <dt className="text-xs font-medium text-gray-500 uppercase tracking-wider truncate">{stat.name}</dt>
+                    <dd className="text-xl font-semibold text-gray-900 mt-1">{stat.value}</dd>
+                    {stat.subtitle && (
+                      <dd className="mt-1 text-xs text-gray-500 line-clamp-2">
+                        {stat.subtitle}
                       </dd>
-                      {stat.subtitle && (
-                        <dd className="mt-1 text-sm text-gray-500">
-                          {stat.subtitle}
+                    )}
+                  </dl>
+                </div>
+
+                {/* Desktop Layout */}
+                <div className="hidden sm:block">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <CubeIcon className="h-6 w-6 text-gray-400" />
+                    </div>
+                    <div className="ml-5 w-0 flex-1">
+                      <dl>
+                        <dt className="text-sm font-medium text-gray-500 truncate">{stat.name}</dt>
+                        <dd className="flex items-baseline">
+                          <div className="text-2xl font-semibold text-gray-900">{stat.value}</div>
+                          <div className={`ml-2 flex items-baseline text-sm font-semibold ${
+                            stat.changeType === 'positive' ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {stat.change}
+                          </div>
                         </dd>
-                      )}
-                    </dl>
+                        {stat.subtitle && (
+                          <dd className="mt-1 text-sm text-gray-500">
+                            {stat.subtitle}
+                          </dd>
+                        )}
+                      </dl>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2503,10 +2558,71 @@ export default function InventoryPage() {
         )}
       </div>
 
-      {/* Enhanced Tab Navigation with AI Features */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between">
-          <nav className="flex space-x-6 overflow-x-auto">
+      {/* Mobile-Responsive Enhanced Tab Navigation with AI Features */}
+      <div className="mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+          {/* Mobile Tab Navigation - Horizontal Scrolling */}
+          <div className="sm:hidden">
+            <nav className="flex space-x-1 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {[
+                { key: 'products', label: 'Products', icon: CubeIcon, color: 'indigo' },
+                { key: 'categories', label: 'Categories', icon: FolderIcon, color: 'indigo' },
+                { 
+                  key: 'ai-insights', 
+                  label: 'AI', 
+                  icon: SparklesIcon, 
+                  color: 'purple',
+                  badge: inventoryAlerts.filter(a => a.priority === 'critical' || a.priority === 'high').length
+                },
+                { 
+                  key: 'sales', 
+                  label: 'POS', 
+                  icon: ShoppingCartIcon, 
+                  color: 'green',
+                  badge: cart.length > 0 ? cart.length : undefined
+                },
+                { key: 'scanner', label: 'Scanner', icon: QrCodeIcon, color: 'blue' },
+                { key: 'tracking', label: 'Track', icon: MapPinIcon, color: 'gray' },
+                { 
+                  key: 'mobile-devices', 
+                  label: 'Devices', 
+                  icon: DevicePhoneMobileIcon, 
+                  color: 'emerald',
+                  badge: connectedDevices.filter(d => d.is_online).length > 0 ? connectedDevices.filter(d => d.is_online).length : undefined
+                }
+              ].map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key as any)}
+                    className={`flex flex-col items-center py-2 px-3 rounded-lg font-medium text-xs whitespace-nowrap relative transition-colors ${
+                      isActive
+                        ? `bg-${tab.color}-100 text-${tab.color}-700`
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    <div className="relative">
+                      <Icon className="h-4 w-4" />
+                      {tab.badge && tab.badge > 0 && (
+                        <span className="absolute -top-1 -right-1 inline-flex items-center px-1 py-0.5 rounded-full text-xs font-medium bg-red-500 text-white min-w-4 h-4 text-center">
+                          {tab.badge > 9 ? '9+' : tab.badge}
+                        </span>
+                      )}
+                      {tab.key === 'ai-insights' && aiInsightsEnabled && (
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                      )}
+                    </div>
+                    <span className="mt-1">{tab.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Desktop Tab Navigation */}
+          <nav className="hidden sm:flex space-x-6 overflow-x-auto">
             {[
               { key: 'products', label: 'Products', icon: CubeIcon, color: 'indigo' },
               { key: 'categories', label: 'Categories', icon: FolderIcon, color: 'indigo' },
@@ -2519,7 +2635,7 @@ export default function InventoryPage() {
               },
               { 
                 key: 'sales', 
-                label: '', 
+                label: 'POS Terminal', 
                 icon: ShoppingCartIcon, 
                 color: 'green',
                 badge: cart.length > 0 ? cart.length : undefined
@@ -2705,177 +2821,271 @@ export default function InventoryPage() {
       {/* Products Tab */}
       {activeTab === 'products' && (
         <>
-          {/* Advanced Filters */}
-          <div className="mb-6">
-            <div className="flex flex-wrap gap-2">
-              {/* Category Filter */}
-              <div className="flex space-x-2 items-center flex-wrap">
-                <button
-                  onClick={() => setSelectedCategory('all')}
-                  className={`px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap ${
-                    selectedCategory === 'all'
-                      ? 'bg-indigo-100 text-indigo-700'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  All Categories
-                </button>
-                
-                {/* Show first 6 categories */}
-                {categories.slice(0, 6).map((category: any) => (
+          {/* Mobile-Responsive Advanced Filters */}
+          <div className="mb-4 sm:mb-6">
+            {/* Mobile Filters Layout */}
+            <div className="sm:hidden space-y-3">
+              {/* Category Filter - Mobile */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-2">Category</label>
+                <div className="flex flex-wrap gap-2">
                   <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id.toString())}
+                    onClick={() => setSelectedCategory('all')}
+                    className={`px-3 py-2 text-xs font-medium rounded-full ${
+                      selectedCategory === 'all'
+                        ? 'bg-indigo-100 text-indigo-700'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    All
+                  </button>
+                  {categories.slice(0, 3).map((category: any) => (
+                    <button
+                      key={category.id}
+                      onClick={() => setSelectedCategory(category.id.toString())}
+                      className={`px-3 py-2 text-xs font-medium rounded-full ${
+                        selectedCategory === category.id.toString()
+                          ? 'bg-indigo-100 text-indigo-700'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {category.name}
+                    </button>
+                  ))}
+                  {categories.length > 3 && (
+                    <button
+                      onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                      className="px-3 py-2 text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-full"
+                    >
+                      +{categories.length - 3}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Stock Status Filter - Mobile */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-2">Stock Status</label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { key: 'all', label: 'All', color: 'gray' },
+                    { key: 'in-stock', label: 'In Stock', color: 'green' },
+                    { key: 'low-stock', label: 'Low', color: 'yellow' },
+                    { key: 'out-of-stock', label: 'Out', color: 'red' }
+                  ].map((status) => (
+                    <button
+                      key={status.key}
+                      onClick={() => setSelectedStatus(status.key)}
+                      className={`px-3 py-2 text-xs font-medium rounded-full ${
+                        selectedStatus === status.key
+                          ? `bg-${status.color}-100 text-${status.color}-700`
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {status.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Expiry Filter - Mobile */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-2">Expiry Status</label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { key: 'all', label: 'All', color: 'gray' },
+                    { key: 'expired', label: 'Expired', color: 'red' },
+                    { key: 'expiring-soon', label: 'Soon', color: 'yellow' },
+                    { key: 'no-expiry', label: 'None', color: 'green' }
+                  ].map((expiry) => (
+                    <button
+                      key={expiry.key}
+                      onClick={() => setSelectedExpiryFilter(expiry.key)}
+                      className={`px-3 py-2 text-xs font-medium rounded-full ${
+                        selectedExpiryFilter === expiry.key
+                          ? `bg-${expiry.color}-100 text-${expiry.color}-700`
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {expiry.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Filters Layout */}
+            <div className="hidden sm:block">
+              <div className="flex flex-wrap gap-2">
+                {/* Category Filter */}
+                <div className="flex space-x-2 items-center flex-wrap">
+                  <button
+                    onClick={() => setSelectedCategory('all')}
                     className={`px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap ${
-                      selectedCategory === category.id.toString()
+                      selectedCategory === 'all'
                         ? 'bg-indigo-100 text-indigo-700'
                         : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
-                    {category.name}
+                    All Categories
                   </button>
-                ))}
-                
-                {/* Dropdown for remaining categories */}
-                {categories.length > 6 && (
-                  <div className="relative category-dropdown">
+                  
+                  {/* Show first 6 categories */}
+                  {categories.slice(0, 6).map((category: any) => (
                     <button
-                      onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                      className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors whitespace-nowrap flex items-center"
+                      key={category.id}
+                      onClick={() => setSelectedCategory(category.id.toString())}
+                      className={`px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap ${
+                        selectedCategory === category.id.toString()
+                          ? 'bg-indigo-100 text-indigo-700'
+                          : 'text-gray-500 hover:text-gray-700'
+                      }`}
                     >
-                      <span>+{categories.length - 6} More</span>
-                      <ChevronDownIcon className={`h-4 w-4 ml-1 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                      {category.name}
                     </button>
-                    
-                    {/* Dropdown Menu */}
-                    {showCategoryDropdown && (
-                      <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
-                        <div className="py-1">
-                          {categories.slice(6).map((category: any) => (
-                            <button
-                              key={category.id}
-                              onClick={() => {
-                                setSelectedCategory(category.id.toString());
-                                setShowCategoryDropdown(false);
-                              }}
-                              className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
-                                selectedCategory === category.id.toString()
-                                  ? 'bg-indigo-50 text-indigo-700 font-medium'
-                                  : 'text-gray-700 hover:text-gray-900'
-                              }`}
-                            >
-                              {category.name}
-                              {selectedCategory === category.id.toString() && (
-                                <CheckCircleIcon className="h-4 w-4 inline float-right mt-0.5 text-indigo-600" />
-                              )}
-                            </button>
-                          ))}
-                          
-                          {/* Close dropdown option */}
-                          <div className="border-t border-gray-100 mt-1 pt-1">
-                            <button
-                              onClick={() => setShowCategoryDropdown(false)}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-500 hover:bg-gray-50 transition-colors flex items-center"
-                            >
-                              <XMarkIcon className="h-4 w-4 mr-2" />
-                              Close Menu
-                            </button>
+                  ))}
+                  
+                  {/* Dropdown for remaining categories */}
+                  {categories.length > 6 && (
+                    <div className="relative category-dropdown">
+                      <button
+                        onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                        className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors whitespace-nowrap flex items-center"
+                      >
+                        <span>+{categories.length - 6} More</span>
+                        <ChevronDownIcon className={`h-4 w-4 ml-1 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                      </button>
+                      
+                      {/* Dropdown Menu */}
+                      {showCategoryDropdown && (
+                        <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                          <div className="py-1">
+                            {categories.slice(6).map((category: any) => (
+                              <button
+                                key={category.id}
+                                onClick={() => {
+                                  setSelectedCategory(category.id.toString());
+                                  setShowCategoryDropdown(false);
+                                }}
+                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                                  selectedCategory === category.id.toString()
+                                    ? 'bg-indigo-50 text-indigo-700 font-medium'
+                                    : 'text-gray-700 hover:text-gray-900'
+                                }`}
+                              >
+                                {category.name}
+                                {selectedCategory === category.id.toString() && (
+                                  <CheckCircleIcon className="h-4 w-4 inline float-right mt-0.5 text-indigo-600" />
+                                )}
+                              </button>
+                            ))}
+                            
+                            {/* Close dropdown option */}
+                            <div className="border-t border-gray-100 mt-1 pt-1">
+                              <button
+                                onClick={() => setShowCategoryDropdown(false)}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-500 hover:bg-gray-50 transition-colors flex items-center"
+                              >
+                                <XMarkIcon className="h-4 w-4 mr-2" />
+                                Close Menu
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
-              {/* Stock Status Filter */}
-              <div className="flex space-x-2 ml-4">
-                <span className="text-sm text-gray-500 self-center">Stock:</span>
-                <button
-                  onClick={() => setSelectedStatus('all')}
-                  className={`px-3 py-2 text-sm font-medium rounded-md ${
-                    selectedStatus === 'all'
-                      ? 'bg-green-100 text-green-700'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setSelectedStatus('in-stock')}
-                  className={`px-3 py-2 text-sm font-medium rounded-md ${
-                    selectedStatus === 'in-stock'
-                      ? 'bg-green-100 text-green-700'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  In Stock
-                </button>
-                <button
-                  onClick={() => setSelectedStatus('low-stock')}
-                  className={`px-3 py-2 text-sm font-medium rounded-md ${
-                    selectedStatus === 'low-stock'
-                      ? 'bg-yellow-100 text-yellow-700'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Low Stock
-                </button>
-                <button
-                  onClick={() => setSelectedStatus('out-of-stock')}
-                  className={`px-3 py-2 text-sm font-medium rounded-md ${
-                    selectedStatus === 'out-of-stock'
-                      ? 'bg-red-100 text-red-700'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Out of Stock
-                </button>
-              </div>
+                {/* Stock Status Filter */}
+                <div className="flex space-x-2 ml-4">
+                  <span className="text-sm text-gray-500 self-center">Stock:</span>
+                  <button
+                    onClick={() => setSelectedStatus('all')}
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      selectedStatus === 'all'
+                        ? 'bg-green-100 text-green-700'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setSelectedStatus('in-stock')}
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      selectedStatus === 'in-stock'
+                        ? 'bg-green-100 text-green-700'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    In Stock
+                  </button>
+                  <button
+                    onClick={() => setSelectedStatus('low-stock')}
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      selectedStatus === 'low-stock'
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Low Stock
+                  </button>
+                  <button
+                    onClick={() => setSelectedStatus('out-of-stock')}
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      selectedStatus === 'out-of-stock'
+                        ? 'bg-red-100 text-red-700'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Out of Stock
+                  </button>
+                </div>
 
-              {/* Expiry Filter */}
-              <div className="flex space-x-2 ml-4">
-                <span className="text-sm text-gray-500 self-center">Expiry:</span>
-                <button
-                  onClick={() => setSelectedExpiryFilter('all')}
-                  className={`px-3 py-2 text-sm font-medium rounded-md ${
-                    selectedExpiryFilter === 'all'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setSelectedExpiryFilter('expired')}
-                  className={`px-3 py-2 text-sm font-medium rounded-md ${
-                    selectedExpiryFilter === 'expired'
-                      ? 'bg-red-100 text-red-700'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Expired
-                </button>
-                <button
-                  onClick={() => setSelectedExpiryFilter('expiring-soon')}
-                  className={`px-3 py-2 text-sm font-medium rounded-md ${
-                    selectedExpiryFilter === 'expiring-soon'
-                      ? 'bg-yellow-100 text-yellow-700'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Expiring Soon
-                </button>
-                <button
-                  onClick={() => setSelectedExpiryFilter('no-expiry')}
-                  className={`px-3 py-2 text-sm font-medium rounded-md ${
-                    selectedExpiryFilter === 'no-expiry'
-                      ? 'bg-green-100 text-green-700'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  No Expiry
-                </button>
+                {/* Expiry Filter */}
+                <div className="flex space-x-2 ml-4">
+                  <span className="text-sm text-gray-500 self-center">Expiry:</span>
+                  <button
+                    onClick={() => setSelectedExpiryFilter('all')}
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      selectedExpiryFilter === 'all'
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setSelectedExpiryFilter('expired')}
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      selectedExpiryFilter === 'expired'
+                        ? 'bg-red-100 text-red-700'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Expired
+                  </button>
+                  <button
+                    onClick={() => setSelectedExpiryFilter('expiring-soon')}
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      selectedExpiryFilter === 'expiring-soon'
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Expiring Soon
+                  </button>
+                  <button
+                    onClick={() => setSelectedExpiryFilter('no-expiry')}
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      selectedExpiryFilter === 'no-expiry'
+                        ? 'bg-green-100 text-green-700'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    No Expiry
+                  </button>
+                </div>
               </div>
             </div>
           </div>
