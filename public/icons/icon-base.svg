@@ -1,0 +1,42 @@
+
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e40af;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#3b82f6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#60a5fa;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e5e7eb;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="512" height="512" rx="80" fill="url(#bgGradient)" />
+  
+  <!-- Main Icon - Inventory/Box Symbol -->
+  <rect x="100" y="120" width="312" height="272" rx="20" fill="none" stroke="url(#iconGradient)" stroke-width="8"/>
+  
+  <!-- Inner compartments representing inventory organization -->
+  <line x1="180" y1="120" x2="180" y2="392" stroke="url(#iconGradient)" stroke-width="4"/>
+  <line x1="332" y1="120" x2="332" y2="392" stroke="url(#iconGradient)" stroke-width="4"/>
+  <line x1="100" y1="200" x2="412" y2="200" stroke="url(#iconGradient)" stroke-width="4"/>
+  <line x1="100" y1="312" x2="412" y2="312" stroke="url(#iconGradient)" stroke-width="4"/>
+  
+  <!-- AI/Tech elements - Circuit pattern -->
+  <circle cx="140" cy="160" r="12" fill="url(#iconGradient)"/>
+  <circle cx="256" cy="160" r="12" fill="url(#iconGradient)"/>
+  <circle cx="372" cy="160" r="12" fill="url(#iconGradient)"/>
+  
+  <!-- Barcode/Scan elements at bottom -->
+  <rect x="120" y="340" width="4" height="32" fill="url(#iconGradient)"/>
+  <rect x="130" y="340" width="6" height="32" fill="url(#iconGradient)"/>
+  <rect x="142" y="340" width="2" height="32" fill="url(#iconGradient)"/>
+  <rect x="150" y="340" width="8" height="32" fill="url(#iconGradient)"/>
+  <rect x="164" y="340" width="4" height="32" fill="url(#iconGradient)"/>
+  
+  <!-- Brand text -->
+  <text x="256" y="450" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="url(#iconGradient)" text-anchor="middle">NEXEN</text>
+  <text x="256" y="480" font-family="Arial, sans-serif" font-size="20" fill="url(#iconGradient)" text-anchor="middle" opacity="0.9">AIRIS</text>
+</svg>

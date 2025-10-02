@@ -182,41 +182,96 @@ export default function MobileScanPage() {
         scanIntervalRef.current = null;
       }
 
-      // Try to get camera access
-      const constraints = {
-        video: {
-          facingMode: { ideal: 'environment' }, // Prefer back camera
-          width: { ideal: 1280, min: 640 },
-          height: { ideal: 720, min: 480 }
+      // Try to get camera access with Android-optimized constraints
+      const cameraConfigs = [
+        // First try: Back camera with specific constraints
+        {
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1280, max: 1920 },
+            height: { ideal: 720, max: 1080 }
+          }
+        },
+        // Second try: Back camera with minimal constraints
+        {
+          video: {
+            facingMode: 'environment'
+          }
+        },
+        // Third try: Front camera
+        {
+          video: {
+            facingMode: 'user'
+          }
+        },
+        // Fourth try: Any available camera
+        {
+          video: true
         }
-      };
+      ];
 
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
-      } catch (backCameraError) {
-        console.log('Back camera failed, trying front camera');
-        // Fallback to front camera
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' }
-        });
+      let stream = null;
+      let lastError = null;
+
+      for (let i = 0; i < cameraConfigs.length && !stream; i++) {
+        try {
+          console.log(`Trying camera config ${i + 1}:`, cameraConfigs[i]);
+          stream = await navigator.mediaDevices.getUserMedia(cameraConfigs[i]);
+          console.log(`Camera config ${i + 1} successful!`);
+          break;
+        } catch (err: any) {
+          console.log(`Camera config ${i + 1} failed:`, err.message);
+          lastError = err;
+          await new Promise(resolve => setTimeout(resolve, 200)); // Small delay between attempts
+        }
+      }
+
+      if (!stream) {
+        throw lastError || new Error('Unable to access camera with any configuration');
       }
 
       streamRef.current = stream;
 
-      // Set up video element
+      // Set up video element with better mobile compatibility
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.setAttribute('playsinline', 'true');
-        await videoRef.current.play();
+        videoRef.current.setAttribute('autoplay', 'true');
+        videoRef.current.setAttribute('muted', 'true');
+        videoRef.current.muted = true;
+        
+        // Wait for video to be ready
+        await new Promise((resolve, reject) => {
+          const video = videoRef.current!;
+          
+          const handleLoadedMetadata = () => {
+            video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+            video.removeEventListener('error', handleError);
+            resolve(void 0);
+          };
+          
+          const handleError = () => {
+            video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+            video.removeEventListener('error', handleError);
+            reject(new Error('Video failed to load'));
+          };
+          
+          video.addEventListener('loadedmetadata', handleLoadedMetadata);
+          video.addEventListener('error', handleError);
+          
+          // Try to play the video
+          video.play().catch(reject);
+        });
       }
 
       setScannerActive(true);
       setCameraPermission('granted');
       setSuccess('Camera started! Point at a QR code to scan.');
 
-      // Start scanning for QR codes
-      startQRCodeDetection();
+      // Start scanning for QR codes after a short delay
+      setTimeout(() => {
+        startQRCodeDetection();
+      }, 1000);
 
     } catch (err: any) {
       console.error('Failed to start camera:', err);
@@ -267,7 +322,7 @@ export default function MobileScanPage() {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
         // Try to detect QR codes using browser's native barcode detection API if available
-        if ('BarcodeDetector' in window) {
+        if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
           const barcodeDetector = new window.BarcodeDetector({ formats: ['qr_code'] });
           const barcodes = await barcodeDetector.detect(canvas);
           
@@ -533,10 +588,19 @@ export default function MobileScanPage() {
                 {cameraPermission === 'checking' ? 'Checking Camera...' : 'Request Camera Access'}
               </button>
               
-              {/* Debug info */}
-              <div className="mt-2 text-xs text-gray-500">
-                Status: {cameraPermission} | Mobile: {/Mobi|Android/i.test(navigator.userAgent) ? 'Yes' : 'No'}
+              {/* Enhanced Debug info */}
+              <div className="mt-2 text-xs text-gray-500 space-y-1">
+                <div>Status: {cameraPermission} | Mobile: {/Mobi|Android/i.test(navigator.userAgent) ? 'Yes' : 'No'}</div>
+                <div>HTTPS: {typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'Yes' : 'No'} | PWA: {typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(display-mode: standalone)').matches ? 'Yes' : 'No'}</div>
+                <div>BarcodeDetector: {typeof window !== 'undefined' && 'BarcodeDetector' in window ? 'Available' : 'Not Available'}</div>
               </div>
+              
+              {/* PWA Installation Hint */}
+              {typeof window !== 'undefined' && (!window.matchMedia || !window.matchMedia('(display-mode: standalone)').matches) ? (
+                <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
+                  💡 For better camera performance, consider adding this page to your home screen (PWA mode)
+                </div>
+              ) : null}
             </div>
           )}
 
@@ -573,7 +637,7 @@ export default function MobileScanPage() {
                         Request Camera Access
                       </button>
                       <button
-                        onClick={() => window.location.reload()}
+                        onClick={() => typeof window !== 'undefined' && window.location.reload()}
                         className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                       >
                         <ArrowPathIcon className="w-4 h-4 mr-2" />
@@ -681,7 +745,10 @@ export default function MobileScanPage() {
                       ref={videoRef}
                       className="w-full h-64 bg-black rounded-lg object-cover"
                       playsInline
+                      autoPlay
                       muted
+                      controls={false}
+                      style={{ objectFit: 'cover' }}
                     />
                     <canvas 
                       ref={canvasRef}
@@ -694,7 +761,7 @@ export default function MobileScanPage() {
                     </div>
                     
                     {/* BarcodeDetector support indicator */}
-                    {'BarcodeDetector' in window ? (
+                    {typeof window !== 'undefined' && 'BarcodeDetector' in window ? (
                       <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
                         Native Scanner Active
                       </div>
@@ -738,7 +805,7 @@ export default function MobileScanPage() {
           </div>
 
           {/* Manual Input (if BarcodeDetector not supported) */}
-          {scannerActive && !('BarcodeDetector' in window) && (
+          {scannerActive && typeof window !== 'undefined' && !('BarcodeDetector' in window) && (
             <div className="mt-4 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <h3 className="text-sm font-medium text-gray-900 mb-2">Manual Input</h3>
               <p className="text-xs text-gray-600 mb-3">

@@ -1,0 +1,119 @@
+{
+  "extends": "lighthouse:default",
+  "settings": {
+    "formFactor": "mobile",
+    "throttling": {
+      "rttMs": 150,
+      "throughputKbps": 1638.4,
+      "cpuSlowdownMultiplier": 4,
+      "requestLatencyMs": 150,
+      "downloadThroughputKbps": 1638.4,
+      "uploadThroughputKbps": 675
+    },
+    "screenEmulation": {
+      "mobile": true,
+      "width": 360,
+      "height": 640,
+      "deviceScaleFactor": 2,
+      "disabled": false
+    },
+    "emulatedUserAgent": "Mozilla/5.0 (Linux; Android 7.0; Moto G (4)) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4695.0 Mobile Safari/537.36 Chrome-Lighthouse"
+  },
+  "audits": [
+    "first-contentful-paint",
+    "largest-contentful-paint",
+    "first-meaningful-paint",
+    "speed-index",
+    "cumulative-layout-shift",
+    "total-blocking-time",
+    "max-potential-fid",
+    "time-to-interactive",
+    "server-response-time",
+    "first-cpu-idle",
+    "interactive",
+    "mainthread-work-breakdown",
+    "bootup-time",
+    "uses-responsive-images",
+    "offscreen-images",
+    "render-blocking-resources",
+    "unminified-css",
+    "unminified-javascript",
+    "unused-css-rules",
+    "uses-optimized-images",
+    "uses-text-compression",
+    "uses-rel-preconnect",
+    "uses-rel-preload",
+    "font-display",
+    "critical-request-chains",
+    "user-timings",
+    "uses-long-cache-ttl",
+    "total-byte-weight",
+    "dom-size",
+    "no-document-write",
+    "uses-http2",
+    "uses-passive-event-listeners",
+    "no-mutation-events",
+    "notification-on-start",
+    "viewport",
+    "without-javascript",
+    "first-contentful-paint-3g",
+    "largest-contentful-paint-element",
+    "layout-shift-elements",
+    "uses-rel-preconnect",
+    "installable-manifest",
+    "splash-screen",
+    "themed-omnibox",
+    "content-width",
+    "apple-touch-icon",
+    "service-worker",
+    "works-offline",
+    "redirects-http"
+  ],
+  "categories": {
+    "performance": {
+      "title": "Performance",
+      "auditRefs": [
+        {"id": "first-contentful-paint", "weight": 10, "group": "metrics"},
+        {"id": "largest-contentful-paint", "weight": 25, "group": "metrics"},
+        {"id": "total-blocking-time", "weight": 30, "group": "metrics"},
+        {"id": "cumulative-layout-shift", "weight": 25, "group": "metrics"},
+        {"id": "speed-index", "weight": 10, "group": "metrics"}
+      ]
+    },
+    "pwa": {
+      "title": "Progressive Web App",
+      "auditRefs": [
+        {"id": "installable-manifest", "weight": 2},
+        {"id": "service-worker", "weight": 1},
+        {"id": "works-offline", "weight": 1},
+        {"id": "viewport", "weight": 2},
+        {"id": "without-javascript", "weight": 1},
+        {"id": "apple-touch-icon", "weight": 1},
+        {"id": "splash-screen", "weight": 1},
+        {"id": "themed-omnibox", "weight": 1},
+        {"id": "content-width", "weight": 1},
+        {"id": "redirects-http", "weight": 1}
+      ]
+    }
+  },
+  "groups": {
+    "metrics": {
+      "title": "Metrics"
+    },
+    "load-opportunities": {
+      "title": "Opportunities"
+    },
+    "budgets": {
+      "title": "Budgets"
+    },
+    "diagnostics": {
+      "title": "Diagnostics"
+    },
+    "pwa-installable": {
+      "title": "Installable"
+    },
+    "pwa-optimized": {
+      "title": "PWA Optimized"
+    }
+  }
+}
