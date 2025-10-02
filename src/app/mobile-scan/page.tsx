@@ -104,14 +104,20 @@ export default function MobileScanPage() {
         throw new Error('Camera API not supported in this browser');
       }
 
-      // Try to get camera permission
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } 
-      });
+      // Try simple camera access first
+      let stream;
+      try {
+        // Try back camera first
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'environment' }
+        });
+      } catch (backCameraError) {
+        console.log('Back camera failed, trying front camera:', backCameraError);
+        // Fallback to front camera
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'user' }
+        });
+      }
       
       // Stop the stream immediately - we just needed to check permission
       stream.getTracks().forEach(track => track.stop());
@@ -126,7 +132,7 @@ export default function MobileScanPage() {
       
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         setCameraPermission('denied');
-        setError('Camera access denied. Please allow camera access and try again.');
+        setError('Camera access denied. Please allow camera access in your browser settings and try again.');
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         setCameraPermission('denied');
         setError('No camera found on this device.');
@@ -135,7 +141,7 @@ export default function MobileScanPage() {
         setError('Camera is already in use by another application.');
       } else {
         setCameraPermission('prompt');
-        setError(`Camera error: ${err.message}`);
+        setError(`Camera error: ${err.message || 'Unknown error occurred'}`);
       }
       
       clearMessages();
@@ -150,24 +156,33 @@ export default function MobileScanPage() {
     try {
       setIsLoading(true);
       setError(null);
+      setSuccess(null);
 
-      // Check camera permissions first
-      const hasPermission = await checkCameraPermissions();
-      if (!hasPermission) return;
+      console.log('Starting scanner...');
 
-      // Clean up any existing scanner
+      // Check if the QR reader element exists
+      const qrReaderElement = document.getElementById("qr-reader");
+      if (!qrReaderElement) {
+        throw new Error('QR reader element not found. Please refresh the page.');
+      }
+
+      // Clean up any existing scanner first
       if (html5QrCodeRef.current) {
         try {
           await html5QrCodeRef.current.stop();
           await html5QrCodeRef.current.clear();
         } catch (e) {
-          console.log('No active scanner to stop');
+          console.log('No active scanner to stop:', e);
         }
+        html5QrCodeRef.current = null;
       }
+
+      // Wait a moment for cleanup
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Create new scanner instance
       const html5QrCode = new Html5Qrcode("qr-reader", {
-        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE, Html5QrcodeSupportedFormats.CODE_128, Html5QrcodeSupportedFormats.CODE_39],
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
         verbose: false
       });
       
@@ -289,40 +304,125 @@ export default function MobileScanPage() {
         }
       };
 
-      // Start scanning with better camera configuration
-      const cameraConfig = {
-        facingMode: { ideal: "environment" }, // Prefer back camera
-        width: { min: 640, ideal: 1280, max: 1920 },
-        height: { min: 480, ideal: 720, max: 1080 }
-      };
+      // Try different camera configurations for mobile compatibility
+      let cameraStarted = false;
+      const cameraConfigs: (string | MediaTrackConstraints)[] = [
+        // Try back camera first (preferred for scanning)
+        { facingMode: "environment" },
+        // Fallback to any available camera
+        { facingMode: "user" },
+        // Try with specific constraints
+        { 
+          facingMode: { ideal: "environment" },
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        },
+        // Most basic configuration - use device ID approach
+        { facingMode: "environment", width: { min: 320 }, height: { min: 240 } }
+      ];
 
       const scanConfig = {
-        fps: 10, // Reduce FPS for better performance
+        fps: 10,
         qrbox: function(viewfinderWidth: number, viewfinderHeight: number) {
-          const minEdgePercentage = 0.7; // 70% of the smaller edge
+          const minEdgePercentage = 0.7;
           const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
           const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
           return {
-            width: qrboxSize,
-            height: qrboxSize
+            width: Math.max(qrboxSize, 200), // Minimum 200px
+            height: Math.max(qrboxSize, 200)
           };
         },
-        aspectRatio: 1.0 // Square scanning area
+        aspectRatio: 1.0
       };
 
-      await html5QrCode.start(cameraConfig, scanConfig, qrCodeSuccessCallback, qrCodeErrorCallback);
+      // Try each camera configuration until one works
+      let lastError: any = null;
+      
+      for (let i = 0; i < cameraConfigs.length && !cameraStarted; i++) {
+        try {
+          console.log(`Trying camera config ${i + 1}:`, cameraConfigs[i]);
+          
+          await html5QrCode.start(
+            cameraConfigs[i],
+            scanConfig,
+            qrCodeSuccessCallback,
+            qrCodeErrorCallback
+          );
+          
+          cameraStarted = true;
+          console.log(`Camera started successfully with config ${i + 1}`);
+          break;
+          
+        } catch (configErr: any) {
+          lastError = configErr;
+          console.warn(`Camera config ${i + 1} failed:`, configErr.message, configErr);
+          
+          // Try to clean up before next attempt
+          try {
+            await html5QrCode.clear();
+          } catch (clearErr) {
+            console.log('Clear error after failed config:', clearErr);
+          }
+          
+          // If this isn't the last config, continue trying
+          if (i < cameraConfigs.length - 1) {
+            // Wait a bit before trying next config
+            await new Promise(resolve => setTimeout(resolve, 200));
+            continue;
+          }
+        }
+      }
+      
+      if (!cameraStarted) {
+        throw lastError || new Error('Unable to start camera with any configuration');
+      }
 
-      setScannerActive(true);
-      setSuccess('Scanner started! Point your camera at a QR code.');
+      if (cameraStarted) {
+        setScannerActive(true);
+        setCameraPermission('granted');
+        setSuccess('Scanner started! Point your camera at a QR code.');
+      } else {
+        throw new Error('Unable to start camera with any configuration');
+      }
       
     } catch (err: any) {
       console.error('Failed to start scanner:', err);
-      setError(`Failed to start camera: ${err.message}`);
-      setCameraPermission('denied');
+      
+      let errorMessage = 'Failed to start camera';
+      
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errorMessage = 'Camera access denied. Please allow camera access and try again.';
+        setCameraPermission('denied');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errorMessage = 'No camera found on this device.';
+        setCameraPermission('denied');
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        errorMessage = 'Camera is already in use by another application.';
+        setCameraPermission('denied');
+      } else if (err.name === 'OverconstrainedError' || err.name === 'ConstraintNotSatisfiedError') {
+        errorMessage = 'Camera constraints not supported. Trying basic camera access...';
+        setCameraPermission('prompt');
+      } else {
+        errorMessage = err.message || 'Unknown camera error occurred';
+        setCameraPermission('prompt');
+      }
+      
+      setError(errorMessage);
+      
+      // Clean up failed scanner
+      if (html5QrCodeRef.current) {
+        try {
+          await html5QrCodeRef.current.clear();
+        } catch (e) {
+          console.log('Cleanup error:', e);
+        }
+        html5QrCodeRef.current = null;
+      }
+      
     } finally {
       setIsLoading(false);
     }
-  }, [scannerActive, paired, deviceName, deviceUid, post, checkCameraPermissions]);
+  }, [scannerActive, paired, deviceName, deviceUid, post]);
 
   // Stop scanner
   const stopScanner = useCallback(async () => {
@@ -346,8 +446,25 @@ export default function MobileScanPage() {
   }, []);
 
   // Request camera permission and start scanner
-  const handleStartScanning = () => {
-    startScanner();
+  const handleStartScanning = async () => {
+    try {
+      setError(null);
+      setSuccess(null);
+      
+      // If camera permission not granted, request it first
+      if (cameraPermission !== 'granted') {
+        const hasPermission = await checkCameraPermissions();
+        if (!hasPermission) {
+          return;
+        }
+      }
+      
+      // Start the scanner
+      await startScanner();
+    } catch (err: any) {
+      console.error('Error starting scanner:', err);
+      setError(err.message || 'Failed to start scanner');
+    }
   };
 
   // Reset pairing
@@ -434,6 +551,11 @@ export default function MobileScanPage() {
                 )}
                 {cameraPermission === 'checking' ? 'Checking Camera...' : 'Request Camera Access'}
               </button>
+              
+              {/* Debug info */}
+              <div className="mt-2 text-xs text-gray-500">
+                Status: {cameraPermission} | Mobile: {/Mobi|Android/i.test(navigator.userAgent) ? 'Yes' : 'No'}
+              </div>
             </div>
           )}
 
@@ -494,18 +616,38 @@ export default function MobileScanPage() {
                       : 'Point your camera at the admin\'s QR code to pair this device'
                     }
                   </p>
-                  <button
-                    onClick={handleStartScanning}
-                    disabled={isLoading}
-                    className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-                  >
-                    {isLoading ? (
-                      <ArrowPathIcon className="w-5 h-5 mr-2 animate-spin" />
-                    ) : (
-                      <CameraIcon className="w-5 h-5 mr-2" />
-                    )}
-                    {isLoading ? 'Starting Camera...' : 'Start Scanning'}
-                  </button>
+                  <div className="space-y-3">
+                    <button
+                      onClick={handleStartScanning}
+                      disabled={isLoading}
+                      className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                    >
+                      {isLoading ? (
+                        <ArrowPathIcon className="w-5 h-5 mr-2 animate-spin" />
+                      ) : (
+                        <CameraIcon className="w-5 h-5 mr-2" />
+                      )}
+                      {isLoading ? 'Starting Camera...' : 'Start Scanning'}
+                    </button>
+                    
+                    {/* Debug button for testing camera access */}
+                    <div className="text-center">
+                      <button
+                        onClick={async () => {
+                          try {
+                            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                            setSuccess('Camera test successful!');
+                            stream.getTracks().forEach(track => track.stop());
+                          } catch (err: any) {
+                            setError(`Camera test failed: ${err.message}`);
+                          }
+                        }}
+                        className="text-xs text-blue-600 underline"
+                      >
+                        Test Camera Access
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -516,24 +658,48 @@ export default function MobileScanPage() {
                   <p className="text-sm text-gray-600 mb-4">
                     Click the button below to request camera access and start scanning
                   </p>
-                  <button
-                    onClick={handleStartScanning}
-                    disabled={isLoading}
-                    className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                  >
-                    {isLoading ? (
-                      <ArrowPathIcon className="w-5 h-5 mr-2 animate-spin" />
-                    ) : (
-                      <CameraIcon className="w-5 h-5 mr-2" />
-                    )}
-                    {isLoading ? 'Starting Camera...' : 'Start Camera & Scan'}
-                  </button>
+                  <div className="space-y-3">
+                    <button
+                      onClick={handleStartScanning}
+                      disabled={isLoading}
+                      className="inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    >
+                      {isLoading ? (
+                        <ArrowPathIcon className="w-5 h-5 mr-2 animate-spin" />
+                      ) : (
+                        <CameraIcon className="w-5 h-5 mr-2" />
+                      )}
+                      {isLoading ? 'Starting Camera...' : 'Start Camera & Scan'}
+                    </button>
+                    
+                    {/* Debug button for testing camera access */}
+                    <div className="text-center">
+                      <button
+                        onClick={async () => {
+                          try {
+                            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                            setSuccess('Camera test successful!');
+                            stream.getTracks().forEach(track => track.stop());
+                          } catch (err: any) {
+                            setError(`Camera test failed: ${err.message}`);
+                          }
+                        }}
+                        className="text-xs text-blue-600 underline"
+                      >
+                        Test Camera Access
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
               {scannerActive && (
                 <div>
-                  <div id="qr-reader" className="w-full min-h-[300px] bg-black rounded-lg overflow-hidden"></div>
+                  <div 
+                    id="qr-reader" 
+                    className="w-full min-h-[400px] bg-black rounded-lg overflow-hidden relative"
+                    style={{ minHeight: '400px', width: '100%' }}
+                  ></div>
                   
                   {isLoading && (
                     <div className="mt-4 flex items-center justify-center">
