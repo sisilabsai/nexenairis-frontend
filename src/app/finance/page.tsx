@@ -27,7 +27,14 @@ import {
   ArrowTrendingDownIcon as TrendingDownIcon,
   ShieldCheckIcon,
   BellIcon,
-  SparklesIcon
+  SparklesIcon,
+  Bars3Icon,
+  ChevronDownIcon,
+  XMarkIcon,
+  FunnelIcon,
+  Squares2X2Icon,
+  ListBulletIcon,
+  MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
 import {
   Chart as ChartJS,
@@ -168,6 +175,15 @@ export default function FinancePage() {
   const [aiInsightsEnabled, setAiInsightsEnabled] = useState(true);
   const [anomalyAlerts, setAnomalyAlerts] = useState<any[]>([]);
   const [realTimeUpdates, setRealTimeUpdates] = useState(true);
+  
+  // Mobile-specific states
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [showQuickView, setShowQuickView] = useState(false);
+  const [quickViewTransaction, setQuickViewTransaction] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [showMobileChart, setShowMobileChart] = useState(false);
+  const [selectedMobileMetric, setSelectedMobileMetric] = useState('revenue');
   
   // Real API hooks
   const { data: summaryData, isLoading: summaryLoading, error: summaryError, refetch: refetchSummary } = useFinanceSummary();
@@ -827,9 +843,9 @@ export default function FinancePage() {
           <div className="flex items-center justify-center min-h-screen">
             <LoadingSpinner />
           </div>
-        </DashboardLayout>
-      </ProtectedRoute>
-    );
+          </DashboardLayout>
+        </ProtectedRoute>
+      );
   }
 
   if (error) {
@@ -845,70 +861,160 @@ export default function FinancePage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        {/* Enhanced Page Header with Smart Alerts */}
-        <div className="mb-8">
-          {/* Smart Financial Alerts */}
-          {(detectAnomalies.length > 0 || aiInsights.filter(i => i.type === 'warning').length > 0) && (
-            <div className="mb-6 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <ExclamationTriangleIcon className="h-6 w-6 text-red-600 animate-pulse" />
+        {/* Mobile-Responsive Page Header */}
+        <div className="mb-6">
+          {/* Mobile Header */}
+          <div className="sm:hidden">
+            <div className="bg-gradient-to-r from-green-600 to-blue-600 p-4 rounded-xl shadow-lg mb-4">
+              <div className="flex items-center justify-between">
+                <div className="text-white">
+                  <h1 className="text-xl font-bold">💰 Finance</h1>
+                  <p className="text-green-100 text-sm">Financial Management</p>
                 </div>
-                <div className="ml-3 flex-1">
-                  <h3 className="text-sm font-medium text-red-800">
-                    Financial Alerts Require Attention
-                  </h3>
-                  <div className="mt-2 text-sm text-red-700">
-                    <ul className="list-disc pl-5 space-y-1">
-                      {detectAnomalies.map((anomaly, index) => (
-                        <li key={index}>{anomaly.message}</li>
-                      ))}
-                      {aiInsights.filter(i => i.type === 'warning').slice(0, 2).map((insight) => (
-                        <li key={insight.id}>{insight.title}: {insight.description}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-                <div className="ml-3 flex-shrink-0">
+                <div className="flex items-center space-x-2">
+                  {realTimeUpdates && (
+                    <div className="flex items-center text-white bg-white/20 px-2 py-1 rounded-lg text-xs">
+                      <div className="w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></div>
+                      Live
+                    </div>
+                  )}
                   <button
-                    onClick={() => setSelectedView('ai-insights')}
-                    className="bg-red-100 hover:bg-red-200 text-red-800 px-3 py-1 rounded-md text-sm font-medium transition-colors"
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
                   >
-                    View Details
+                    <Bars3Icon className="h-5 w-5" />
                   </button>
                 </div>
               </div>
-            </div>
-          )}
-
-          <div className="md:flex md:items-center md:justify-between">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center">
-                <h1 className="text-3xl font-bold text-gray-900">💰 Finance Management</h1>
-                {realTimeUpdates && (
-                  <div className="ml-3 flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full">
-                    <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                    <span className="text-sm font-medium">Live</span>
-          </div>
-                )}
-              </div>
-              <div className="mt-2 flex flex-col sm:flex-row sm:flex-wrap sm:space-x-6">
-                <div className="mt-2 flex items-center text-sm text-gray-500">
-                  <ChartBarIcon className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                  AI-powered financial insights and African business analytics
+              
+              {/* Mobile Stats Row */}
+              <div className="flex justify-between mt-4 pt-4 border-t border-white/20">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-white">{formatCurrency(financeSummary.total_revenue).replace('UGX ', '').replace('$', '$')}</p>
+                  <p className="text-green-100 text-xs">Revenue</p>
                 </div>
-                <div className="mt-2 flex items-center text-sm text-gray-500">
-                  <GlobeAsiaAustraliaIcon className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                  Multi-currency support with {exchangeRates.length} active rates
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-white">{financialHealthScore.overall_score}/100</p>
+                  <p className="text-green-100 text-xs">Health Score</p>
                 </div>
-                <div className="mt-2 flex items-center text-sm text-gray-500">
-                  <ShieldCheckIcon className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
-                  Financial Health Score: {financialHealthScore.overall_score}/100
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-white">{safePercentage(financeSummary.mobile_money_transactions, (financeSummary.mobile_money_transactions + financeSummary.cash_transactions))}%</p>
+                  <p className="text-green-100 text-xs">Digital</p>
                 </div>
               </div>
             </div>
             
-            <div className="mt-4 flex space-x-3 md:mt-0 md:ml-4">
+            {/* Mobile Action Menu */}
+            {isMobileMenuOpen && (
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 mb-4">
+                <div className="p-4 space-y-3">
+                  <button
+                    onClick={() => {
+                      handleNewTransaction();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="w-full flex items-center justify-center px-4 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all"
+                  >
+                    <PlusIcon className="h-5 w-5 mr-2" />
+                    New Transaction
+                  </button>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => {
+                        setSelectedView('ai-insights');
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center justify-center px-3 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-200 transition-colors"
+                    >
+                      <SparklesIcon className="h-4 w-4 mr-2" />
+                      AI Insights
+                      {aiInsights.filter(i => i.actionable).length > 0 && (
+                        <span className="ml-2 bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                          {aiInsights.filter(i => i.actionable).length}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        window.location.href = '/finance/reports';
+                        setIsMobileMenuOpen(false);
+                      }}
+                      className="flex items-center justify-center px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                    >
+                      <DocumentTextIcon className="h-4 w-4 mr-2" />
+                      Reports
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Desktop Header */}
+          <div className="hidden sm:block">
+            {/* Smart Financial Alerts */}
+            {(detectAnomalies.length > 0 || aiInsights.filter(i => i.type === 'warning').length > 0) && (
+              <div className="mb-6 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <ExclamationTriangleIcon className="h-6 w-6 text-red-600 animate-pulse" />
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <h3 className="text-sm font-medium text-red-800">
+                      Financial Alerts Require Attention
+                    </h3>
+                    <div className="mt-2 text-sm text-red-700">
+                      <ul className="list-disc pl-5 space-y-1">
+                        {detectAnomalies.map((anomaly, index) => (
+                          <li key={index}>{anomaly.message}</li>
+                        ))}
+                        {aiInsights.filter(i => i.type === 'warning').slice(0, 2).map((insight) => (
+                          <li key={insight.id}>{insight.title}: {insight.description}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="ml-3 flex-shrink-0">
+                    <button
+                      onClick={() => setSelectedView('ai-insights')}
+                      className="bg-red-100 hover:bg-red-200 text-red-800 px-3 py-1 rounded-md text-sm font-medium transition-colors"
+                    >
+                      View Details
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="md:flex md:items-center md:justify-between">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center">
+                  <h1 className="text-3xl font-bold text-gray-900">💰 Finance Management</h1>
+                  {realTimeUpdates && (
+                    <div className="ml-3 flex items-center text-green-600 bg-green-50 px-3 py-1 rounded-full">
+                      <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                      <span className="text-sm font-medium">Live</span>
+                    </div>
+                  )}
+                </div>
+                <div className="mt-2 flex flex-col sm:flex-row sm:flex-wrap sm:space-x-6">
+                  <div className="mt-2 flex items-center text-sm text-gray-500">
+                    <ChartBarIcon className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
+                    AI-powered financial insights and African business analytics
+                  </div>
+                  <div className="mt-2 flex items-center text-sm text-gray-500">
+                    <GlobeAsiaAustraliaIcon className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
+                    Multi-currency support with {exchangeRates.length} active rates
+                  </div>
+                  <div className="mt-2 flex items-center text-sm text-gray-500">
+                    <ShieldCheckIcon className="flex-shrink-0 mr-1.5 h-4 w-4 text-gray-400" />
+                    Financial Health Score: {financialHealthScore.overall_score}/100
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-4 flex space-x-3 md:mt-0 md:ml-4">
               {/* AI Insights Quick Access */}
               <button 
                 onClick={() => setSelectedView('ai-insights')}
@@ -964,8 +1070,9 @@ export default function FinancePage() {
                 Manage Dimensions
               </button>
             </div>
+            </div>
+          </div>
         </div>
-      </div>
 
       {/* Exchange Rate Ticker */}
       <div className="mb-6">
@@ -994,24 +1101,44 @@ export default function FinancePage() {
         </div>
       </div>
 
-        {/* Enhanced Navigation Tabs */}
+        {/* Mobile-Responsive Navigation Tabs */}
         <div className="mb-6">
+          {/* Mobile Tabs - Horizontal Scroll */}
           <div className="sm:hidden">
-            <select
-              value={selectedView}
-              onChange={(e) => setSelectedView(e.target.value as any)}
-              className="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
-            >
-              <option value="overview">📊 Overview</option>
-              <option value="ai-insights">✨ AI Insights</option>
-              <option value="cash-flow">📈 Cash Flow Forecast</option>
-              <option value="currencies">🌍 Multi-Currency</option>
-              <option value="accounts">🏦 Chart of Accounts</option>
-              <option value="transactions">📋 Transactions</option>
-              <option value="analytics">📊 Analytics</option>
-              <option value="periods-audit">🔐 Periods & Audit</option>
-            </select>
+            <div className="flex space-x-1 p-1 bg-gray-100 rounded-xl overflow-x-auto">
+              {[
+                { key: 'overview', label: 'Overview', icon: ChartBarIcon, emoji: '📊' },
+                { key: 'ai-insights', label: 'AI Insights', icon: SparklesIcon, emoji: '✨', badge: aiInsights.filter(i => i.actionable).length },
+                { key: 'cash-flow', label: 'Cash Flow', icon: TrendingUpIcon, emoji: '📈' },
+                { key: 'transactions', label: 'Transactions', icon: DocumentTextIcon, emoji: '📋' },
+                { key: 'accounts', label: 'Accounts', icon: BuildingLibraryIcon, emoji: '🏦' },
+                { key: 'currencies', label: 'Currency', icon: GlobeAsiaAustraliaIcon, emoji: '🌍' }
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setSelectedView(tab.key as any)}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all relative ${
+                    selectedView === tab.key
+                      ? 'bg-white text-indigo-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  <span>{tab.emoji}</span>
+                  <span>{tab.label}</span>
+                  {tab.badge && tab.badge > 0 && (
+                    <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                      {tab.badge}
+                    </span>
+                  )}
+                  {tab.key === 'ai-insights' && aiInsights.filter(i => i.actionable).length > 0 && (
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
+          
+          {/* Desktop Tabs */}
           <div className="hidden sm:block">
             <div className="border-b border-gray-200">
               <nav className="-mb-px flex space-x-6 overflow-x-auto">
@@ -1146,41 +1273,75 @@ export default function FinancePage() {
         {/* Content based on selected view */}
         {selectedView === 'overview' && (
           <div className="space-y-6">
-            {/* Enhanced Financial Health Overview */}
-            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl p-6 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold mb-2">Financial Health Score</h2>
-                  <p className="text-blue-100">Overall business financial performance</p>
-                    </div>
-                <div className="text-right">
-                  <div className="text-4xl font-bold">{financialHealthScore.overall_score}/100</div>
+            {/* Mobile-Responsive Financial Health Overview */}
+            <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl p-4 sm:p-6 text-white">
+              {/* Mobile Layout */}
+              <div className="sm:hidden">
+                <div className="text-center mb-4">
+                  <h2 className="text-xl font-bold mb-1">Financial Health Score</h2>
+                  <div className="text-4xl font-bold mb-2">{financialHealthScore.overall_score}/100</div>
                   <div className="text-blue-200 text-sm">
                     {financialHealthScore.overall_score > 80 ? '🔥 Excellent' : 
                      financialHealthScore.overall_score > 60 ? '✅ Good' : 
                      financialHealthScore.overall_score > 40 ? '⚠️ Fair' : '🚨 Needs Attention'}
+                  </div>
+                </div>
+                
+                {/* Mobile Health Indicators - 2 columns */}
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: 'Liquidity', value: financialHealthScore.liquidity_score, icon: '💧' },
+                    { label: 'Profitability', value: financialHealthScore.profitability_score, icon: '💰' },
+                    { label: 'Efficiency', value: financialHealthScore.efficiency_score, icon: '⚡' },
+                    { label: 'Growth', value: financialHealthScore.growth_score, icon: '📈' },
+                    { label: 'Risk', value: financialHealthScore.risk_score, icon: '🛡️' },
+                    { label: 'Digital', value: safePercentage(financeSummary.mobile_money_transactions, (financeSummary.mobile_money_transactions + financeSummary.cash_transactions)), icon: '📱' }
+                  ].map((metric) => (
+                    <div key={metric.label} className="text-center bg-white/10 rounded-lg p-3">
+                      <div className="text-xl mb-1">{metric.icon}</div>
+                      <div className="text-lg font-bold">{safeNumber(metric.value, 0)}</div>
+                      <div className="text-xs text-blue-200">{metric.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Desktop Layout */}
+              <div className="hidden sm:block">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2">Financial Health Score</h2>
+                    <p className="text-blue-100">Overall business financial performance</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-4xl font-bold">{financialHealthScore.overall_score}/100</div>
+                    <div className="text-blue-200 text-sm">
+                      {financialHealthScore.overall_score > 80 ? '🔥 Excellent' : 
+                       financialHealthScore.overall_score > 60 ? '✅ Good' : 
+                       financialHealthScore.overall_score > 40 ? '⚠️ Fair' : '🚨 Needs Attention'}
                     </div>
                   </div>
                 </div>
-              
-              {/* Mini Health Indicators */}
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-4 mt-6">
-                {[
-                  { label: 'Liquidity', value: financialHealthScore.liquidity_score, icon: '💧' },
-                  { label: 'Profitability', value: financialHealthScore.profitability_score, icon: '💰' },
-                  { label: 'Efficiency', value: financialHealthScore.efficiency_score, icon: '⚡' },
-                  { label: 'Growth', value: financialHealthScore.growth_score, icon: '📈' },
-                  { label: 'Risk', value: financialHealthScore.risk_score, icon: '🛡️' },
-                  { label: 'Mobile Money', value: safePercentage(financeSummary.mobile_money_transactions, (financeSummary.mobile_money_transactions + financeSummary.cash_transactions)), icon: '📱' }
-                ].map((metric) => (
-                  <div key={metric.label} className="text-center">
-                    <div className="text-2xl mb-1">{metric.icon}</div>
-                    <div className="text-xl font-bold">{safeNumber(metric.value, 0)}</div>
-                    <div className="text-xs text-blue-200">{metric.label}</div>
-                  </div>
-                ))}
+                
+                {/* Desktop Health Indicators */}
+                <div className="grid grid-cols-6 gap-4 mt-6">
+                  {[
+                    { label: 'Liquidity', value: financialHealthScore.liquidity_score, icon: '💧' },
+                    { label: 'Profitability', value: financialHealthScore.profitability_score, icon: '💰' },
+                    { label: 'Efficiency', value: financialHealthScore.efficiency_score, icon: '⚡' },
+                    { label: 'Growth', value: financialHealthScore.growth_score, icon: '📈' },
+                    { label: 'Risk', value: financialHealthScore.risk_score, icon: '🛡️' },
+                    { label: 'Mobile Money', value: safePercentage(financeSummary.mobile_money_transactions, (financeSummary.mobile_money_transactions + financeSummary.cash_transactions)), icon: '📱' }
+                  ].map((metric) => (
+                    <div key={metric.label} className="text-center">
+                      <div className="text-2xl mb-1">{metric.icon}</div>
+                      <div className="text-xl font-bold">{safeNumber(metric.value, 0)}</div>
+                      <div className="text-xs text-blue-200">{metric.label}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
+            </div>
 
             {/* AI-Powered Quick Insights Banner */}
             {aiInsights.filter(i => i.actionable).length > 0 && (
@@ -1203,8 +1364,8 @@ export default function FinancePage() {
                 </div>
             )}
 
-            {/* Enhanced Key Financial Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Mobile-Responsive Key Financial Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               {[
                 {
                   title: 'Total Revenue',
@@ -1268,8 +1429,8 @@ export default function FinancePage() {
               })}
               </div>
 
-            {/* Enhanced African Business Intelligence */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Mobile-Responsive African Business Intelligence */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
               {/* Enhanced Cash Flow Breakdown */}
               <div className="bg-white shadow-lg rounded-xl p-6 border border-gray-100">
                 <div className="flex items-center justify-between mb-6">
@@ -1642,10 +1803,51 @@ export default function FinancePage() {
           </div>
         )}
 
-        {/* Transactions Tab */}
+        {/* Mobile-Responsive Transactions Tab */}
         {selectedView === 'transactions' && (
           <div className="space-y-6">
-            <div className="bg-white shadow rounded-lg p-6">
+            {/* Mobile Search Header */}
+            <div className="sm:hidden">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
+                <div className="relative mb-4">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search transactions..."
+                    className="block w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base"
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Transactions</h3>
+                    {searchTerm && (
+                      <p className="text-sm text-gray-500">
+                        {filteredTransactions?.length || 0} results for "{searchTerm}"
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
+                      className={`p-2 rounded-lg transition-colors ${
+                        viewMode === 'cards' ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {viewMode === 'cards' ? <Squares2X2Icon className="h-5 w-5" /> : <ListBulletIcon className="h-5 w-5" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Desktop Header */}
+            <div className="hidden sm:block bg-white shadow rounded-lg p-6">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h3 className="text-lg font-medium text-gray-900">Transaction History</h3>
@@ -1673,8 +1875,8 @@ export default function FinancePage() {
                 </div>
               </div>
 
-              {/* Transaction Statistics */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              {/* Mobile-Responsive Transaction Statistics */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
                 <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-4">
                   <div className="flex items-center">
                     <ArrowUpIcon className="h-8 w-8 text-green-600" />
@@ -1735,9 +1937,102 @@ export default function FinancePage() {
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Transactions Table */}
-              <div className="overflow-x-auto">
+            {/* Mobile Transaction Cards */}
+              <div className="sm:hidden space-y-3">
+                {filteredTransactions?.length > 0 ? (
+                  filteredTransactions.slice(0, 20).map((transaction: any) => (
+                    <div key={transaction.id} className="bg-white rounded-xl shadow-md border border-gray-200 p-4 hover:shadow-lg transition-shadow">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              transaction.transaction_type === 'receipt' ? 'bg-green-100 text-green-800' :
+                              transaction.transaction_type === 'payment' ? 'bg-red-100 text-red-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {transaction.transaction_type === 'receipt' ? '📈' : 
+                               transaction.transaction_type === 'payment' ? '📉' : '📊'} 
+                              {transaction.transaction_type}
+                            </span>
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              transaction.status === 'posted' ? 'bg-green-100 text-green-800' :
+                              transaction.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {transaction.status}
+                            </span>
+                          </div>
+                          
+                          <h3 className="font-semibold text-gray-900 mb-1">
+                            {transaction.transaction_number}
+                          </h3>
+                          <p className="text-sm text-gray-600 mb-2">
+                            {transaction.narration || transaction.description || 'No description'}
+                          </p>
+                          
+                          <div className="flex items-center space-x-4 text-sm text-gray-500">
+                            <div className="flex items-center">
+                              {transaction.payment_method === 'mobile_money' ? '📱' :
+                               transaction.payment_method === 'cash' ? '💵' :
+                               transaction.payment_method === 'bank' ? '🏦' : '💳'}
+                              <span className="ml-1 capitalize">
+                                {(transaction.payment_method || '').replace('_', ' ')}
+                              </span>
+                            </div>
+                            <span>{new Date(transaction.transaction_date).toLocaleDateString()}</span>
+                          </div>
+                          
+                          {transaction.mobile_money_provider && (
+                            <div className="mt-2">
+                              <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                {transaction.mobile_money_provider}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="text-right ml-4">
+                          <div className={`text-xl font-bold ${transaction.transaction_type === 'receipt' ? 'text-green-600' : 'text-red-600'}`}>
+                            {transaction.transaction_type === 'receipt' ? '+' : '-'}
+                            {formatCurrency(parseFloat(transaction.total_amount || 0))}
+                          </div>
+                          
+                          <div className="flex space-x-2 mt-3">
+                            <button 
+                              className="p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                              title="View Transaction"
+                              onClick={() => {
+                                setQuickViewTransaction(transaction);
+                                setShowQuickView(true);
+                              }}
+                            >
+                              <EyeIcon className="h-4 w-4" />
+                            </button>
+                            <button 
+                              onClick={() => handleEditTransaction(transaction)}
+                              className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
+                              title="Edit Transaction"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+                    <DocumentTextIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-500 font-medium">No transactions found</p>
+                    <p className="text-gray-400 text-sm">Try adjusting your search or create a new transaction</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop Transactions Table */}
+              <div className="hidden sm:block overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -1871,7 +2166,7 @@ export default function FinancePage() {
                 )}
               </div>
             </div>
-          </div>
+        
         )}
 
         {/* Analytics Tab */}
@@ -2271,6 +2566,133 @@ export default function FinancePage() {
           <div className="space-y-6">
             <FinancialPeriods />
             <AuditTrail auditable_id={1} auditable_type="App\Models\Transaction" />
+          </div>
+        )}
+
+        {/* Quick View Modal for Mobile Transactions */}
+        {showQuickView && quickViewTransaction && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end sm:items-center justify-center p-4">
+            <div className="bg-white rounded-t-2xl sm:rounded-xl w-full sm:max-w-2xl max-h-[90vh] overflow-hidden">
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-green-600 to-blue-600 px-6 py-4 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">{quickViewTransaction.transaction_number}</h3>
+                    <p className="text-green-100 text-sm">{quickViewTransaction.transaction_type}</p>
+                  </div>
+                  <button
+                    onClick={() => setShowQuickView(false)}
+                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  >
+                    <XMarkIcon className="h-5 w-5 text-white" />
+                  </button>
+                </div>
+              </div>
+              
+              {/* Modal Content */}
+              <div className="p-6 overflow-y-auto max-h-[70vh]">
+                {/* Amount */}
+                <div className="text-center mb-6">
+                  <p className={`text-3xl font-bold ${
+                    quickViewTransaction.transaction_type === 'receipt' 
+                      ? 'text-green-600' 
+                      : 'text-red-600'
+                  }`}>
+                    {quickViewTransaction.transaction_type === 'receipt' ? '+' : '-'}
+                    {formatCurrency(parseFloat(quickViewTransaction.total_amount || 0))}
+                  </p>
+                  <div className="mt-2 flex justify-center space-x-2">
+                    <span className={`inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full ${
+                      quickViewTransaction.transaction_type === 'receipt' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {quickViewTransaction.transaction_type === 'receipt' ? '📈' : '📉'} 
+                      {quickViewTransaction.transaction_type}
+                    </span>
+                    <span className={`inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full ${
+                      quickViewTransaction.status === 'posted' ? 'bg-green-100 text-green-800' :
+                      quickViewTransaction.status === 'draft' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {quickViewTransaction.status}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Transaction Details */}
+                <div className="space-y-4 mb-6">
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span className="font-medium text-gray-700">Date</span>
+                    <span className="text-gray-900">{new Date(quickViewTransaction.transaction_date).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span className="font-medium text-gray-700">Payment Method</span>
+                    <div className="flex items-center">
+                      {quickViewTransaction.payment_method === 'mobile_money' ? '📱' :
+                       quickViewTransaction.payment_method === 'cash' ? '💵' :
+                       quickViewTransaction.payment_method === 'bank' ? '🏦' : '💳'}
+                      <span className="ml-2 capitalize">
+                        {(quickViewTransaction.payment_method || '').replace('_', ' ')}
+                      </span>
+                    </div>
+                  </div>
+                  {quickViewTransaction.mobile_money_provider && (
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <span className="font-medium text-gray-700">Provider</span>
+                      <span className="text-gray-900">{quickViewTransaction.mobile_money_provider}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-start p-3 bg-gray-50 rounded-lg">
+                    <span className="font-medium text-gray-700">Description</span>
+                    <span className="text-gray-900 text-right max-w-xs">
+                      {quickViewTransaction.narration || quickViewTransaction.description || 'No description'}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Quick Actions */}
+                <div className="space-y-3">
+                  <button 
+                    onClick={() => {
+                      setShowQuickView(false);
+                      setSelectedTransaction(quickViewTransaction);
+                      setShowTransactionDetailModal(true);
+                    }}
+                    className="w-full flex items-center justify-center px-4 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+                  >
+                    <EyeIcon className="h-5 w-5 mr-2" />
+                    View Full Details
+                  </button>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <button 
+                      onClick={() => {
+                        setShowQuickView(false);
+                        handleEditTransaction(quickViewTransaction);
+                      }}
+                      className="flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                    >
+                      <PencilIcon className="h-4 w-4 mr-2" />
+                      Edit
+                    </button>
+                    
+                    <button 
+                      onClick={() => {
+                        setShowQuickView(false);
+                        if (confirm('Are you sure you want to delete this transaction?')) {
+                          handleDeleteTransaction(quickViewTransaction);
+                        }
+                      }}
+                      className="flex items-center justify-center px-4 py-2 bg-red-100 text-red-700 rounded-lg font-medium hover:bg-red-200 transition-colors"
+                    >
+                      <TrashIcon className="h-4 w-4 mr-2" />
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
