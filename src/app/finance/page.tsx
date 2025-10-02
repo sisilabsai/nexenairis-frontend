@@ -1746,40 +1746,81 @@ export default function FinancePage() {
             {/* Account Actions Header */}
             <div className="bg-white shadow rounded-lg p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium text-gray-900">Chart of Accounts</h3>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">Chart of Accounts</h3>
+                    <p className="text-sm text-gray-500 mt-1">Manage your financial account structure</p>
+                  </div>
                   <div className="flex items-center space-x-3">
                     <button
                       onClick={() => initializeChartOfAccountsMutation.mutate()}
-                      className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700"
+                      disabled={initializeChartOfAccountsMutation.isPending}
+                      className="group relative inline-flex items-center px-6 py-3 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
                     >
-                      Initialize Default Accounts
+                      <div className="flex items-center">
+                        {initializeChartOfAccountsMutation.isPending ? (
+                          <>
+                            <div className="animate-spin -ml-1 mr-3 h-4 w-4 text-white">
+                              <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                            </div>
+                            <span>Creating Accounts...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="h-4 w-4 mr-2 group-hover:animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                            </svg>
+                            <span>Initialize Default Accounts</span>
+                          </>
+                        )}
+                      </div>
+                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
                     </button>
                     <button 
                       onClick={handleNewAccount}
-                      className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+                      className="group relative inline-flex items-center px-6 py-3 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
                     >
-                      <PlusIcon className="h-4 w-4 mr-2" />
-                      Add Account
+                      <div className="flex items-center">
+                        <PlusIcon className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform duration-200" />
+                        <span>Add New Account</span>
+                      </div>
+                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-green-600 to-teal-600 opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
                     </button>
                   </div>
                 </div>
 
-              {/* Account Categories */}
+              {/* Enhanced Account Categories */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-                {['asset', 'liability', 'equity', 'revenue', 'expense'].map((type) => (
-                  <div key={type} className="bg-gray-50 rounded-lg p-4 text-center">
-                    <div className="text-2xl mb-2">
-                      {type === 'asset' ? '💰' : 
-                       type === 'liability' ? '📋' : 
-                       type === 'equity' ? '🏛️' : 
-                       type === 'revenue' ? '💹' : '💸'}
+                {[
+                  { type: 'asset', emoji: '💰', color: 'from-green-500 to-emerald-600', bgColor: 'bg-gradient-to-br from-green-50 to-emerald-50', textColor: 'text-green-700' },
+                  { type: 'liability', emoji: '📋', color: 'from-red-500 to-pink-600', bgColor: 'bg-gradient-to-br from-red-50 to-pink-50', textColor: 'text-red-700' },
+                  { type: 'equity', emoji: '🏛️', color: 'from-blue-500 to-indigo-600', bgColor: 'bg-gradient-to-br from-blue-50 to-indigo-50', textColor: 'text-blue-700' },
+                  { type: 'revenue', emoji: '💹', color: 'from-purple-500 to-violet-600', bgColor: 'bg-gradient-to-br from-purple-50 to-violet-50', textColor: 'text-purple-700' },
+                  { type: 'expense', emoji: '�', color: 'from-orange-500 to-amber-600', bgColor: 'bg-gradient-to-br from-orange-50 to-amber-50', textColor: 'text-orange-700' }
+                ].map(({ type, emoji, color, bgColor, textColor }) => {
+                  const accountCount = Array.isArray((accountsData as any)?.data) ? (accountsData as any)?.data?.filter((acc: any) => acc.account_type === type)?.length || 0 : 0;
+                  return (
+                    <div key={type} className={`${bgColor} rounded-xl p-6 text-center border border-gray-100 hover:shadow-lg transform hover:scale-105 transition-all duration-200 cursor-pointer group`}>
+                      <div className="text-3xl mb-3 group-hover:animate-bounce">
+                        {emoji}
+                      </div>
+                      <div className={`text-lg font-bold ${textColor} capitalize mb-1`}>{type}</div>
+                      <div className="text-sm text-gray-600 mb-2">
+                        {accountCount} account{accountCount !== 1 ? 's' : ''}
+                      </div>
+                      <div className={`h-2 bg-gradient-to-r ${color} rounded-full mx-auto w-16 group-hover:w-20 transition-all duration-300`}></div>
+                      {accountCount === 0 && (
+                        <div className="mt-2">
+                          <span className="inline-block px-2 py-1 bg-gray-200 text-gray-600 text-xs rounded-full">
+                            Empty
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-sm font-medium text-gray-900 capitalize">{type}</div>
-                    <div className="text-xs text-gray-500">
-                      {Array.isArray((accountsData as any)?.data) ? (accountsData as any)?.data?.filter((acc: any) => acc.account_type === type)?.length || 0 : 0} accounts
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Accounts Table */}
@@ -1794,8 +1835,55 @@ export default function FinancePage() {
                   }}
                 />
                 {(!accountsData?.data || (accountsData as any)?.data?.length === 0) && (
-                  <div className="text-center py-8">
-                    <div className="text-gray-500">No accounts found. Create your first account to get started!</div>
+                  <div className="text-center py-16 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-dashed border-blue-200">
+                    <div className="max-w-sm mx-auto">
+                      <div className="text-6xl mb-4">📊</div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">No Chart of Accounts Yet</h3>
+                      <p className="text-gray-600 mb-6">Get started by initializing default accounts or create your own custom account structure.</p>
+                      
+                      <div className="space-y-3">
+                        <button
+                          onClick={() => initializeChartOfAccountsMutation.mutate()}
+                          disabled={initializeChartOfAccountsMutation.isPending}
+                          className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent rounded-xl text-base font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform transition-all duration-200 hover:scale-105"
+                        >
+                          {initializeChartOfAccountsMutation.isPending ? (
+                            <>
+                              <div className="animate-spin -ml-1 mr-3 h-5 w-5 text-white">
+                                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                              </div>
+                              Creating Default Accounts...
+                            </>
+                          ) : (
+                            <>
+                              <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                              </svg>
+                              ✨ Initialize Default Accounts
+                            </>
+                          )}
+                        </button>
+                        
+                        <div className="text-sm text-gray-500 flex items-center justify-center">
+                          <span>or</span>
+                        </div>
+                        
+                        <button
+                          onClick={handleNewAccount}
+                          className="w-full inline-flex items-center justify-center px-6 py-3 border-2 border-gray-300 rounded-xl text-base font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200"
+                        >
+                          <PlusIcon className="h-5 w-5 mr-2" />
+                          Create Custom Account
+                        </button>
+                      </div>
+                      
+                      <div className="mt-6 text-xs text-gray-500">
+                        💡 Tip: Default accounts include Cash, Bank, Mobile Money, and standard business accounts
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

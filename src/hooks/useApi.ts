@@ -736,12 +736,33 @@ export const useInitializeChartOfAccounts = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: financeApi.initializeDefaultChartOfAccounts,
-    onSuccess: () => {
+    onSuccess: (response) => {
+      // Invalidate and refetch the accounts
       queryClient.invalidateQueries({ queryKey: ['finance', 'chart-of-accounts'] });
-      toast.success('Chart of Accounts initialized successfully!');
+      
+      // Show success message with more details
+      toast.success('🎉 Default chart of accounts created successfully! Your account structure is now ready.', {
+        duration: 4000,
+        style: {
+          background: '#10B981',
+          color: '#fff',
+        },
+      });
+      
+      // Force refetch after a brief delay to ensure the backend has processed
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ['finance', 'chart-of-accounts'] });
+      }, 1000);
     },
-    onError: () => {
-      toast.error('Failed to initialize Chart of Accounts.');
+    onError: (error: any) => {
+      console.error('Failed to initialize Chart of Accounts:', error);
+      toast.error('❌ Failed to initialize Chart of Accounts. Please try again.', {
+        duration: 4000,
+        style: {
+          background: '#EF4444',
+          color: '#fff',
+        },
+      });
     },
   });
 };
