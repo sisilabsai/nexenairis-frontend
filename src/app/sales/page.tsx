@@ -44,6 +44,8 @@ import CustomerSelectionModal from '../../components/CustomerSelectionModal';
 
 // Lazy load the view components
 const PosView = lazy(() => import('../../components/sales/PosView'));
+const MobilePosView = lazy(() => import('../../components/sales/MobilePosView'));
+const MobileCheckout = lazy(() => import('../../components/sales/MobileCheckout'));
 const AnalyticsView = lazy(() => import('../../components/sales/AnalyticsView'));
 const CustomerIntelligenceView = lazy(() => import('../../components/sales/CustomerIntelligenceView'));
 const HistoryView = lazy(() => import('../../components/sales/HistoryView'));
@@ -125,6 +127,7 @@ export default function SalesPage() {
   const [salesMode, setSalesMode] = useState<'pos' | 'analytics' | 'customers' | 'history' | 'receipts'>('pos');
   const [selectedPaymentType, setSelectedPaymentType] = useState<'cash' | 'card' | 'mobile_money' | 'bank_transfer' | 'credit'>('cash');
   const [animatedProductId, setAnimatedProductId] = useState<number | null>(null);
+  const [amountPaid, setAmountPaid] = useState(0);
 
   // DATA FETCHING
   const { data: productsData, refetch: refetchProducts } = useProducts({});
@@ -519,7 +522,7 @@ export default function SalesPage() {
     switch (salesMode) {
       case 'pos':
         return (
-          <PosView
+          <MobilePosView
             products={products}
             cart={cart}
             addToCart={addToCart}
@@ -563,73 +566,89 @@ export default function SalesPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Smart Sales POS</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            A powerful, AI-driven Point of Sale system.
-          </p>
+        {/* Mobile-Optimized Header */}
+        <div className="mb-4 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-4 sm:mb-0">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Smart Sales POS</h1>
+              <p className="mt-1 text-xs sm:text-sm text-gray-500">
+                AI-driven Point of Sale system
+              </p>
+            </div>
+            
+            {/* Cart Summary - Mobile Priority */}
+            {cart.length > 0 && (
+              <div className="sm:hidden">
+                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl shadow-sm">
+                  <div className="flex items-center space-x-2">
+                    <ShoppingCartIcon className="h-5 w-5 text-green-600" />
+                    <span className="text-sm font-medium text-green-700">{cartTotals.itemCount} items</span>
+                  </div>
+                  <span className="text-lg font-bold text-green-700">UGX {cartTotals.total.toLocaleString()}</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="space-y-6">
-          {/* Sales Mode Toggle */}
-          <div className="flex items-center justify-between">
-            <div className="flex space-x-4">
+        <div className="space-y-4 sm:space-y-6">
+          {/* Enhanced Mobile-First Mode Toggle */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setSalesMode('pos')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`px-3 py-2 sm:px-4 sm:py-2 rounded-xl font-medium transition-all duration-200 transform active:scale-95 ${
                   salesMode === 'pos'
-                    ? 'bg-green-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-500/25'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-sm'
                 }`}
               >
-                🛒 Point of Sale
+                <span className="flex items-center space-x-1">
+                  🛒 <span className="hidden sm:inline">Point of Sale</span><span className="sm:hidden">POS</span>
+                </span>
               </button>
               <button
                 onClick={() => setSalesMode('analytics')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`px-3 py-2 sm:px-4 sm:py-2 rounded-xl font-medium transition-all duration-200 transform active:scale-95 ${
                   salesMode === 'analytics'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-sm'
                 }`}
               >
-                📊 Sales Analytics
+                <span className="flex items-center space-x-1">
+                  📊 <span className="hidden sm:inline">Analytics</span><span className="sm:hidden">Stats</span>
+                </span>
               </button>
               <button
                 onClick={() => setSalesMode('customers')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`px-3 py-2 sm:px-4 sm:py-2 rounded-xl font-medium transition-all duration-200 transform active:scale-95 ${
                   salesMode === 'customers'
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-gradient-to-r from-purple-600 to-violet-600 text-white shadow-lg shadow-purple-500/25'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-sm'
                 }`}
               >
-                👥 Customer Intelligence
+                <span className="flex items-center space-x-1">
+                  � <span className="hidden sm:inline">Customers</span><span className="sm:hidden">CRM</span>
+                </span>
               </button>
               <button
                 onClick={() => setSalesMode('history')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`px-3 py-2 sm:px-4 sm:py-2 rounded-xl font-medium transition-all duration-200 transform active:scale-95 ${
                   salesMode === 'history'
-                    ? 'bg-yellow-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-gradient-to-r from-yellow-600 to-orange-600 text-white shadow-lg shadow-yellow-500/25'
+                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 shadow-sm'
                 }`}
               >
-                📜 Sales History
+                <span className="flex items-center space-x-1">
+                  📜 <span className="hidden sm:inline">History</span><span className="sm:hidden">Log</span>
+                </span>
               </button>
-              {/* <button
-                onClick={() => setSalesMode('receipts')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  salesMode === 'receipts'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                <EyeIcon className="h-5 w-5 inline-block mr-2" />
-                View Receipts
-              </button> */}
             </div>
             
-            <div className="flex items-center space-x-3">
+            {/* Desktop Cart & Actions */}
+            <div className="hidden sm:flex items-center space-x-3">
               {cart.length > 0 && (
-                <div className="flex items-center space-x-2 px-3 py-1 bg-green-100 border border-green-300 rounded-lg">
+                <div className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl shadow-sm">
                   <ShoppingCartIcon className="h-5 w-5 text-green-600" />
                   <span className="text-green-700 font-medium">{cartTotals.itemCount} items • UGX {cartTotals.total.toLocaleString()}</span>
                 </div>
@@ -639,7 +658,7 @@ export default function SalesPage() {
                 <select
                   value={selectedPaymentType}
                   onChange={(e) => setSelectedPaymentType(e.target.value as any)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white shadow-sm"
                 >
                   {availablePaymentMethods.map(method => (
                     <option key={method.id} value={method.id}>
@@ -651,26 +670,52 @@ export default function SalesPage() {
                 <button
                   onClick={processTransaction}
                   disabled={cart.length === 0 || processTransactionMutation.isPending}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 transform active:scale-95 ${
                     cart.length > 0
-                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 shadow-lg shadow-green-500/25'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
                 >
                   {processTransactionMutation.isPending ? 'Processing...' : `💳 Checkout`}
                 </button>
               </div>
-              {selectedPaymentType === 'mobile_money' && (
-                <input
-                  type="text"
-                  value={momoReference}
-                  onChange={(e) => setMomoReference(e.target.value)}
-                  placeholder="M-Pesa/MTN Ref..."
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-              )}
             </div>
           </div>
+
+          {/* Mobile Enhanced Checkout */}
+          {salesMode === 'pos' && cart.length > 0 && (
+            <div className="sm:hidden">
+              <MobileCheckout
+                cartTotals={cartTotals}
+                selectedPaymentType={selectedPaymentType}
+                setSelectedPaymentType={(type) => setSelectedPaymentType(type as any)}
+                amountPaid={amountPaid}
+                setAmountPaid={setAmountPaid}
+                momoReference={momoReference}
+                setMomoReference={setMomoReference}
+                onProcessTransaction={processTransaction}
+                isProcessing={processTransactionMutation.isPending}
+                selectedCustomer={selectedCustomer}
+                onSelectCustomer={() => setIsCustomerModalOpen(true)}
+                globalDiscount={globalDiscount}
+                onUpdateDiscount={setGlobalDiscount}
+                availablePaymentMethods={availablePaymentMethods}
+              />
+            </div>
+          )}
+          
+          {/* Hidden desktop reference input */}
+          {selectedPaymentType === 'mobile_money' && (
+            <div className="hidden sm:block">
+              <input
+                type="text"
+                value={momoReference}
+                onChange={(e) => setMomoReference(e.target.value)}
+                placeholder="M-Pesa/MTN Ref..."
+                className="px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+          )}
 
           <Suspense fallback={<LoadingSpinner />}>
             {renderContent()}
