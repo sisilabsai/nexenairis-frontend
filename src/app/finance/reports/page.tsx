@@ -54,6 +54,26 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
+// Currency formatting utility
+const formatCurrency = (amount: number, currency: string = 'UGX', locale: string = 'en-US') => {
+    try {
+        return new Intl.NumberFormat(locale, {
+            style: 'currency',
+            currency: currency,
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
+        }).format(amount);
+    } catch (error) {
+        // Fallback for unsupported currencies
+        return `${currency} ${amount.toLocaleString()}`;
+    }
+};
+
+// Get currency from tenant settings
+const getCurrencyFromSettings = (tenantSettings: any) => {
+    return tenantSettings?.currency || 'UGX';
+};
+
 const ArAgingReport = () => {
     const { data: apiResponse, isLoading, error } = useArAgingReport();
     const data = apiResponse?.data as ArAgingData[];
@@ -412,8 +432,10 @@ const EnhancedBalanceSheetStatement = () => {
         compare_date: compareDate,
     });
 
-    const data = apiResponse?.data as BalanceSheetData;
+    const data = apiResponse?.data as any;
     const primaryData = data?.primary;
+    const tenantSettings = data?.tenant_settings;
+    const currency = getCurrencyFromSettings(tenantSettings);
 
     const handleGenerateReport = useCallback(() => {
         refetch();
@@ -657,7 +679,7 @@ const EnhancedBalanceSheetStatement = () => {
                                                 </h3>
                                                 <div className="flex items-center space-x-3">
                                                     <span className="text-lg font-bold text-blue-700">
-                                                        {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(primaryData.total_assets)}
+                                                        {formatCurrency(primaryData.total_assets, currency)}
                                                     </span>
                                                     {expandedSections.includes('assets') ? 
                                                         <ChevronDown className="h-5 w-5 text-blue-600" /> :
@@ -677,7 +699,7 @@ const EnhancedBalanceSheetStatement = () => {
                                                                 {asset.name}
                                                             </a>
                                                             <span className="text-blue-800 font-semibold">
-                                                                {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(asset.balance)}
+                                                                {formatCurrency(asset.balance, currency)}
                                                             </span>
                                                         </div>
                                                     ))}
@@ -700,7 +722,7 @@ const EnhancedBalanceSheetStatement = () => {
                                                 </h3>
                                                 <div className="flex items-center space-x-3">
                                                     <span className="text-lg font-bold text-red-700">
-                                                        {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(primaryData.total_liabilities)}
+                                                        {formatCurrency(primaryData.total_liabilities, currency)}
                                                     </span>
                                                     {expandedSections.includes('liabilities') ? 
                                                         <ChevronDown className="h-5 w-5 text-red-600" /> :
@@ -720,7 +742,7 @@ const EnhancedBalanceSheetStatement = () => {
                                                                 {liability.name}
                                                             </a>
                                                             <span className="text-red-800 font-semibold">
-                                                                {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(liability.balance)}
+                                                                {formatCurrency(liability.balance, currency)}
                                                             </span>
                                                         </div>
                                                     ))}
@@ -740,7 +762,7 @@ const EnhancedBalanceSheetStatement = () => {
                                                 </h3>
                                                 <div className="flex items-center space-x-3">
                                                     <span className="text-lg font-bold text-green-700">
-                                                        {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(primaryData.total_equity)}
+                                                        {formatCurrency(primaryData.total_equity, currency)}
                                                     </span>
                                                     {expandedSections.includes('equity') ? 
                                                         <ChevronDown className="h-5 w-5 text-green-600" /> :
@@ -760,7 +782,7 @@ const EnhancedBalanceSheetStatement = () => {
                                                                 {equity.name}
                                                             </a>
                                                             <span className="text-green-800 font-semibold">
-                                                                {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(equity.balance)}
+                                                                {formatCurrency(equity.balance, currency)}
                                                             </span>
                                                         </div>
                                                     ))}
@@ -779,7 +801,7 @@ const EnhancedBalanceSheetStatement = () => {
                                             <div className="text-right">
                                                 <p className="text-sm text-indigo-700">Total Assets</p>
                                                 <p className="text-lg font-bold text-indigo-900">
-                                                    {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(primaryData.total_assets)}
+                                                    {formatCurrency(primaryData.total_assets, currency)}
                                                 </p>
                                             </div>
                                         </div>
@@ -787,7 +809,7 @@ const EnhancedBalanceSheetStatement = () => {
                                             <div className="text-center">
                                                 <p className="text-sm text-indigo-600">Liabilities + Equity</p>
                                                 <p className="text-lg font-bold text-indigo-800">
-                                                    {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(primaryData.total_liabilities_and_equity)}
+                                                    {formatCurrency(primaryData.total_liabilities_and_equity, currency)}
                                                 </p>
                                                 <div className="mt-2">
                                                     {Math.abs(primaryData.total_assets - primaryData.total_liabilities_and_equity) < 1 ? (
@@ -900,8 +922,10 @@ const EnhancedProfitAndLossStatement = () => {
         end_date: endDate,
     });
 
-    const data = apiResponse?.data as ProfitAndLossData;
+    const data = apiResponse?.data as any;
     const primaryData = data?.primary;
+    const tenantSettings = data?.tenant_settings;
+    const currency = getCurrencyFromSettings(tenantSettings);
 
     const handleGenerateReport = useCallback(() => {
         refetch();
@@ -1096,7 +1120,7 @@ const EnhancedProfitAndLossStatement = () => {
                                             </h3>
                                             <div className="flex items-center space-x-3">
                                                 <span className="text-lg font-bold text-green-700">
-                                                    {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(primaryData.revenue)}
+                                                    {formatCurrency(primaryData.revenue, currency)}
                                                 </span>
                                                 {expandedSections.includes('revenue') ? 
                                                     <ChevronDown className="h-5 w-5 text-green-600" /> :
@@ -1108,15 +1132,15 @@ const EnhancedProfitAndLossStatement = () => {
                                         {expandedSections.includes('revenue') && primaryData.revenue_accounts && (
                                             <div className="mt-4 space-y-2">
                                                 {primaryData.revenue_accounts.map((account: any) => (
-                                                    <div key={account.id} className="flex justify-between items-center py-2 pl-4 bg-white rounded border">
+                                                    <div key={account.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-3 px-4 bg-white rounded border hover:bg-gray-50 transition-colors">
                                                         <a 
                                                             href={`/finance/transactions?account=${account.account_name}`} 
-                                                            className="text-green-700 hover:text-green-900 font-medium"
+                                                            className="text-green-700 hover:text-green-900 font-medium text-sm sm:text-base mb-1 sm:mb-0"
                                                         >
                                                             {account.account_name}
                                                         </a>
-                                                        <span className="text-green-800 font-semibold">
-                                                            {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(account.balance || 0)}
+                                                        <span className="text-green-800 font-semibold text-sm sm:text-base">
+                                                            {formatCurrency(account.balance || 0, currency)}
                                                         </span>
                                                     </div>
                                                 ))}
@@ -1136,7 +1160,7 @@ const EnhancedProfitAndLossStatement = () => {
                                             </h3>
                                             <div className="flex items-center space-x-3">
                                                 <span className="text-lg font-bold text-red-700">
-                                                    {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(primaryData.expenses)}
+                                                    {formatCurrency(primaryData.expenses, currency)}
                                                 </span>
                                                 {expandedSections.includes('expenses') ? 
                                                     <ChevronDown className="h-5 w-5 text-red-600" /> :
@@ -1148,15 +1172,15 @@ const EnhancedProfitAndLossStatement = () => {
                                         {expandedSections.includes('expenses') && primaryData.expense_accounts && (
                                             <div className="mt-4 space-y-2">
                                                 {primaryData.expense_accounts.map((account: any) => (
-                                                    <div key={account.id} className="flex justify-between items-center py-2 pl-4 bg-white rounded border">
+                                                    <div key={account.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-3 px-4 bg-white rounded border hover:bg-gray-50 transition-colors">
                                                         <a 
                                                             href={`/finance/transactions?account=${account.account_name}`} 
-                                                            className="text-red-700 hover:text-red-900 font-medium"
+                                                            className="text-red-700 hover:text-red-900 font-medium text-sm sm:text-base mb-1 sm:mb-0"
                                                         >
                                                             {account.account_name}
                                                         </a>
-                                                        <span className="text-red-800 font-semibold">
-                                                            {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(account.balance || 0)}
+                                                        <span className="text-red-800 font-semibold text-sm sm:text-base">
+                                                            {formatCurrency(account.balance || 0, currency)}
                                                         </span>
                                                     </div>
                                                 ))}
@@ -1184,7 +1208,7 @@ const EnhancedProfitAndLossStatement = () => {
                                             <span className={`text-2xl font-bold ${
                                                 primaryData.net_income >= 0 ? 'text-emerald-700' : 'text-red-700'
                                             }`}>
-                                                {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(primaryData.net_income)}
+                                                {formatCurrency(primaryData.net_income, currency)}
                                             </span>
                                         </div>
                                     </div>
@@ -1548,6 +1572,8 @@ const ReportFilters = ({
 
 // African Business Tax Compliance Helper
 const TaxComplianceHelper = ({ reportData }: { reportData: any }) => {
+  const currency = getCurrencyFromSettings(reportData?.tenant_settings);
+  
   const taxInsights = useMemo(() => {
     if (!reportData?.primary) return [];
     
@@ -1609,10 +1635,7 @@ const TaxComplianceHelper = ({ reportData }: { reportData: any }) => {
                 <DollarSign className="h-4 w-4 text-green-600" />
               </div>
               <p className="text-lg font-bold text-green-700 mb-1">
-                {new Intl.NumberFormat('en-KE', { 
-                  style: 'currency', 
-                  currency: 'KES' 
-                }).format(insight.amount)}
+                {formatCurrency(insight.amount, currency)}
               </p>
               <p className="text-xs text-gray-600">{insight.description}</p>
             </div>
@@ -1636,41 +1659,52 @@ export default function ReportsPage() {
     const [selectedReports, setSelectedReports] = useState<string[]>([]);
     const [showBookmarks, setShowBookmarks] = useState(false);
 
-    // Dashboard Overview Data
-    const dashboardMetrics = useMemo(() => [
-      {
-        title: 'Quick P&L',
-        value: 'KES 1.2M',
-        change: '+12%',
-        trend: 'up',
-        icon: TrendingUp,
-        color: 'green'
-      },
-      {
-        title: 'Cash Position',
-        value: 'KES 450K',
-        change: '-5%',
-        trend: 'down',
-        icon: DollarSign,
-        color: 'blue'
-      },
-      {
-        title: 'Monthly Revenue',
-        value: 'KES 2.8M',
-        change: '+8%',
-        trend: 'up',
-        icon: BarChart3,
-        color: 'green'
-      },
-      {
-        title: 'Expense Ratio',
-        value: '68%',
-        change: '-3%',
-        trend: 'down',
-        icon: Target,
-        color: 'orange'
-      }
-    ], []);
+    // Dashboard Overview Data - Using real API data when available
+    const { data: summaryResponse } = useProfitAndLoss({ start_date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0], end_date: new Date().toISOString().split('T')[0] });
+    const summaryData = summaryResponse?.data as any;
+    const dashboardCurrency = getCurrencyFromSettings(summaryData?.tenant_settings);
+    
+    const dashboardMetrics = useMemo(() => {
+        const revenue = summaryData?.primary?.revenue || 0;
+        const expenses = summaryData?.primary?.expenses || 0;
+        const netIncome = revenue - expenses;
+        const expenseRatio = revenue > 0 ? (expenses / revenue * 100) : 0;
+        
+        return [
+          {
+            title: 'Quick P&L',
+            value: formatCurrency(netIncome, dashboardCurrency),
+            change: '+12%', // This should come from period comparison
+            trend: netIncome >= 0 ? 'up' : 'down',
+            icon: TrendingUp,
+            color: netIncome >= 0 ? 'green' : 'red'
+          },
+          {
+            title: 'Total Revenue',
+            value: formatCurrency(revenue, dashboardCurrency),
+            change: '+8%', // This should come from period comparison
+            trend: 'up',
+            icon: BarChart3,
+            color: 'green'
+          },
+          {
+            title: 'Total Expenses',
+            value: formatCurrency(expenses, dashboardCurrency),
+            change: '+5%', // This should come from period comparison
+            trend: 'up',
+            icon: DollarSign,
+            color: 'blue'
+          },
+          {
+            title: 'Expense Ratio',
+            value: `${expenseRatio.toFixed(1)}%`,
+            change: expenseRatio < 70 ? '-3%' : '+2%',
+            trend: expenseRatio < 70 ? 'down' : 'up',
+            icon: Target,
+            color: expenseRatio < 70 ? 'green' : 'orange'
+          }
+        ];
+    }, [summaryData, dashboardCurrency]);
 
     return (
         <ProtectedRoute>
@@ -1794,30 +1828,30 @@ export default function ReportsPage() {
 
                 {/* Enhanced Tabs */}
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-6 lg:grid-cols-6 mb-6">
-                        <TabsTrigger value="dashboard" className="flex items-center">
-                            <BarChart3 className="mr-2 h-4 w-4" />
-                            <span className="hidden sm:inline">Dashboard</span>
+                    <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 lg:grid-cols-6 mb-6 h-auto gap-1">
+                        <TabsTrigger value="dashboard" className="flex flex-col sm:flex-row items-center justify-center px-2 py-2 text-xs sm:text-sm">
+                            <BarChart3 className="h-4 w-4 sm:mr-2" />
+                            <span className="mt-1 sm:mt-0">Dashboard</span>
                         </TabsTrigger>
-                        <TabsTrigger value="pnl" className="flex items-center">
-                            <TrendingUp className="mr-2 h-4 w-4" />
-                            <span className="hidden sm:inline">P&L</span>
+                        <TabsTrigger value="pnl" className="flex flex-col sm:flex-row items-center justify-center px-2 py-2 text-xs sm:text-sm">
+                            <TrendingUp className="h-4 w-4 sm:mr-2" />
+                            <span className="mt-1 sm:mt-0">P&L</span>
                         </TabsTrigger>
-                        <TabsTrigger value="balance_sheet" className="flex items-center">
-                            <PieChart className="mr-2 h-4 w-4" />
-                            <span className="hidden sm:inline">Balance Sheet</span>
+                        <TabsTrigger value="balance_sheet" className="flex flex-col sm:flex-row items-center justify-center px-2 py-2 text-xs sm:text-sm">
+                            <PieChart className="h-4 w-4 sm:mr-2" />
+                            <span className="mt-1 sm:mt-0">Balance</span>
                         </TabsTrigger>
-                        <TabsTrigger value="cash_flow" className="flex items-center">
-                            <LineChart className="mr-2 h-4 w-4" />
-                            <span className="hidden sm:inline">Cash Flow</span>
+                        <TabsTrigger value="cash_flow" className="flex flex-col sm:flex-row items-center justify-center px-2 py-2 text-xs sm:text-sm">
+                            <LineChart className="h-4 w-4 sm:mr-2" />
+                            <span className="mt-1 sm:mt-0">Cash Flow</span>
                         </TabsTrigger>
-                        <TabsTrigger value="equity" className="flex items-center">
-                            <Award className="mr-2 h-4 w-4" />
-                            <span className="hidden sm:inline">Equity</span>
+                        <TabsTrigger value="equity" className="flex flex-col sm:flex-row items-center justify-center px-2 py-2 text-xs sm:text-sm">
+                            <Award className="h-4 w-4 sm:mr-2" />
+                            <span className="mt-1 sm:mt-0">Equity</span>
                         </TabsTrigger>
-                        <TabsTrigger value="ar_aging" className="flex items-center">
-                            <Clock className="mr-2 h-4 w-4" />
-                            <span className="hidden sm:inline">A/R Aging</span>
+                        <TabsTrigger value="ar_aging" className="flex flex-col sm:flex-row items-center justify-center px-2 py-2 text-xs sm:text-sm">
+                            <Clock className="h-4 w-4 sm:mr-2" />
+                            <span className="mt-1 sm:mt-0">A/R Aging</span>
                         </TabsTrigger>
                     </TabsList>
                     
