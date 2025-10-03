@@ -73,6 +73,7 @@ import ErrorMessage from '../../components/ErrorMessage';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import TransactionModal from '../../components/TransactionModal';
 import TransactionDetailModal from '../../components/TransactionDetailModal';
+import AccountInfoModal from '../../components/AccountInfoModal';
 import AccountModal from '../../components/AccountModal';
 import AccountTree from '../../components/AccountTree';
 import DimensionsModal from '../../components/DimensionsModal';
@@ -166,6 +167,7 @@ export default function FinancePage() {
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showTransactionDetailModal, setShowTransactionDetailModal] = useState(false);
   const [showAccountModal, setShowAccountModal] = useState(false);
+  const [showAccountInfoModal, setShowAccountInfoModal] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [editingAccount, setEditingAccount] = useState<any>(null);
@@ -1779,6 +1781,16 @@ export default function FinancePage() {
                       <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
                     </button>
                     <button 
+                      onClick={() => setShowAccountInfoModal(true)}
+                      className="group relative inline-flex items-center px-6 py-3 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
+                    >
+                      <div className="flex items-center">
+                        <LightBulbIcon className="h-4 w-4 mr-2 group-hover:animate-pulse" />
+                        <span>Learn About Accounts</span>
+                      </div>
+                      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 opacity-0 group-hover:opacity-20 transition-opacity duration-200"></div>
+                    </button>
+                    <button 
                       onClick={handleNewAccount}
                       className="group relative inline-flex items-center px-6 py-3 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transform transition-all duration-200 hover:scale-105 hover:shadow-xl"
                     >
@@ -1877,6 +1889,14 @@ export default function FinancePage() {
                         >
                           <PlusIcon className="h-5 w-5 mr-2" />
                           Create Custom Account
+                        </button>
+                        
+                        <button
+                          onClick={() => setShowAccountInfoModal(true)}
+                          className="w-full inline-flex items-center justify-center px-6 py-3 border-2 border-amber-300 rounded-xl text-base font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all duration-200"
+                        >
+                          <LightBulbIcon className="h-5 w-5 mr-2" />
+                          📚 Learn About Chart of Accounts
                         </button>
                       </div>
                       
@@ -2809,6 +2829,12 @@ export default function FinancePage() {
           isOpen={showTransactionDetailModal}
           onClose={() => setShowTransactionDetailModal(false)}
           transaction={selectedTransaction}
+        />
+
+        {/* Account Info Modal */}
+        <AccountInfoModal
+          isOpen={showAccountInfoModal}
+          onClose={() => setShowAccountInfoModal(false)}
         />
         </DashboardLayout>
       </ProtectedRoute>
