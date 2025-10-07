@@ -122,11 +122,12 @@ const generateAnalyticsFromApiData = (
   const now = new Date();
   
   // Calculate real pipeline metrics
-  const totalDeals = (opportunities || []).length;
-  const totalValue = (opportunities || []).reduce((sum, opp) => sum + (opp.expected_value || 0), 0);
-  const weightedValue = (opportunities || []).reduce((sum, opp) => sum + ((opp.expected_value || 0) * (opp.probability || 0) / 100), 0);
+  const safeOpportunities = Array.isArray(opportunities) ? opportunities : [];
+  const totalDeals = safeOpportunities.length;
+  const totalValue = safeOpportunities.reduce((sum, opp) => sum + (opp.expected_value || 0), 0);
+  const weightedValue = safeOpportunities.reduce((sum, opp) => sum + ((opp.expected_value || 0) * (opp.probability || 0) / 100), 0);
   const avgDealSize = totalDeals > 0 ? totalValue / totalDeals : 0;
-  const wonDeals = (opportunities || []).filter(opp => opp.stage_name?.toLowerCase().includes('won') || opp.status === 'won');
+  const wonDeals = safeOpportunities.filter(opp => opp.stage_name?.toLowerCase().includes('won') || opp.status === 'won');
   const winRate = totalDeals > 0 ? (wonDeals.length / totalDeals) * 100 : 0;
   
   return {
@@ -140,9 +141,9 @@ const generateAnalyticsFromApiData = (
       average_sales_cycle: crmStats.average_sales_cycle || 34,
       velocity: Math.round(weightedValue / 30), // Monthly velocity
     },
-    stage_analytics: (stages || []).map((stage, index) => {
-      const stageDeals = (opportunities || []).filter(opp => opp.sales_pipeline_stage_id === stage.id);
-      const stageValue = (stageDeals || []).reduce((sum, deal) => sum + (deal.expected_value || 0), 0);
+    stage_analytics: Array.isArray(stages) ? stages.map((stage, index) => {
+      const stageDeals = safeOpportunities.filter(opp => opp.sales_pipeline_stage_id === stage.id);
+      const stageValue = stageDeals.reduce((sum, deal) => sum + (deal.expected_value || 0), 0);
       const stageAvgSize = stageDeals.length > 0 ? stageValue / stageDeals.length : 0;
       
       return {
@@ -156,26 +157,26 @@ const generateAnalyticsFromApiData = (
         drop_off_rate: Math.round(Math.max(0, (100 - ((stageDeals.length / Math.max(totalDeals, 1)) * 100)) * (0.5 + Math.random() * 0.5))), // Inverse of conversion rate
         color: stage.color || ['#6B7280', '#3B82F6', '#F59E0B', '#EF4444', '#10B981'][index % 5],
       };
-    }),
+    }) : [],
     time_series: Array.from({ length: 30 }, (_, i) => {
       const date = new Date(now);
       date.setDate(date.getDate() - (29 - i));
       const dateStr = date.toISOString().split('T')[0];
       
       // Filter opportunities by date
-      const dayOpportunities = (opportunities || []).filter(opp => {
+      const dayOpportunities = safeOpportunities.filter(opp => {
         const oppDate = new Date(opp.created_at || opp.date_created || Date.now());
         return oppDate.toISOString().split('T')[0] === dateStr;
       });
       
-      const dayWonDeals = (dayOpportunities || []).filter(opp => 
+      const dayWonDeals = dayOpportunities.filter(opp => 
         opp.stage_name?.toLowerCase().includes('won') || opp.status === 'won'
       );
-      const dayLostDeals = (dayOpportunities || []).filter(opp => 
+      const dayLostDeals = dayOpportunities.filter(opp => 
         opp.stage_name?.toLowerCase().includes('lost') || opp.status === 'lost'
       );
-      const dayRevenue = (dayWonDeals || []).reduce((sum, opp) => sum + (opp.expected_value || 0), 0);
-      const dayPipelineValue = (dayOpportunities || []).reduce((sum, opp) => sum + (opp.expected_value || 0), 0);
+      const dayRevenue = dayWonDeals.reduce((sum, opp) => sum + (opp.expected_value || 0), 0);
+      const dayPipelineValue = dayOpportunities.reduce((sum, opp) => sum + (opp.expected_value || 0), 0);
       
       return {
         date: dateStr,
@@ -229,7 +230,7 @@ const generateAnalyticsFromApiData = (
         // AI-powered performance analysis: Group deals by assigned user/creator
         const userPerformance = new Map();
         
-        (opportunities || []).forEach(opp => {
+        safeOpportunities.forEach(opp => {
           const userId = opp.user_id || opp.created_by || opp.assigned_to || 1;
           const userName = opp.user_name || opp.assigned_user_name || opp.creator_name || `User ${userId}`;
           
@@ -312,8 +313,9 @@ const generateAnalyticsFromApiData = (
         healthScore += valueScore;
         
         // Stage position factor (25% weight) - later stages get higher scores
-        const stageIndex = (stages || []).findIndex(s => s.id === opp.sales_pipeline_stage_id) || 0;
-        const stageScore = (stageIndex / Math.max((stages || []).length - 1, 1)) * 25;
+        const safeStages = Array.isArray(stages) ? stages : [];
+        const stageIndex = safeStages.findIndex(s => s.id === opp.sales_pipeline_stage_id);
+        const stageScore = (Math.max(stageIndex, 0) / Math.max(safeStages.length - 1, 1)) * 25;
         healthScore += stageScore;
         
         // Timeline factor (15% weight) - deals with close dates get boost
@@ -341,7 +343,7 @@ const generateAnalyticsFromApiData = (
         if (closeDate && closeDate < now) riskFactors.push('Overdue close date');
         
         // Advanced stage analysis
-        const currentStageIndex = (stages || []).findIndex(s => s.id === opp.sales_pipeline_stage_id);
+        const currentStageIndex = safeStages.findIndex(s => s.id === opp.sales_pipeline_stage_id);
         if (currentStageIndex === 0 && (opp.probability || 0) > 50) {
           riskFactors.push('High probability in early stage');
         }
@@ -388,7 +390,8 @@ const generateAnalyticsFromApiData = (
         else if (daysSinceCreated > 14) churnScore += 10;
         
         // Stage progression factor
-        const stageIndex = (stages || []).findIndex(s => s.id === opp.sales_pipeline_stage_id) || 0;
+        const churnSafeStages = Array.isArray(stages) ? stages : [];
+        const stageIndex = Math.max(churnSafeStages.findIndex(s => s.id === opp.sales_pipeline_stage_id), 0);
         const expectedProgressRate = daysSinceCreated / 30; // Expected stage per month
         if (stageIndex < expectedProgressRate * 0.5) churnScore += 20; // Moving too slowly
         

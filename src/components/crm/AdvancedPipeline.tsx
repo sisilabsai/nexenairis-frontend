@@ -172,8 +172,8 @@ const PipelineColumn = ({
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
 
-  const stageValue = (opportunities || []).reduce((sum, opp) => sum + opp.expected_value, 0);
-  const stageWeightedValue = (opportunities || []).reduce((sum, opp) => sum + (opp.expected_value * opp.probability / 100), 0);
+  const stageValue = Array.isArray(opportunities) ? opportunities.reduce((sum, opp) => sum + opp.expected_value, 0) : 0;
+  const stageWeightedValue = Array.isArray(opportunities) ? opportunities.reduce((sum, opp) => sum + (opp.expected_value * opp.probability / 100), 0) : 0;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-UG', {
@@ -246,9 +246,9 @@ const PipelineColumn = ({
       {/* Deals List */}
       <div className="flex-1 p-4 overflow-y-auto max-h-[calc(100vh-300px)]">
         <AnimatePresence>
-          {(opportunities || []).map((opportunity) => {
+          {Array.isArray(opportunities) ? opportunities.map((opportunity) => {
             const viewingUsers = collaborationState.viewing_users[opportunity.id] || [];
-            const dealLock = (collaborationState.deal_locks || []).find((lock: DealLock) => lock.deal_id === opportunity.id);
+            const dealLock = Array.isArray(collaborationState.deal_locks) ? collaborationState.deal_locks.find((lock: DealLock) => lock.deal_id === opportunity.id) : undefined;
             const comments = collaborationState.comments[opportunity.id] || [];
             
               function handleShowAIInsights(opp: EnhancedOpportunity): void {
@@ -273,10 +273,10 @@ const PipelineColumn = ({
                 }}
               />
             );
-          })}
+          }) : null}
         </AnimatePresence>
         
-        {opportunities.length === 0 && (
+        {Array.isArray(opportunities) && opportunities.length === 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -379,10 +379,11 @@ const AdvancedPipeline = () => {
 
   // Calculate analytics
   const analytics = useMemo((): PipelineAnalytics => {
-    const totalValue = (opportunities || []).reduce((sum, opp) => sum + opp.expected_value, 0);
-    const weightedValue = (opportunities || []).reduce((sum, opp) => sum + (opp.expected_value * opp.probability / 100), 0);
-    const hotDeals = (opportunities || []).filter(opp => opp.deal_temperature === 'hot').slice(0, 5);
-    const staleDeals = (opportunities || []).filter(opp => {
+    const safeOpportunities = Array.isArray(opportunities) ? opportunities : [];
+    const totalValue = safeOpportunities.reduce((sum, opp) => sum + opp.expected_value, 0);
+    const weightedValue = safeOpportunities.reduce((sum, opp) => sum + (opp.expected_value * opp.probability / 100), 0);
+    const hotDeals = safeOpportunities.filter(opp => opp.deal_temperature === 'hot').slice(0, 5);
+    const staleDeals = safeOpportunities.filter(opp => {
       const daysSinceActivity = opp.last_activity 
         ? Math.floor((Date.now() - new Date(opp.last_activity).getTime()) / (1000 * 60 * 60 * 24))
         : 30;
@@ -392,8 +393,8 @@ const AdvancedPipeline = () => {
     return {
       total_value: totalValue,
       weighted_value: weightedValue,
-      conversion_rate: (opportunities || []).length > 0 ? (weightedValue / totalValue) * 100 : 0,
-      average_deal_size: (opportunities || []).length > 0 ? totalValue / (opportunities || []).length : 0,
+      conversion_rate: safeOpportunities.length > 0 ? (weightedValue / totalValue) * 100 : 0,
+      average_deal_size: safeOpportunities.length > 0 ? totalValue / safeOpportunities.length : 0,
       cycle_time: 45, // Mock data
       win_rate: 23.5, // Mock data
       pipeline_velocity: 1.2, // Mock data
@@ -470,7 +471,8 @@ const AdvancedPipeline = () => {
 
       // Notify collaboration system
       if (moveDeal) {
-        moveDeal(dealId, (opportunities || []).find(o => o.id === dealId)?.sales_pipeline_stage_id || 0, newStageId);
+        const safeOpportunities = Array.isArray(opportunities) ? opportunities : [];
+        moveDeal(dealId, safeOpportunities.find(o => o.id === dealId)?.sales_pipeline_stage_id || 0, newStageId);
       }
     } catch (error) {
       console.error('Failed to move deal:', error);
@@ -741,11 +743,11 @@ const AdvancedPipeline = () => {
         {viewMode.type === 'kanban' && (
           <div className="h-full p-6">
             <div className="flex space-x-6 h-full overflow-x-auto">
-              {(stages || []).map((stage) => (
+              {Array.isArray(stages) ? stages.map((stage) => (
                 <PipelineColumn
                   key={stage.id}
                   stage={stage}
-                  opportunities={(filteredOpportunities || []).filter(opp => opp.sales_pipeline_stage_id === stage.id)}
+                  opportunities={Array.isArray(filteredOpportunities) ? filteredOpportunities.filter(opp => opp.sales_pipeline_stage_id === stage.id) : []}
                   viewMode={viewMode}
                   onDrop={handleDrop}
                   onEditDeal={handleEditDeal}
@@ -754,7 +756,7 @@ const AdvancedPipeline = () => {
                   viewDeal={viewDeal}
                   stopViewingDeal={stopViewingDeal}
                 />
-              ))}
+              )) : null}
             </div>
           </div>
         )}
@@ -774,7 +776,7 @@ const AdvancedPipeline = () => {
                 </div>
               </div>
               <div className="divide-y divide-gray-200">
-                {(filteredOpportunities || []).map((opportunity) => (
+                {Array.isArray(filteredOpportunities) ? filteredOpportunities.map((opportunity) => (
                   <div key={opportunity.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
                     <div className="grid grid-cols-12 gap-4 items-center">
                       <div className="col-span-3">
@@ -810,7 +812,7 @@ const AdvancedPipeline = () => {
                       </div>
                       <div className="col-span-2">
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                          {(stages || []).find(s => s.id === opportunity.sales_pipeline_stage_id)?.name}
+                          {Array.isArray(stages) ? stages.find(s => s.id === opportunity.sales_pipeline_stage_id)?.name : 'Unknown Stage'}
                         </span>
                       </div>
                       <div className="col-span-2">
@@ -834,7 +836,7 @@ const AdvancedPipeline = () => {
                       </div>
                     </div>
                   </div>
-                ))}
+                )) : null}
               </div>
             </div>
           </div>
