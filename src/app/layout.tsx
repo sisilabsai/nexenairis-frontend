@@ -6,6 +6,7 @@ import "./globals.css";
 import QueryProvider from "../providers/QueryProvider";
 import { AuthProvider } from '@/contexts/AuthContext';
 import { PermissionProvider } from '@/contexts/PermissionContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 import AidaChat from "@/components/AidaChat";
 import AidaChatButton from "@/components/AidaChatButton";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
@@ -95,14 +96,16 @@ export default function RootLayout({
         <QueryProvider>
           <AuthProvider>
             <PermissionProvider>
-              <ToastProvider>
-                {children}
-                <AidaChatButton onClick={() => setIsChatOpen(true)} />
-                <AidaChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
-                <PWAInstallPrompt />
-                <PWAStatus />
-                <PerformanceMonitor />
-              </ToastProvider>
+              <NotificationProvider>
+                <ToastProvider>
+                  {children}
+                  <AidaChatButton onClick={() => setIsChatOpen(true)} />
+                  <AidaChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+                  <PWAInstallPrompt />
+                  <PWAStatus />
+                  <PerformanceMonitor />
+                </ToastProvider>
+              </NotificationProvider>
             </PermissionProvider>
           </AuthProvider>
         </QueryProvider>

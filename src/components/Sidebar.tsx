@@ -4,6 +4,7 @@ import { Fragment, useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useModuleNotifications } from '@/contexts/NotificationContext';
 import { Dialog, Transition, Popover } from '@headlessui/react';
 import {
   HomeIcon,
@@ -144,15 +145,15 @@ const NavLink = ({ item, isCollapsed, currentPath }: { item: NavItem; isCollapse
   const isActive = item.href && currentPath === item.href;
   const [isHovered, setIsHovered] = useState(false);
   
-  // Mock notification count - in real app, this would come from context/API
-  const notificationCount = useMemo(() => {
-    const counts: Record<string, number> = {
-      'Chat': 3,
-      'Finance': 2,
-      'Invoices': 1,
-    };
-    return counts[item.name] || 0;
-  }, [item.name]);
+  // Get real notification count from context
+  const { count: notificationCount, markAsRead } = useModuleNotifications(item.name);
+
+  // Mark as read when user clicks on the link (if it has notifications)
+  const handleClick = () => {
+    if (notificationCount > 0) {
+      markAsRead(notificationCount);
+    }
+  };
 
   return (
     <Tooltip content={item.name} isVisible={isCollapsed}>
@@ -165,6 +166,7 @@ const NavLink = ({ item, isCollapsed, currentPath }: { item: NavItem; isCollapse
       >
         <Link
           href={item.href}
+          onClick={handleClick}
           className={classNames(
             'group flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 ease-in-out relative overflow-hidden',
             isActive 
