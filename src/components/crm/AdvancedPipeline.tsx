@@ -416,7 +416,7 @@ const AdvancedPipeline = () => {
       const search = filters.search.toLowerCase();
       filtered = filtered.filter(opp => 
         opp.title.toLowerCase().includes(search) ||
-        opp.contact.name.toLowerCase().includes(search) ||
+        (opp.contact?.name || '').toLowerCase().includes(search) ||
         opp.company?.toLowerCase().includes(search)
       );
     }
@@ -791,7 +791,7 @@ const AdvancedPipeline = () => {
                         </div>
                       </div>
                       <div className="col-span-2">
-                        <p className="text-sm text-gray-900">{opportunity.contact.name}</p>
+                        <p className="text-sm text-gray-900">{opportunity.contact?.name || 'Unknown Contact'}</p>
                         <p className="text-xs text-gray-500">{opportunity.email}</p>
                       </div>
                       <div className="col-span-1">

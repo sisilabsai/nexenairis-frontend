@@ -254,7 +254,7 @@ const DealCard = ({
             <h3 className="font-semibold text-gray-900 text-sm truncate pr-4">
               {opportunity.title}
             </h3>
-            <p className="text-xs text-gray-600 truncate">{opportunity.contact.name}</p>
+            <p className="text-xs text-gray-600 truncate">{opportunity.contact?.name || 'Unknown Contact'}</p>
           </div>
         </div>
 
@@ -419,7 +419,7 @@ const DealCard = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 text-gray-600">
             <UserIcon className="w-4 h-4" />
-            <span className="text-sm">{opportunity.contact.name}</span>
+            <span className="text-sm">{opportunity.contact?.name || 'Unknown Contact'}</span>
             {opportunity.company && (
               <>
                 <span className="text-gray-400">•</span>
