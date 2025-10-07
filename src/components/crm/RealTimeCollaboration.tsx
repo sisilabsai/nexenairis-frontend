@@ -231,8 +231,9 @@ class PipelineWebSocket {
 // Online Users Indicator
 const OnlineUsers = ({ users }: { users: User[] }) => {
   const [showAll, setShowAll] = useState(false);
-  const displayUsers = showAll ? users : users.slice(0, 5);
-  const remainingCount = users.length - 5;
+  const safeUsers = Array.isArray(users) ? users : [];
+  const displayUsers = showAll ? safeUsers : safeUsers.slice(0, 5);
+  const remainingCount = safeUsers.length - 5;
 
   return (
     <div className="flex items-center space-x-2">

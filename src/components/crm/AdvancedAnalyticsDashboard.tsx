@@ -255,7 +255,8 @@ const generateAnalyticsFromApiData = (
         });
         
         // Convert to array and calculate AI-enhanced metrics
-        const performers = Array.from(userPerformance.values())
+        const userValues = Array.from(userPerformance.values());
+        const performers = Array.isArray(userValues) ? userValues
           .map(user => ({
             user_id: user.user_id,
             name: user.name,
@@ -271,7 +272,7 @@ const generateAnalyticsFromApiData = (
             )
           }))
           .sort((a, b) => b.ai_performance_score - a.ai_performance_score)
-          .slice(0, 4);
+          .slice(0, 4) : [];
         
         // If no real users found, provide AI-generated placeholder data
         if (performers.length === 0) {

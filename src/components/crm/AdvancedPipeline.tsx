@@ -410,7 +410,7 @@ const AdvancedPipeline = () => {
 
   // Filter and sort opportunities
   const filteredOpportunities = useMemo(() => {
-    let filtered = opportunities;
+    let filtered = Array.isArray(opportunities) ? opportunities : [];
 
     // Apply search filter
     if (filters.search) {

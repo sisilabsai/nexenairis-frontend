@@ -284,26 +284,26 @@ const LeadScoreCard = ({ score }: { score: LeadScore }) => {
       <div className="mb-4">
         <h4 className="text-xs font-medium text-gray-600 mb-2">Key Factors:</h4>
         <div className="space-y-1">
-          {score.score_factors.slice(0, 3).map((factor, index) => (
+          {Array.isArray(score.score_factors) ? score.score_factors.slice(0, 3).map((factor, index) => (
             <div key={index} className="flex items-center justify-between text-xs">
               <span className="text-gray-700">{factor.factor}</span>
               <span className={`font-medium ${factor.impact > 0 ? 'text-green-600' : 'text-red-600'}`}>
                 {factor.impact > 0 ? '+' : ''}{factor.impact}
               </span>
             </div>
-          ))}
+          )) : null}
         </div>
       </div>
 
       <div>
         <h4 className="text-xs font-medium text-gray-600 mb-2">Recommended Actions:</h4>
         <div className="space-y-1">
-          {score.recommended_actions.slice(0, 2).map((action, index) => (
+          {Array.isArray(score.recommended_actions) ? score.recommended_actions.slice(0, 2).map((action, index) => (
             <div key={index} className="flex items-center space-x-2 text-xs text-gray-600">
               <CheckCircleIcon className="w-3 h-3 text-indigo-500 flex-shrink-0" />
               <span>{action}</span>
             </div>
-          ))}
+          )) : null}
         </div>
       </div>
     </motion.div>
