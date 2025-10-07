@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CollaborationApiService } from '../../services/PipelineApiService';
 import {
   UserIcon,
   EyeIcon,
@@ -68,12 +69,15 @@ class PipelineWebSocket {
   private ws: WebSocket | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private pingTimer: NodeJS.Timeout | null = null;
-  private callbacks: { [event: string]: Function[] } = {};
+  private callbacks: { [event: string]: ((...args: any[]) => void)[] } = {};
 
   constructor(private userId: number, private tenantId: number) {}
 
   connect() {
-    const wsUrl = `${process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:6001'}/app/pipeline?user_id=${this.userId}&tenant_id=${this.tenantId}`;
+    // Use Pusher WebSocket for production instead of custom WebSocket
+    const pusherKey = process.env.NEXT_PUBLIC_PUSHER_APP_KEY || '70e11fb5dbdc2869cdf7';
+    const cluster = process.env.NEXT_PUBLIC_PUSHER_APP_CLUSTER || 'ap2';
+    const wsUrl = `wss://ws-${cluster}.pusher.com/app/${pusherKey}?protocol=7&client=js&version=8.4.0-rc2&flash=false`;
     
     try {
       this.ws = new WebSocket(wsUrl);
@@ -152,14 +156,14 @@ class PipelineWebSocket {
     }
   }
 
-  on(event: string, callback: Function) {
+  on(event: string, callback: (...args: any[]) => void) {
     if (!this.callbacks[event]) {
       this.callbacks[event] = [];
     }
     this.callbacks[event].push(callback);
   }
 
-  off(event: string, callback: Function) {
+  off(event: string, callback: (...args: any[]) => void) {
     if (this.callbacks[event]) {
       this.callbacks[event] = this.callbacks[event].filter(cb => cb !== callback);
     }
@@ -502,9 +506,30 @@ const useRealTimeCollaboration = (userId: number, tenantId: number) => {
     
     const ws = wsRef.current;
 
+    // Load initial collaboration data from API
+    const loadInitialData = async () => {
+      try {
+        const [onlineUsers, activities, dealLocks] = await Promise.all([
+          CollaborationApiService.getOnlineUsers(),
+          CollaborationApiService.getRecentActivities(),
+          CollaborationApiService.getDealLocks()
+        ]);
+
+        setCollaborationState(prev => ({
+          ...prev,
+          online_users: (onlineUsers as any)?.data || [],
+          recent_activities: (activities as any)?.data || [],
+          deal_locks: (dealLocks as any)?.data || []
+        }));
+      } catch (error) {
+        console.error('Failed to load collaboration data:', error);
+      }
+    };
+
     // Set up event listeners
     ws.on('connected', () => {
       setIsConnected(true);
+      loadInitialData();
     });
 
     ws.on('disconnected', () => {
@@ -579,20 +604,40 @@ const useRealTimeCollaboration = (userId: number, tenantId: number) => {
     };
   }, [userId, tenantId]);
 
-  const viewDeal = useCallback((dealId: number) => {
-    wsRef.current?.viewDeal(dealId);
+  const viewDeal = useCallback(async (dealId: number) => {
+    try {
+      await CollaborationApiService.startViewingDeal(dealId);
+      wsRef.current?.viewDeal(dealId);
+    } catch (error) {
+      console.error('Failed to start viewing deal:', error);
+    }
   }, []);
 
-  const stopViewingDeal = useCallback((dealId: number) => {
-    wsRef.current?.stopViewingDeal(dealId);
+  const stopViewingDeal = useCallback(async (dealId: number) => {
+    try {
+      await CollaborationApiService.stopViewingDeal(dealId);
+      wsRef.current?.stopViewingDeal(dealId);
+    } catch (error) {
+      console.error('Failed to stop viewing deal:', error);
+    }
   }, []);
 
-  const lockDeal = useCallback((dealId: number) => {
-    wsRef.current?.lockDeal(dealId);
+  const lockDeal = useCallback(async (dealId: number) => {
+    try {
+      await CollaborationApiService.lockDeal(dealId);
+      wsRef.current?.lockDeal(dealId);
+    } catch (error) {
+      console.error('Failed to lock deal:', error);
+    }
   }, []);
 
-  const unlockDeal = useCallback((dealId: number) => {
-    wsRef.current?.unlockDeal(dealId);
+  const unlockDeal = useCallback(async (dealId: number) => {
+    try {
+      await CollaborationApiService.unlockDeal(dealId);
+      wsRef.current?.unlockDeal(dealId);
+    } catch (error) {
+      console.error('Failed to unlock deal:', error);
+    }
   }, []);
 
   const moveDeal = useCallback((dealId: number, fromStageId: number, toStageId: number) => {

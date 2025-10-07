@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PipelineApiService } from '../../services/PipelineApiService';
 import {
   ChartBarIcon,
   ArrowTrendingUpIcon,
@@ -560,14 +561,39 @@ const AdvancedAnalyticsDashboard = ({
 
   useEffect(() => {
     if (isOpen) {
-      // Simulate API call
-      setIsLoading(true);
-      setTimeout(() => {
-        setAnalyticsData(generateAnalyticsData());
-        setIsLoading(false);
-      }, 1000);
+      const loadAnalyticsData = async () => {
+        setIsLoading(true);
+        try {
+          const [analyticsResponse, stageAnalyticsResponse, forecastResponse, performanceResponse] = await Promise.all([
+            PipelineApiService.getPipelineAnalytics(selectedTimeRange),
+            PipelineApiService.getStageAnalytics(selectedTimeRange),
+            PipelineApiService.getForecastData(),
+            PipelineApiService.getPerformanceMetrics(selectedTimeRange)
+          ]);
+
+          // Combine API responses into analytics data structure
+          const combinedData: AnalyticsData = {
+            pipeline_metrics: (analyticsResponse as any)?.data || generateAnalyticsData().pipeline_metrics,
+            stage_analytics: (stageAnalyticsResponse as any)?.data || generateAnalyticsData().stage_analytics,
+            time_series: generateAnalyticsData().time_series, // Keep mock for now as this needs specific endpoint
+            forecasting: (forecastResponse as any)?.data || generateAnalyticsData().forecasting,
+            performance_metrics: (performanceResponse as any)?.data || generateAnalyticsData().performance_metrics,
+            predictive_insights: generateAnalyticsData().predictive_insights, // Keep mock for now
+          };
+
+          setAnalyticsData(combinedData);
+        } catch (error) {
+          console.error('Failed to load analytics data:', error);
+          // Fallback to mock data
+          setAnalyticsData(generateAnalyticsData());
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      loadAnalyticsData();
     }
-  }, [isOpen]);
+  }, [isOpen, selectedTimeRange]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {

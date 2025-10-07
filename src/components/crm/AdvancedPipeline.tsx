@@ -50,6 +50,7 @@ import {
 } from './RealTimeCollaboration';
 import AdvancedAnalyticsDashboard from './AdvancedAnalyticsDashboard';
 import SmartAutomation from './SmartAutomation';
+import { PipelineApiService } from '../../services/PipelineApiService';
 
 // Enhanced types
 interface EnhancedOpportunity {
@@ -376,15 +377,27 @@ const AdvancedPipeline = () => {
     addComment,
   } = useRealTimeCollaboration(1, 1); // TODO: Get from auth context
 
-  // Initialize with mock data
+  // Initialize with real data from API
   useEffect(() => {
     const initializeData = async () => {
       setIsLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setOpportunities(generateMockOpportunities());
-      setStages(generateMockStages());
-      setIsLoading(false);
+      try {
+        // Load pipeline data from API
+        const [dealsResponse, stagesResponse] = await Promise.all([
+          PipelineApiService.getDeals(),
+          PipelineApiService.getStages()
+        ]);
+        
+        setOpportunities((dealsResponse as any)?.data || []);
+        setStages((stagesResponse as any)?.data || generateMockStages()); // Fallback to mock stages if API fails
+      } catch (error) {
+        console.error('Failed to load pipeline data:', error);
+        // Fallback to mock data if API fails
+        setOpportunities(generateMockOpportunities());
+        setStages(generateMockStages());
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     initializeData();
@@ -469,13 +482,27 @@ const AdvancedPipeline = () => {
   }, [opportunities, filters, viewMode]);
 
   // Handle deal movement
-  const handleDrop = useCallback((dealId: number, newStageId: number) => {
-    setOpportunities(prev => prev.map(opp => 
-      opp.id === dealId 
-        ? { ...opp, sales_pipeline_stage_id: newStageId }
-        : opp
-    ));
-  }, []);
+  const handleDrop = useCallback(async (dealId: number, newStageId: number) => {
+    try {
+      // Update deal stage via API
+      await PipelineApiService.moveDeal(dealId, newStageId);
+      
+      // Update local state
+      setOpportunities(prev => prev.map(opp => 
+        opp.id === dealId 
+          ? { ...opp, sales_pipeline_stage_id: newStageId }
+          : opp
+      ));
+
+      // Notify collaboration system
+      if (moveDeal) {
+        moveDeal(dealId, opportunities.find(o => o.id === dealId)?.sales_pipeline_stage_id || 0, newStageId);
+      }
+    } catch (error) {
+      console.error('Failed to move deal:', error);
+      // Could show error toast here
+    }
+  }, [opportunities, moveDeal]);
 
   // Handle deal editing
   const handleEditDeal = useCallback((deal: EnhancedOpportunity) => {

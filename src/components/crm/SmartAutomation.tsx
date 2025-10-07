@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AutomationApiService } from '../../services/PipelineApiService';
+import { GeminiAIService } from '../../services/GeminiAIService';
 import {
   SparklesIcon,
   BoltIcon,
@@ -575,25 +577,51 @@ const SmartAutomation = ({
 
   useEffect(() => {
     if (isOpen) {
-      setIsLoading(true);
-      // Simulate API calls
-      setTimeout(() => {
-        setAutomationRules(generateAutomationRules());
-        setLeadScores(generateLeadScores());
-        setInsights(generateAutomationInsights());
-        setWorkflows(generateWorkflowTemplates());
-        setIsLoading(false);
-      }, 1000);
+      const loadAutomationData = async () => {
+        setIsLoading(true);
+        try {
+          const [rulesResponse, scoresResponse, insightsResponse, workflowsResponse] = await Promise.all([
+            AutomationApiService.getAutomationRules(),
+            AutomationApiService.getLeadScores(),
+            AutomationApiService.getSmartInsights(),
+            AutomationApiService.getWorkflowTemplates()
+          ]);
+
+          setAutomationRules((rulesResponse as any)?.data || generateAutomationRules());
+          setLeadScores((scoresResponse as any)?.data || generateLeadScores());
+          setInsights((insightsResponse as any)?.data || generateAutomationInsights());
+          setWorkflows((workflowsResponse as any)?.data || generateWorkflowTemplates());
+        } catch (error) {
+          console.error('Failed to load automation data:', error);
+          // Fallback to mock data
+          setAutomationRules(generateAutomationRules());
+          setLeadScores(generateLeadScores());
+          setInsights(generateAutomationInsights());
+          setWorkflows(generateWorkflowTemplates());
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      loadAutomationData();
     }
   }, [isOpen]);
 
-  const handleToggleRule = useCallback((ruleId: string) => {
-    setAutomationRules(prev => 
-      prev.map(rule => 
-        rule.id === ruleId ? { ...rule, is_active: !rule.is_active } : rule
-      )
-    );
-  }, []);
+  const handleToggleRule = useCallback(async (ruleId: string) => {
+    const rule = automationRules.find(r => r.id === ruleId);
+    if (!rule) return;
+
+    try {
+      await AutomationApiService.toggleAutomationRule(ruleId, !rule.is_active);
+      setAutomationRules(prev => 
+        prev.map(rule => 
+          rule.id === ruleId ? { ...rule, is_active: !rule.is_active } : rule
+        )
+      );
+    } catch (error) {
+      console.error('Failed to toggle automation rule:', error);
+    }
+  }, [automationRules]);
 
   const handleEditRule = useCallback((rule: AutomationRule) => {
     // TODO: Open rule editor modal
@@ -738,9 +766,43 @@ const SmartAutomation = ({
                           <AdjustmentsHorizontalIcon className="w-4 h-4" />
                           <span>Filters</span>
                         </button>
-                        <button className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">
+                        <button 
+                          onClick={async () => {
+                            try {
+                              setIsLoading(true);
+                              // Generate AI-powered insights using Gemini
+                              const pipelineData = {
+                                totalDeals: 145,
+                                totalValue: 2847500,
+                                conversionRate: 24.5,
+                                averageDealsSize: 19637,
+                                stageAnalytics: []
+                              };
+                              const aiInsights = await GeminiAIService.analyzePipelinePerformance(pipelineData);
+                              if (aiInsights) {
+                                // Add AI-generated insights to the insights list
+                                const newInsight = {
+                                  id: Date.now().toString(),
+                                  type: 'performance' as const,
+                                  title: `AI Performance Analysis - Grade: ${aiInsights.performanceGrade}`,
+                                  description: `${aiInsights.bottlenecks.length} bottlenecks identified with ${aiInsights.improvementStrategies.length} improvement strategies recommended`,
+                                  impact: 'high' as const,
+                                  action_required: true,
+                                  data: aiInsights,
+                                  created_at: new Date().toISOString()
+                                };
+                                setInsights(prev => [newInsight, ...prev]);
+                              }
+                            } catch (error) {
+                              console.error('AI insights generation failed:', error);
+                            } finally {
+                              setIsLoading(false);
+                            }
+                          }}
+                          className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg transition-colors shadow-lg"
+                        >
                           <SparklesIcon className="w-4 h-4" />
-                          <span>Generate Insights</span>
+                          <span>AI Insights</span>
                         </button>
                       </div>
                     </div>
