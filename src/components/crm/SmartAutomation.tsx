@@ -36,6 +36,7 @@ import {
   ChatBubbleBottomCenterTextIcon,
   QuestionMarkCircleIcon,
   PlusIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import {
   SparklesIcon as SparklesSolidIcon,
@@ -984,6 +985,90 @@ const SmartAutomation = ({
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Create Rule Modal */}
+      {showCreateRuleModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+          >
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-gray-900">Create Automation Rule</h2>
+                <button 
+                  onClick={() => setShowCreateRuleModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Rule Name</label>
+                <input 
+                  type="text" 
+                  placeholder="Enter rule name..."
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Trigger Condition</label>
+                <select className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                  <option>When deal is created</option>
+                  <option>When deal moves to stage</option>
+                  <option>When deal value changes</option>
+                  <option>When contact is added</option>
+                  <option>When probability changes</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Action</label>
+                <select className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                  <option>Send email notification</option>
+                  <option>Assign to team member</option>
+                  <option>Create task reminder</option>
+                  <option>Update deal properties</option>
+                  <option>Generate AI insights</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <textarea 
+                  rows={3}
+                  placeholder="Describe what this rule does..."
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
+              <button 
+                onClick={() => setShowCreateRuleModal(false)}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  // Handle rule creation logic here
+                  setShowCreateRuleModal(false);
+                }}
+                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Create Rule
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </AnimatePresence>
   );
 };

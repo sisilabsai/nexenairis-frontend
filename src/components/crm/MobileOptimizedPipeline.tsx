@@ -167,7 +167,7 @@ const MobileDealCard = ({
             </div>
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <UserIcon className="w-4 h-4 flex-shrink-0" />
-              <span className="truncate">{deal.contact.name}</span>
+              <span className="truncate">{deal.contact?.name || 'Unknown Contact'}</span>
               {deal.company && (
                 <>
                   <span>•</span>

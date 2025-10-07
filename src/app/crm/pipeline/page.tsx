@@ -15,6 +15,7 @@ import DashboardLayout from '../../../components/DashboardLayout';
 import ProtectedRoute from '../../../components/ProtectedRoute';
 import AdvancedPipeline from '../../../components/crm/AdvancedPipeline';
 import { MobileStageView, MobileOptimizedDeal, MobileStage } from '../../../components/crm/MobileOptimizedPipeline';
+import AddDealModal from '../../../components/crm/AddDealModal';
 import { useSalesOpportunities, useSalesPipelineStages } from '../../../hooks/useApi';
 
 // Hook to detect mobile device
@@ -76,6 +77,8 @@ const MobilePipeline = () => {
   const [deals, setDeals] = useState<MobileOptimizedDeal[]>([]);
   const [stages, setStages] = useState<MobileStage[]>([]);
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
+  const [showAddDealModal, setShowAddDealModal] = useState(false);
+  const [addDealStageId, setAddDealStageId] = useState<number>(1);
 
   // Fetch real data from API
   const { data: opportunitiesData, isLoading: opportunitiesLoading, error: opportunitiesError } = useSalesOpportunities();
@@ -124,8 +127,15 @@ const MobilePipeline = () => {
   }, [handleEditDeal]);
 
   const handleAddDeal = useCallback((stageId: number) => {
-    console.log('Add deal to stage:', stageId);
-    // Handle adding new deal
+    setAddDealStageId(stageId);
+    setShowAddDealModal(true);
+  }, []);
+
+  const handleDealAdded = useCallback((newDeal: any) => {
+    // Add the new deal to the deals list
+    const mobileDeal = transformOpportunityToMobileDeal(newDeal);
+    setDeals(prev => [...prev, mobileDeal]);
+    setShowAddDealModal(false);
   }, []);
 
   if (isLoading) {
@@ -177,6 +187,14 @@ const MobilePipeline = () => {
         onEditDeal={handleEditDeal}
         onSwipeAction={handleSwipeAction}
         onAddDeal={handleAddDeal}
+      />
+      
+      {/* Add Deal Modal */}
+      <AddDealModal
+        isOpen={showAddDealModal}
+        onClose={() => setShowAddDealModal(false)}
+        stageId={addDealStageId}
+        onDealAdded={handleDealAdded}
       />
     </div>
   );
