@@ -121,6 +121,7 @@ interface DealCardProps {
   commentCount?: number;
   onViewDeal?: (dealId: number) => void;
   onStopViewingDeal?: (dealId: number) => void;
+  onAIInsights?: (opp: EnhancedOpportunity) => void;
 }
 
 const DealCard = ({ 
@@ -135,6 +136,7 @@ const DealCard = ({
   commentCount = 0,
   onViewDeal,
   onStopViewingDeal,
+  onAIInsights,
 }: DealCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(false);
@@ -155,9 +157,9 @@ const DealCard = ({
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-UG', {
       style: 'currency',
-      currency: opportunity.currency || 'USD',
+      currency: 'UGX',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -322,6 +324,20 @@ const DealCard = ({
                 >
                   <EnvelopeIcon className="w-4 h-4 text-blue-600" />
                 </motion.button>
+                {onAIInsights && (
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="p-1.5 bg-white rounded-full shadow-md hover:bg-purple-50"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAIInsights(opportunity);
+                    }}
+                    title="AI Insights"
+                  >
+                    <SparklesIcon className="w-4 h-4 text-purple-600" />
+                  </motion.button>
+                )}
               </div>
             </motion.div>
           )}

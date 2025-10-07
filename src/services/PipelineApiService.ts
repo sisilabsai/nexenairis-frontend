@@ -251,6 +251,39 @@ export class AutomationApiService {
   static async executeWorkflow(templateId: string, dealId: number) {
     return apiClient.post(`/automation/workflow-templates/${templateId}/execute`, { deal_id: dealId });
   }
+
+  // AI-Powered Deal Analysis
+  static async getAIDealInsights(dealId: number) {
+    return apiClient.get(`/ai/deals/${dealId}/insights`);
+  }
+
+  static async calculateAIDealScore(dealId: number) {
+    return apiClient.post(`/ai/deals/${dealId}/score`);
+  }
+
+  static async getAIPipelineForecast(timeframe: string = '3months') {
+    return apiClient.get(`/ai/pipeline/forecast?timeframe=${timeframe}`);
+  }
+
+  static async qualifyLeadWithAI(leadData: any) {
+    return apiClient.post('/ai/leads/qualify', leadData);
+  }
+
+  static async assessDealRisk(dealId: number) {
+    return apiClient.post(`/ai/deals/${dealId}/risk-assessment`);
+  }
+
+  static async optimizeCommunication(dealId: number, type: string) {
+    return apiClient.post(`/ai/deals/${dealId}/communication-optimize`, { type });
+  }
+
+  static async analyzeCompetition(dealId: number) {
+    return apiClient.post(`/ai/deals/${dealId}/competitive-analysis`);
+  }
+
+  static async generateAIRecommendations(dealId: number) {
+    return apiClient.get(`/ai/deals/${dealId}/recommendations`);
+  }
 }
 
 // Notification API Service

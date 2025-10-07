@@ -30,6 +30,7 @@ import {
   DocumentTextIcon,
   FireIcon,
   WifiIcon,
+  InformationCircleIcon,
 } from '@heroicons/react/24/outline';
 import {
   FireIcon as FireSolidIcon,
@@ -49,7 +50,10 @@ import {
   type DealLock,
 } from './RealTimeCollaboration';
 import AdvancedAnalyticsDashboard from './AdvancedAnalyticsDashboard';
+import PipelineInfoModal from './PipelineInfoModal';
+import AddDealModal from './AddDealModal';
 import SmartAutomation from './SmartAutomation';
+import AIInsightsPanel from './AIInsightsPanel';
 import { PipelineApiService } from '../../services/PipelineApiService';
 
 // Enhanced types
@@ -142,53 +146,7 @@ interface PipelineAnalytics {
   stale_deals: EnhancedOpportunity[];
 }
 
-// Mock data generator for demo
-const generateMockOpportunities = (): EnhancedOpportunity[] => {
-  const companies = ['Acme Corp', 'TechStart Inc', 'Global Solutions', 'Innovation Labs', 'Future Systems', 'Digital Dynamics'];
-  const contacts = ['John Smith', 'Sarah Johnson', 'Mike Chen', 'Emily Davis', 'Alex Rodriguez', 'Lisa Wang'];
-  const priorities = ['low', 'medium', 'high', 'urgent'] as const;
-  const temperatures = ['cold', 'warm', 'hot'] as const;
-  const sources = ['Website', 'Referral', 'Cold Call', 'Social Media', 'Email Campaign', 'Trade Show'];
-  const actions = ['Follow up call', 'Send proposal', 'Schedule demo', 'Contract review', 'Final presentation'];
-
-  return Array.from({ length: 24 }, (_, i) => ({
-    id: i + 1,
-    title: `Deal ${i + 1} - ${companies[i % companies.length]}`,
-    description: `Strategic partnership opportunity with ${companies[i % companies.length]}`,
-    contact: {
-      name: contacts[i % contacts.length]
-    },
-    expected_value: Math.floor(Math.random() * 500000) + 10000,
-    currency: 'USD',
-    sales_pipeline_stage_id: (i % 5) + 1,
-    contact_id: i + 1,
-    probability: Math.floor(Math.random() * 100),
-    expected_close_date: new Date(Date.now() + Math.floor(Math.random() * 90) * 24 * 60 * 60 * 1000).toISOString(),
-    stage: `Stage ${(i % 5) + 1}`,
-    source: sources[i % sources.length],
-    assigned_to: Math.floor(Math.random() * 5) + 1,
-    priority: priorities[i % priorities.length],
-    health_score: Math.floor(Math.random() * 100),
-    last_activity: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString(),
-    next_action: actions[i % actions.length],
-    tags: ['Enterprise', 'High Value', 'Urgent'].slice(0, Math.floor(Math.random() * 3) + 1),
-    deal_temperature: temperatures[i % temperatures.length],
-    decision_maker: Math.random() > 0.7,
-    activities_count: Math.floor(Math.random() * 20),
-    files_count: Math.floor(Math.random() * 10),
-    company: companies[i % companies.length],
-    phone: `+1-555-${String(Math.floor(Math.random() * 9000) + 1000)}`,
-    email: `${contacts[i % contacts.length].toLowerCase().replace(' ', '.')}@${companies[i % companies.length].toLowerCase().replace(' ', '')}.com`,
-  }));
-};
-
-const generateMockStages = (): PipelineStage[] => [
-  { id: 1, name: 'Lead', order: 1, color: '#6B7280', target_days: 7, conversion_rate: 25 },
-  { id: 2, name: 'Qualified', order: 2, color: '#3B82F6', target_days: 14, conversion_rate: 40 },
-  { id: 3, name: 'Proposal', order: 3, color: '#F59E0B', target_days: 21, conversion_rate: 60 },
-  { id: 4, name: 'Negotiation', order: 4, color: '#EF4444', target_days: 30, conversion_rate: 80 },
-  { id: 5, name: 'Closed Won', order: 5, color: '#10B981', target_days: 0, conversion_rate: 100 },
-];
+// Dynamic pipeline - all data comes from backend API
 
 // Pipeline Stage Column Component
 const PipelineColumn = ({
@@ -218,9 +176,9 @@ const PipelineColumn = ({
   const stageWeightedValue = opportunities.reduce((sum, opp) => sum + (opp.expected_value * opp.probability / 100), 0);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-UG', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'UGX',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -293,6 +251,10 @@ const PipelineColumn = ({
             const dealLock = collaborationState.deal_locks.find((lock: DealLock) => lock.deal_id === opportunity.id);
             const comments = collaborationState.comments[opportunity.id] || [];
             
+              function handleShowAIInsights(opp: EnhancedOpportunity): void {
+                  throw new Error('Function not implemented.');
+              }
+
             return (
               <DealCard
                 key={opportunity.id}
@@ -305,6 +267,7 @@ const PipelineColumn = ({
                 commentCount={comments.length}
                 onViewDeal={viewDeal}
                 onStopViewingDeal={stopViewingDeal}
+                onAIInsights={handleShowAIInsights}
                 onDrag={(opp, info) => {
                   // Handle drag end logic here if needed
                 }}
@@ -364,6 +327,11 @@ const AdvancedPipeline = () => {
   const [showActivityFeed, setShowActivityFeed] = useState(false);
   const [showAnalyticsDashboard, setShowAnalyticsDashboard] = useState(false);
   const [showSmartAutomation, setShowSmartAutomation] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [showAddDealModal, setShowAddDealModal] = useState(false);
+  const [addDealStageId, setAddDealStageId] = useState<number>(1);
+  const [showAIInsights, setShowAIInsights] = useState(false);
+  const [selectedDealForAI, setSelectedDealForAI] = useState<EnhancedOpportunity | null>(null);
 
   // Real-time collaboration (mock user and tenant IDs for now)
   const {
@@ -382,19 +350,25 @@ const AdvancedPipeline = () => {
     const initializeData = async () => {
       setIsLoading(true);
       try {
-        // Load pipeline data from API
+        // Load pipeline data from API - completely dynamic, no mock data
         const [dealsResponse, stagesResponse] = await Promise.all([
           PipelineApiService.getDeals(),
           PipelineApiService.getStages()
         ]);
         
+        // Set real data from backend
         setOpportunities((dealsResponse as any)?.data || []);
-        setStages((stagesResponse as any)?.data || generateMockStages()); // Fallback to mock stages if API fails
+        setStages((stagesResponse as any)?.data || []);
+        
+        console.log('Pipeline data loaded:', {
+          deals: (dealsResponse as any)?.data?.length || 0,
+          stages: (stagesResponse as any)?.data?.length || 0
+        });
       } catch (error) {
         console.error('Failed to load pipeline data:', error);
-        // Fallback to mock data if API fails
-        setOpportunities(generateMockOpportunities());
-        setStages(generateMockStages());
+        // Set empty arrays if API fails - no mock data fallback
+        setOpportunities([]);
+        setStages([]);
       } finally {
         setIsLoading(false);
       }
@@ -511,14 +485,25 @@ const AdvancedPipeline = () => {
 
   // Handle adding new deal
   const handleAddDeal = useCallback((stageId: number) => {
-    // Open modal or form for adding new deal
-    console.log('Add new deal to stage:', stageId);
+    setAddDealStageId(stageId);
+    setShowAddDealModal(true);
+  }, []);
+
+  // Handle AI insights for deal
+  const handleShowAIInsights = useCallback((deal: EnhancedOpportunity) => {
+    setSelectedDealForAI(deal);
+    setShowAIInsights(true);
+  }, []);
+
+  // Handle deal added callback
+  const handleDealAdded = useCallback((newDeal: any) => {
+    setOpportunities(prev => [...prev, newDeal]);
   }, []);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-UG', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'UGX',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -542,10 +527,17 @@ const AdvancedPipeline = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <h1 className="text-2xl font-bold text-gray-900">Sales Pipeline</h1>
+            <button
+              onClick={() => setShowInfoModal(true)}
+              className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              title="Pipeline Guide"
+            >
+              <InformationCircleIcon className="w-5 h-5" />
+            </button>
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <span>{filteredOpportunities.length} deals</span>
               <span>•</span>
-              <span>{formatCurrency(analytics.total_value)} total</span>
+              <span>{formatCurrency(analytics.total_value)} total (UGX)</span>
               <span>•</span>
               <span>{formatCurrency(analytics.weighted_value)} weighted</span>
             </div>
@@ -859,7 +851,35 @@ const AdvancedPipeline = () => {
       <SmartAutomation
         isOpen={showSmartAutomation}
         onClose={() => setShowSmartAutomation(false)}
+        opportunities={opportunities}
       />
+
+      {/* Pipeline Info Modal */}
+      <PipelineInfoModal
+        isOpen={showInfoModal}
+        onClose={() => setShowInfoModal(false)}
+      />
+
+      {/* Add Deal Modal */}
+      <AddDealModal
+        isOpen={showAddDealModal}
+        onClose={() => setShowAddDealModal(false)}
+        stageId={addDealStageId}
+        onDealAdded={handleDealAdded}
+      />
+
+      {/* AI Insights Panel */}
+      {selectedDealForAI && (
+        <AIInsightsPanel
+          dealId={selectedDealForAI.id}
+          dealData={selectedDealForAI}
+          isOpen={showAIInsights}
+          onClose={() => {
+            setShowAIInsights(false);
+            setSelectedDealForAI(null);
+          }}
+        />
+      )}
     </div>
   );
 };
