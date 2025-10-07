@@ -153,8 +153,11 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
     try {
       const dealData = {
         ...formData,
-        sales_pipeline_stage_id: stageId,
+        stage_id: Number(stageId), // Use stage_id instead of sales_pipeline_stage_id
+        sales_pipeline_stage_id: Number(stageId), // Keep both for compatibility
         tags: formData.tags.length > 0 ? formData.tags.join(',') : null,
+        expected_value: Number(formData.expected_value),
+        probability: Number(formData.probability),
       };
 
       const response = await PipelineApiService.createDeal(dealData);
@@ -168,9 +171,22 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
       // Could show success toast here
       console.log('Deal created successfully:', response);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create deal:', error);
-      setErrors({ submit: 'Failed to create deal. Please try again.' });
+      
+      // Handle 422 validation errors specifically
+      if (error.message && error.message.includes('422')) {
+        setErrors({ submit: 'Please check your input fields. Some required fields may be missing or invalid.' });
+      } else if (error.response && error.response.data && error.response.data.errors) {
+        // Handle Laravel validation errors
+        const validationErrors: Record<string, string> = {};
+        Object.keys(error.response.data.errors).forEach(field => {
+          validationErrors[field] = error.response.data.errors[field][0];
+        });
+        setErrors(validationErrors);
+      } else {
+        setErrors({ submit: 'Failed to create deal. Please try again.' });
+      }
     } finally {
       setIsSubmitting(false);
     }

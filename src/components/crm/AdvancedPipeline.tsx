@@ -619,7 +619,10 @@ const AdvancedPipeline = () => {
               <span className="text-sm font-medium">Filters</span>
             </button>
 
-            <button className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">
+            <button 
+              onClick={() => handleAddDeal(1)}
+              className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+            >
               <PlusIcon className="w-4 h-4" />
               <span className="text-sm font-medium">New Deal</span>
             </button>
