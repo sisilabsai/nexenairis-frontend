@@ -247,12 +247,12 @@ const OnlineUsers = ({ users }: { users: User[] }) => {
             <div
               className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-bold"
               style={{ backgroundColor: user.color }}
-              title={user.name}
+              title={user?.name || 'Unknown User'}
             >
               {user.avatar ? (
-                <img src={user.avatar} alt={user.name} className="w-full h-full rounded-full object-cover" />
+                <img src={user.avatar} alt={user?.name || 'Unknown User'} className="w-full h-full rounded-full object-cover" />
               ) : (
-                user.name.split(' ').map(n => n[0]).join('').substring(0, 2)
+                (user?.name || 'U').split(' ').map(n => n[0]).join('').substring(0, 2)
               )}
             </div>
             {user.is_online && (
@@ -382,9 +382,9 @@ const ActivityFeed = ({
                         style={{ backgroundColor: activity.user.color }}
                       >
                         {activity.user.avatar ? (
-                          <img src={activity.user.avatar} alt={activity.user.name} className="w-full h-full rounded-full object-cover" />
+                          <img src={activity.user.avatar} alt={activity.user?.name || 'Unknown User'} className="w-full h-full rounded-full object-cover" />
                         ) : (
-                          activity.user.name.split(' ').map(n => n[0]).join('').substring(0, 2)
+                          (activity.user?.name || 'U').split(' ').map(n => n[0]).join('').substring(0, 2)
                         )}
                       </div>
                       
@@ -392,7 +392,7 @@ const ActivityFeed = ({
                         <div className="flex items-center space-x-2 mb-1">
                           {getActivityIcon(activity.type)}
                           <span className="text-sm font-medium text-gray-900 truncate">
-                            {activity.user.name}
+                            {activity.user?.name || 'Unknown User'}
                           </span>
                         </div>
                         <p className="text-sm text-gray-600 mb-1">
@@ -450,7 +450,7 @@ const DealCollaborationIndicators = ({
               <div
                 className="w-5 h-5 rounded-full border border-white flex items-center justify-center text-white text-xs font-bold"
                 style={{ backgroundColor: user.color }}
-                title={`${user.name} is viewing`}
+                title={`${user?.name || 'Unknown User'} is viewing`}
               >
                 <EyeIcon className="w-3 h-3" />
               </div>
@@ -470,10 +470,10 @@ const DealCollaborationIndicators = ({
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           className="flex items-center space-x-1 bg-red-100 px-2 py-1 rounded-full"
-          title={`Locked by ${lock.user.name}`}
+          title={`Locked by ${lock.user?.name || 'Unknown User'}`}
         >
           <LockClosedIcon className="w-3 h-3 text-red-600" />
-          <span className="text-xs text-red-600 font-medium">{lock.user.name}</span>
+          <span className="text-xs text-red-600 font-medium">{lock.user?.name || 'Unknown User'}</span>
         </motion.div>
       )}
 

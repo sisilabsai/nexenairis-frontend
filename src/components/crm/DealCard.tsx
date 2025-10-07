@@ -210,7 +210,7 @@ const DealCard = ({
                     <div
                       className="w-4 h-4 rounded-full border border-white flex items-center justify-center text-white text-xs font-bold"
                       style={{ backgroundColor: user.color }}
-                      title={`${user.name} is viewing`}
+                      title={`${user?.name || 'Unknown User'} is viewing`}
                     >
                       <EyeIcon className="w-2.5 h-2.5" />
                     </div>
@@ -230,11 +230,11 @@ const DealCard = ({
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 className="flex items-center space-x-1 bg-red-100 px-1 py-0.5 rounded-full"
-                title={`Locked by ${lockedBy.name}`}
+                title={`Locked by ${lockedBy?.name || 'Unknown User'}`}
               >
                 <LockClosedIcon className="w-2.5 h-2.5 text-red-600" />
                 <span className="text-xs text-red-600 font-medium truncate max-w-[40px]">
-                  {lockedBy.name.split(' ')[0]}
+                  {(lockedBy?.name || 'Unknown User').split(' ')[0]}
                 </span>
               </motion.div>
             )}

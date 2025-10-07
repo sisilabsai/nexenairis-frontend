@@ -642,7 +642,7 @@ const TopPerformers = ({ performers }: { performers: AnalyticsData['performance_
                 {index + 1}
               </div>
               <div>
-                <p className="font-medium text-gray-900">{performer.name}</p>
+                <p className="font-medium text-gray-900">{performer?.name || 'Unknown User'}</p>
                 <p className="text-xs text-gray-500">{performer.deals_closed} deals closed</p>
               </div>
             </div>

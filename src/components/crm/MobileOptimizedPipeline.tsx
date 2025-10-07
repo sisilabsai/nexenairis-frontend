@@ -358,7 +358,7 @@ const MobileStageView = ({
   onSwipeAction: (deal: MobileOptimizedDeal, action: 'call' | 'email' | 'edit') => void;
   onAddDeal: (stageId: number) => void;
 }) => {
-  const currentStage = stages[currentStageIndex];
+  const currentStage = stages[currentStageIndex] || { id: 0, name: 'Unknown Stage', total_value: 0 };
   const stageDeals = deals.filter(deal => deal.sales_pipeline_stage_id === currentStage.id);
   
   const formatCurrency = (amount: number) => {
