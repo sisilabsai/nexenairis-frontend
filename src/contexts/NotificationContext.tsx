@@ -46,7 +46,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/notifications/counts`, {
+      const response = await fetch(`${API_BASE_URL}/notifications/counts`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

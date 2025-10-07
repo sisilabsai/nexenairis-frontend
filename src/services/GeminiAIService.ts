@@ -1,10 +1,17 @@
 // Gemini AI Service for advanced CRM intelligence
 export class GeminiAIService {
-  private static readonly GEMINI_API_KEY = 'AIzaSyCyq2H6_TtkP8lIxc095KwuJ8lNr-BHh8M';
-  private static readonly GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent';
+  private static readonly GEMINI_API_KEY = 'AIzaSyAeydv8I8RO9JCWMsEXmCvQ5jn6KFV-nDk';
+  private static readonly GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 
   private static async makeRequest(prompt: string, context?: any) {
     try {
+      // Validate and clean prompt
+      const cleanPrompt = prompt.trim().substring(0, 10000); // Limit to 10k characters
+      
+      if (!cleanPrompt) {
+        throw new Error('Empty prompt provided');
+      }
+
       const response = await fetch(`${this.GEMINI_API_URL}?key=${this.GEMINI_API_KEY}`, {
         method: 'POST',
         headers: {
@@ -13,7 +20,7 @@ export class GeminiAIService {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: prompt
+              text: cleanPrompt
             }]
           }],
           generationConfig: {
@@ -21,19 +28,39 @@ export class GeminiAIService {
             topK: 40,
             topP: 0.95,
             maxOutputTokens: 1024,
-          }
+          },
+          safetySettings: [
+            {
+              category: "HARM_CATEGORY_HARASSMENT",
+              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            },
+            {
+              category: "HARM_CATEGORY_HATE_SPEECH", 
+              threshold: "BLOCK_MEDIUM_AND_ABOVE"
+            }
+          ]
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Gemini API error details:', errorData);
+        throw new Error(`Gemini API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
       }
 
       const data = await response.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const result = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      
+      if (!result) {
+        console.warn('Gemini API returned empty result');
+        return 'AI analysis unavailable at the moment.';
+      }
+      
+      return result;
     } catch (error) {
       console.error('Gemini AI request failed:', error);
-      throw error;
+      // Return fallback response instead of throwing
+      return 'AI analysis is temporarily unavailable. Please try again later.';
     }
   }
 

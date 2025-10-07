@@ -15,6 +15,7 @@ import DashboardLayout from '../../../components/DashboardLayout';
 import ProtectedRoute from '../../../components/ProtectedRoute';
 import AdvancedPipeline from '../../../components/crm/AdvancedPipeline';
 import { MobileStageView, MobileOptimizedDeal, MobileStage } from '../../../components/crm/MobileOptimizedPipeline';
+import { useSalesOpportunities, useSalesPipelineStages } from '../../../hooks/useApi';
 
 // Hook to detect mobile device
 const useIsMobile = () => {
@@ -33,60 +34,71 @@ const useIsMobile = () => {
   return isMobile;
 };
 
-// Mock data for mobile version
-const generateMobileDeals = (): MobileOptimizedDeal[] => {
-  const companies = ['Acme Corp', 'TechStart Inc', 'Global Solutions', 'Innovation Labs', 'Future Systems'];
-  const contacts = ['John Smith', 'Sarah Johnson', 'Mike Chen', 'Emily Davis', 'Alex Rodriguez'];
-  const priorities = ['low', 'medium', 'high', 'urgent'] as const;
-  const temperatures = ['cold', 'warm', 'hot'] as const;
-
-  return Array.from({ length: 20 }, (_, i) => ({
-    id: i + 1,
-    title: `Deal ${i + 1} - ${companies[i % companies.length]}`,
-    contact: { name: contacts[i % contacts.length] },
-    company: companies[i % companies.length],
-    expected_value: Math.floor(Math.random() * 500000) + 10000,
-    currency: 'USD',
-    probability: Math.floor(Math.random() * 100),
-    expected_close_date: new Date(Date.now() + Math.floor(Math.random() * 90) * 24 * 60 * 60 * 1000).toISOString(),
-    priority: priorities[i % priorities.length],
-    deal_temperature: temperatures[i % temperatures.length],
-    health_score: Math.floor(Math.random() * 100),
-    last_activity: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString(),
-    next_action: ['Follow up call', 'Send proposal', 'Schedule demo'][i % 3],
-    phone: `+1-555-${String(Math.floor(Math.random() * 9000) + 1000)}`,
-    email: `${contacts[i % contacts.length].toLowerCase().replace(' ', '.')}@${companies[i % companies.length].toLowerCase().replace(' ', '')}.com`,
-    sales_pipeline_stage_id: (i % 5) + 1,
-  }));
+// Data transformation functions for mobile view
+const transformOpportunityToMobileDeal = (opportunity: any): MobileOptimizedDeal => {
+  return {
+    id: opportunity.id,
+    title: opportunity.title || `${opportunity.company} - ${opportunity.contact?.name || 'Unknown Contact'}`,
+    contact: { name: opportunity.contact?.name || 'Unknown Contact' },
+    company: opportunity.company || 'Unknown Company',
+    expected_value: opportunity.expected_value || 0,
+    currency: 'UGX', // Uganda Shillings for East African market
+    probability: opportunity.probability || 0,
+    expected_close_date: opportunity.expected_close_date || new Date().toISOString(),
+    priority: opportunity.priority || 'medium',
+    deal_temperature: opportunity.deal_temperature || 'warm',
+    health_score: opportunity.health_score || 50,
+    last_activity: opportunity.last_activity || new Date().toISOString(),
+    next_action: opportunity.next_action || 'Follow up',
+    phone: opportunity.contact?.phone || '+256-XXX-XXXXXX',
+    email: opportunity.contact?.email || 'contact@company.com',
+    sales_pipeline_stage_id: opportunity.sales_pipeline_stage_id || 1,
+  };
 };
 
-const generateMobileStages = (): MobileStage[] => [
-  { id: 1, name: 'Leads', color: '#6B7280', deals_count: 5, total_value: 150000 },
-  { id: 2, name: 'Qualified', color: '#3B82F6', deals_count: 4, total_value: 320000 },
-  { id: 3, name: 'Proposal', color: '#F59E0B', deals_count: 3, total_value: 280000 },
-  { id: 4, name: 'Negotiation', color: '#EF4444', deals_count: 2, total_value: 450000 },
-  { id: 5, name: 'Closed Won', color: '#10B981', deals_count: 6, total_value: 890000 },
-];
+const transformStagesToMobileStages = (stages: any[], opportunities: any[]): MobileStage[] => {
+  return stages.map(stage => {
+    const stageDeals = opportunities.filter(opp => opp.sales_pipeline_stage_id === stage.id);
+    const totalValue = stageDeals.reduce((sum, deal) => sum + (deal.expected_value || 0), 0);
+    
+    return {
+      id: stage.id,
+      name: stage.name,
+      color: stage.color || '#6B7280',
+      deals_count: stageDeals.length,
+      total_value: totalValue,
+    };
+  });
+};
 
 // Mobile Pipeline Component
 const MobilePipeline = () => {
   const [deals, setDeals] = useState<MobileOptimizedDeal[]>([]);
   const [stages, setStages] = useState<MobileStage[]>([]);
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch real data from API
+  const { data: opportunitiesData, isLoading: opportunitiesLoading, error: opportunitiesError } = useSalesOpportunities();
+  const { data: stagesData, isLoading: stagesLoading, error: stagesError } = useSalesPipelineStages();
+
+  const isLoading = opportunitiesLoading || stagesLoading;
+  const hasError = opportunitiesError || stagesError;
 
   useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setDeals(generateMobileDeals());
-      setStages(generateMobileStages());
-      setIsLoading(false);
-    };
-
-    loadData();
-  }, []);
+    if (opportunitiesData && stagesData) {
+      // Transform API data to mobile format
+      const opportunities = Array.isArray(opportunitiesData?.data) ? opportunitiesData.data : 
+                           Array.isArray(opportunitiesData) ? opportunitiesData : [];
+      const pipelineStages = Array.isArray(stagesData?.data) ? stagesData.data : 
+                            Array.isArray(stagesData) ? stagesData : [];
+      
+      const transformedDeals = opportunities.map(transformOpportunityToMobileDeal);
+      const transformedStages = transformStagesToMobileStages(pipelineStages, opportunities);
+      
+      setDeals(transformedDeals);
+      setStages(transformedStages);
+    }
+  }, [opportunitiesData, stagesData]);
 
   const handleStageChange = useCallback((index: number) => {
     setCurrentStageIndex(index);
@@ -128,6 +140,28 @@ const MobilePipeline = () => {
             <h2 className="text-lg font-semibold text-gray-900 mb-2">Loading Pipeline</h2>
             <p className="text-gray-600">Preparing your deals...</p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">
+            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L4.268 18.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Pipeline</h2>
+          <p className="text-gray-600 mb-4">Unable to load your deals. Please check your connection and try again.</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
