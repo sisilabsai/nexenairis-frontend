@@ -52,6 +52,18 @@ export default function AidaChat({ isOpen, onClose }: AidaChatProps) {
     `Help with ${companyName}'s inventory`,
   ];
 
+  // Simple function to format message content
+  const formatMessageContent = (content: string) => {
+    return content
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold text **text**
+      .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic text *text*
+      .replace(/^• (.*$)/gm, '<span class="bullet-item">• $1</span>') // Bullet points
+      .replace(/^(#{1,6})\s+(.*$)/gm, (match, hashes, text) => {
+        const level = hashes.length;
+        return `<h${level} class="message-heading">${text}</h${level}>`;
+      }); // Headers
+  };
+
   const initializeConversation = useCallback(async () => {
     try {
       setConnectionError(false);
@@ -139,16 +151,37 @@ export default function AidaChat({ isOpen, onClose }: AidaChatProps) {
       if (messageToSend.toLowerCase().includes('what can you do') || messageToSend.toLowerCase().includes('capabilities')) {
         response = await aidaApi.getCapabilities();
         const capabilities = response.data as any;
-        const capabilitiesList = Object.entries(capabilities)
-          .map(([key, value]) => `• **${key.replace(/_/g, ' ').toUpperCase()}:** ${value}`)
-          .join('\n');
         
         const companyName = user?.tenant?.company_name || user?.tenant?.name || 'your business';
+        
+        // Format the capabilities in a more readable way
+        let formattedCapabilities = '';
+        
+        // Add available modules
+        if (capabilities.modules && Array.isArray(capabilities.modules)) {
+          formattedCapabilities += `📚 **Available Modules:**\n${capabilities.modules.map((module: string) => `• ${module.charAt(0).toUpperCase() + module.slice(1)}`).join('\n')}\n\n`;
+        }
+        
+        // Add suggestions by category
+        if (capabilities.suggestions && typeof capabilities.suggestions === 'object') {
+          formattedCapabilities += `🎯 **What I can help you with:**\n\n`;
+          Object.entries(capabilities.suggestions).forEach(([category, items]: [string, any]) => {
+            formattedCapabilities += `**${category}:**\n`;
+            if (Array.isArray(items)) {
+              formattedCapabilities += items.map((item: string) => `• ${item}`).join('\n') + '\n\n';
+            }
+          });
+        }
+        
+        // Add quick actions
+        if (capabilities.quick_actions && Array.isArray(capabilities.quick_actions)) {
+          formattedCapabilities += `⚡ **Quick Actions:**\n${capabilities.quick_actions.map((action: string) => `• ${action}`).join('\n')}\n\n`;
+        }
         
         const assistantMessage: Message = {
           id: `assistant-${Date.now()}`,
           type: 'assistant',
-          content: `🚀 **Here's how I can help ${companyName}:**\n\n${capabilitiesList}\n\n💬 Just ask me anything about ${companyName}'s data, and I'll provide insights tailored to your business needs!`,
+          content: `🚀 **Here's how I can help ${companyName}:**\n\n${formattedCapabilities}💬 Just ask me anything about ${companyName}'s data, and I'll provide insights tailored to your business needs!`,
           timestamp: new Date(),
         };
         
@@ -251,7 +284,10 @@ export default function AidaChat({ isOpen, onClose }: AidaChatProps) {
               </div>
             ) : (
               <div className="message-content">
-                <p>{msg.content}</p>
+                <div 
+                  className="message-text"
+                  dangerouslySetInnerHTML={{ __html: formatMessageContent(msg.content) }}
+                />
                 {msg.timestamp && (
                   <span className="message-timestamp">
                     {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

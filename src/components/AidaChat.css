@@ -372,6 +372,43 @@
   gap: 4px;
 }
 
+.message-content p {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.message-text {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.message-text strong {
+  font-weight: 600;
+  color: inherit;
+}
+
+.message-text em {
+  font-style: italic;
+  color: inherit;
+}
+
+.message-text .bullet-item {
+  display: block;
+  margin: 2px 0;
+  padding-left: 4px;
+}
+
+.message-text .message-heading {
+  font-weight: 600;
+  margin: 8px 0 4px 0;
+  color: inherit;
+}
+
+.message-text h1 { font-size: 1.1em; }
+.message-text h2 { font-size: 1.05em; }
+.message-text h3 { font-size: 1em; }
+.message-text h4, .message-text h5, .message-text h6 { font-size: 0.95em; }
+
 .message-timestamp {
   font-size: 0.75rem;
   opacity: 0.6;
