@@ -27,6 +27,8 @@ export default function AidaChat({ isOpen, onClose }: AidaChatProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [connectionError, setConnectionError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -52,16 +54,44 @@ export default function AidaChat({ isOpen, onClose }: AidaChatProps) {
     `Help with ${companyName}'s inventory`,
   ];
 
-  // Simple function to format message content
+  // Enhanced message formatting with table support and HTML rendering
   const formatMessageContent = (content: string) => {
+    if (!content) return content;
+
+    // Handle objects that might have been stringified
+    if (content.includes('[object Object]')) {
+      try {
+        const parsed = JSON.parse(content);
+        content = JSON.stringify(parsed, null, 2);
+      } catch {
+        // If parsing fails, continue with original content
+      }
+    }
+
     return content
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold text **text**
-      .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic text *text*
-      .replace(/^• (.*$)/gm, '<span class="bullet-item">• $1</span>') // Bullet points
-      .replace(/^(#{1,6})\s+(.*$)/gm, (match, hashes, text) => {
-        const level = hashes.length;
-        return `<h${level} class="message-heading">${text}</h${level}>`;
-      }); // Headers
+      // Preserve HTML tables (AIDA can generate these)
+      .replace(/<div class='aida-table-container'>/g, '<div class="aida-table-container overflow-x-auto my-4 bg-white rounded-lg shadow-sm border">')
+      .replace(/<table class='aida-data-table'>/g, '<table class="aida-data-table w-full text-sm">')
+      .replace(/<thead>/g, '<thead class="bg-gradient-to-r from-blue-50 to-indigo-50">')
+      .replace(/<th>/g, '<th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">')
+      .replace(/<tbody>/g, '<tbody class="divide-y divide-gray-100">')
+      .replace(/<tr>/g, '<tr class="hover:bg-gray-50 transition-colors">')
+      .replace(/<td>/g, '<td class="px-4 py-3 text-gray-800 border-b border-gray-100">')
+      // Code blocks for JSON or code
+      .replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto my-3 text-sm"><code>$1</code></pre>')
+      // Bold text **text**
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>')
+      // Italic text *text*
+      .replace(/\*(.*?)\*/g, '<em class="italic text-gray-700">$1</em>')
+      // Headers ### Header
+      .replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold text-gray-800 mt-4 mb-2 border-l-4 border-blue-500 pl-3">$1</h3>')
+      .replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold text-gray-800 mt-4 mb-2 border-l-4 border-indigo-500 pl-3">$1</h2>')
+      .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold text-gray-800 mt-4 mb-2 border-l-4 border-purple-500 pl-3">$1</h1>')
+      // Bullet points with better styling
+      .replace(/^• (.*$)/gm, '<li class="ml-4 mb-1 flex items-start"><span class="text-blue-500 mr-2">•</span><span>$1</span></li>')
+      .replace(/(<li.*<\/li>)/gm, '<ul class="space-y-1 mb-4">$1</ul>')
+      // Convert \n to <br/>
+      .replace(/\n/g, '<br/>');
   };
 
   const initializeConversation = useCallback(async () => {
@@ -127,15 +157,16 @@ export default function AidaChat({ isOpen, onClose }: AidaChatProps) {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+    setIsThinking(true);
 
-    // Add typing indicator
+    // Add thinking indicator with more sophisticated messaging
     const typingId = `assistant-typing-${Date.now()}`;
     setMessages(prev => [
       ...prev,
       {
         id: typingId,
         type: 'assistant',
-        content: '',
+        content: '🧠 AIDA is analyzing your data and generating insights...',
         isTyping: true,
       },
     ]);
@@ -255,7 +286,7 @@ export default function AidaChat({ isOpen, onClose }: AidaChatProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="aida-chat-container">
+    <div className={`aida-chat-container ${isFullscreen ? 'aida-fullscreen' : ''}`}>
       <div className="aida-chat-header">
         <div className="aida-chat-title">
           <SparklesIcon className="aida-chat-icon" />
@@ -264,9 +295,26 @@ export default function AidaChat({ isOpen, onClose }: AidaChatProps) {
             <span className="company-subtitle">{user?.tenant?.company_name || user?.tenant?.name || 'Business Assistant'}</span>
           </div>
         </div>
-        <button onClick={onClose} className="aida-chat-close-btn">
-          <XMarkIcon className="h-6 w-6" />
-        </button>
+        <div className="header-actions">
+          <button 
+            onClick={() => setIsFullscreen(!isFullscreen)} 
+            className="aida-fullscreen-btn"
+            title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          >
+            {isFullscreen ? (
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+              </svg>
+            )}
+          </button>
+          <button onClick={onClose} className="aida-chat-close-btn">
+            <XMarkIcon className="h-6 w-6" />
+          </button>
+        </div>
       </div>
       <div className="aida-chat-messages">
         {messages.length === 0 && !connectionError && (

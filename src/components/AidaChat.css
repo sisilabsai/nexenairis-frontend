@@ -17,6 +17,41 @@
   opacity: 1;
 }
 
+/* Fullscreen mode styles */
+.aida-chat-container.aida-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(30px);
+  box-shadow: none;
+  z-index: 10000;
+}
+
+.aida-fullscreen .aida-chat-header {
+  border-radius: 0;
+  padding: 24px 32px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.aida-fullscreen .aida-chat-messages {
+  padding: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.aida-fullscreen .aida-message {
+  max-width: 800px;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
 .aida-chat-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -27,6 +62,32 @@
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
   position: relative;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+}
+
+.aida-fullscreen-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aida-fullscreen-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
 }
 
 .aida-chat-header::before {
@@ -455,6 +516,161 @@
 .aida-suggestions {
   padding: 16px;
   margin-top: 8px;
+}
+
+/* Advanced Table Styling */
+.aida-table-container {
+  margin: 16px 0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  background: white;
+}
+
+.aida-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.aida-data-table thead {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.aida-data-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.aida-data-table td {
+  padding: 12px 16px;
+  color: #374151;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: top;
+}
+
+.aida-data-table tbody tr:hover {
+  background: rgba(99, 102, 241, 0.02);
+}
+
+.aida-data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Thinking/Processing Indicators */
+.aida-thinking-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 16px;
+  margin: 12px 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.aida-thinking-message::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.aida-thinking-icon {
+  width: 20px;
+  height: 20px;
+  color: #3b82f6;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Enhanced Message Content Formatting */
+.aida-message-content h1, 
+.aida-message-content h2, 
+.aida-message-content h3 {
+  font-weight: 600;
+  margin: 16px 0 8px 0;
+  color: #1f2937;
+}
+
+.aida-message-content h1 { font-size: 1.5rem; }
+.aida-message-content h2 { font-size: 1.25rem; }
+.aida-message-content h3 { font-size: 1.125rem; }
+
+.aida-message-content ul {
+  margin: 12px 0;
+  padding-left: 0;
+}
+
+.aida-message-content li {
+  margin: 6px 0;
+  list-style: none;
+}
+
+.aida-message-content strong {
+  color: #111827;
+  font-weight: 600;
+}
+
+.aida-message-content em {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.aida-message-content pre {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 16px 0;
+}
+
+/* Mobile Fullscreen Adjustments */
+@media (max-width: 768px) {
+  .aida-fullscreen .aida-chat-messages {
+    padding: 16px;
+  }
+  
+  .aida-fullscreen .aida-message {
+    max-width: 100%;
+    font-size: 15px;
+  }
+  
+  .aida-table-container {
+    font-size: 12px;
+  }
+  
+  .aida-data-table th,
+  .aida-data-table td {
+    padding: 8px 12px;
+  }
 }
 
 .suggestions-title {
