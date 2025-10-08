@@ -50,6 +50,26 @@
   z-index: 1;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   letter-spacing: -0.02em;
+  gap: 8px;
+}
+
+.title-content {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.main-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.company-subtitle {
+  font-size: 0.75rem;
+  font-weight: 400;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .aida-chat-icon {
@@ -296,6 +316,14 @@
   
   .aida-chat-title {
     font-size: 1rem;
+  }
+  
+  .main-title {
+    font-size: 1rem;
+  }
+  
+  .company-subtitle {
+    font-size: 0.7rem;
   }
   
   .aida-chat-messages {

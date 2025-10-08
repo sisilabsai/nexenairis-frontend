@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { PaperAirplaneIcon, XMarkIcon, SparklesIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
 import { aidaApi } from '../lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import './AidaChat.css';
 
 interface Message {
@@ -19,6 +20,7 @@ interface AidaChatProps {
 }
 
 export default function AidaChat({ isOpen, onClose }: AidaChatProps) {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -41,12 +43,13 @@ export default function AidaChat({ isOpen, onClose }: AidaChatProps) {
     }
   }, [isOpen]);
 
-  // Quick suggestions for better UX
+  // Quick suggestions for better UX - personalized for the business
+  const companyName = user?.tenant?.company_name || user?.tenant?.name || 'our business';
   const quickSuggestions = [
-    "What can you do?",
-    "Show me sales analytics",
-    "Generate a report",
-    "Help with inventory",
+    "What can you do for us?",
+    `Show me ${companyName}'s sales analytics`,
+    `Generate a ${companyName} performance report`,
+    `Help with ${companyName}'s inventory`,
   ];
 
   const initializeConversation = useCallback(async () => {
@@ -56,11 +59,16 @@ export default function AidaChat({ isOpen, onClose }: AidaChatProps) {
       const conversation = response.data as any;
       if (conversation && conversation.conversation_id) {
         setConversationId(conversation.conversation_id);
+        
+        // Get company name from user's tenant data
+        const companyName = user?.tenant?.company_name || user?.tenant?.name || 'your business';
+        const userName = user?.name?.split(' ')[0] || 'there';
+        
         setMessages([
           {
             id: 'initial-assistant-message',
             type: 'assistant',
-            content: "👋 Hello! I'm AIDA, your AI-powered business intelligence assistant.\n\nI can help you:\n• Analyze your business data\n• Generate insights and reports\n• Answer questions about your operations\n• Provide recommendations\n\nWhat would you like to explore today?",
+            content: `👋 Hello ${userName}! I'm AIDA, ${companyName}'s AI-powered business intelligence assistant.\n\nI'm here to help ${companyName} with:\n• 📊 Analyzing your business data and metrics\n• 📈 Generating insights and detailed reports\n• ❓ Answering questions about your operations\n• 💡 Providing strategic recommendations\n• 🎯 Identifying growth opportunities\n\nWhat would you like to explore about ${companyName} today?`,
             timestamp: new Date(),
           },
         ]);
@@ -79,11 +87,16 @@ export default function AidaChat({ isOpen, onClose }: AidaChatProps) {
         },
       ]);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (isOpen && !conversationId && !connectionError) {
-      initializeConversation();
+      // Add a small delay to ensure user data is loaded
+      const timeoutId = setTimeout(() => {
+        initializeConversation();
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [isOpen, conversationId, connectionError, initializeConversation]);
 
@@ -130,10 +143,12 @@ export default function AidaChat({ isOpen, onClose }: AidaChatProps) {
           .map(([key, value]) => `• **${key.replace(/_/g, ' ').toUpperCase()}:** ${value}`)
           .join('\n');
         
+        const companyName = user?.tenant?.company_name || user?.tenant?.name || 'your business';
+        
         const assistantMessage: Message = {
           id: `assistant-${Date.now()}`,
           type: 'assistant',
-          content: `🚀 **Here's what I can help you with:**\n\n${capabilitiesList}\n\nJust ask me anything about your business data!`,
+          content: `🚀 **Here's how I can help ${companyName}:**\n\n${capabilitiesList}\n\n💬 Just ask me anything about ${companyName}'s data, and I'll provide insights tailored to your business needs!`,
           timestamp: new Date(),
         };
         
@@ -211,7 +226,10 @@ export default function AidaChat({ isOpen, onClose }: AidaChatProps) {
       <div className="aida-chat-header">
         <div className="aida-chat-title">
           <SparklesIcon className="aida-chat-icon" />
-          <span>Aida Chat</span>
+          <div className="title-content">
+            <span className="main-title">AIDA</span>
+            <span className="company-subtitle">{user?.tenant?.company_name || user?.tenant?.name || 'Business Assistant'}</span>
+          </div>
         </div>
         <button onClick={onClose} className="aida-chat-close-btn">
           <XMarkIcon className="h-6 w-6" />
@@ -280,7 +298,7 @@ export default function AidaChat({ isOpen, onClose }: AidaChatProps) {
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder={isLoading ? "AIDA is thinking..." : "Ask AIDA anything about your business..."}
+            placeholder={isLoading ? "AIDA is thinking..." : `Ask AIDA about ${user?.tenant?.company_name || 'your business'}...`}
             className="aida-chat-input"
             disabled={isLoading}
             onKeyDown={(e) => {
