@@ -56,6 +56,7 @@ import { crmApi } from '../../lib/api';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 import ProtectedRoute from '../../components/ProtectedRoute';
+import { ContactImportResponse } from '../../types/crm';
 
 // Lazy load modals for better performance
 const ContactModal = lazy(() => import('../../components/ContactModal'));
@@ -278,9 +279,23 @@ export default function CrmPage() {
 
       console.log('Import result:', result);
 
-      if (result.success) {
-        const { imported, updated, skipped, failed } = result.data.results;
-        alert(`Import completed successfully!\n\n✅ Imported: ${imported}\n🔄 Updated: ${updated}\n⏭️ Skipped: ${skipped}\n❌ Failed: ${failed}`);
+      if (result.success && result.data) {
+        const importResponse = result.data as ContactImportResponse;
+        const { imported, updated, skipped, failed } = importResponse.results;
+        
+        let message = `Import completed successfully!\n\n✅ Imported: ${imported}\n🔄 Updated: ${updated}\n⏭️ Skipped: ${skipped}`;
+        
+        if (failed > 0) {
+          message += `\n❌ Failed: ${failed}`;
+          if (importResponse.results.errors && importResponse.results.errors.length > 0) {
+            message += '\n\nFirst few errors:';
+            importResponse.results.errors.slice(0, 3).forEach(error => {
+              message += `\n• Row ${error.row} (${error.name}): ${error.error}`;
+            });
+          }
+        }
+        
+        alert(message);
         refetchContacts();
         refetchSummary();
         setShowImportModal(false);

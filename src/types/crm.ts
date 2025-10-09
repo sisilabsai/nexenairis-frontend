@@ -27,3 +27,22 @@ export interface Contact {
   id: number;
   name: string;
 }
+
+export interface ContactImportResults {
+  total_processed: number;
+  imported: number;
+  updated: number;
+  skipped: number;
+  failed: number;
+  errors: Array<{
+    row: number;
+    name: string;
+    error: string;
+  }>;
+}
+
+export interface ContactImportResponse {
+  success: boolean;
+  message: string;
+  results: ContactImportResults;
+}
