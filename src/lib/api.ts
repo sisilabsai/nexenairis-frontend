@@ -394,9 +394,9 @@ export const crmApi = {
   exportContacts: () => apiService.get('/crm/contacts/export'),
   
   // Contact Import
-  importContacts: (data: { contacts: any[], duplicate_handling: string }) => apiService.post('/crm/contacts/import', data),
-  validateImportData: (data: { contacts: any[] }) => apiService.post('/crm/contacts/import/validate', data),
-  getImportTemplate: () => apiService.get('/crm/contacts/import/template'),
+  importContacts: (data: { contacts: any[], duplicate_handling: string }) => apiService.post('/crm/import/contacts', data),
+  validateImportData: (data: { contacts: any[] }) => apiService.post('/crm/import/contacts/validate', data),
+  getImportTemplate: () => apiService.get('/crm/import/contacts/template'),
   
   // Sales Opportunities
   getSalesOpportunities: (params?: any) => apiService.get('/crm/opportunities', params),
