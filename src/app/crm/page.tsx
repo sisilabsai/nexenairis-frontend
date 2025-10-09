@@ -52,6 +52,7 @@ import {
   usePersonalizationEngineAI,
   useSalesOpportunities
 } from '../../hooks/useApi';
+import { crmApi } from '../../lib/api';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
 import ProtectedRoute from '../../components/ProtectedRoute';
@@ -268,42 +269,17 @@ export default function CrmPage() {
 
   const handleImportContacts = async (importData: any[]) => {
     try {
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        alert('Authentication required. Please login again.');
-        return;
-      }
-
       console.log('Importing contacts:', importData.length, 'contacts');
       
-      const response = await fetch('/api/crm/contacts/import', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({
-          contacts: importData,
-          duplicate_handling: 'skip'
-        }),
+      const result = await crmApi.importContacts({
+        contacts: importData,
+        duplicate_handling: 'skip'
       });
 
-      console.log('Import response status:', response.status);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Import response error:', errorText);
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
       console.log('Import result:', result);
 
       if (result.success) {
-        const { imported, updated, skipped, failed } = result.results;
+        const { imported, updated, skipped, failed } = result.data.results;
         alert(`Import completed successfully!\n\n✅ Imported: ${imported}\n🔄 Updated: ${updated}\n⏭️ Skipped: ${skipped}\n❌ Failed: ${failed}`);
         refetchContacts();
         refetchSummary();
@@ -313,7 +289,20 @@ export default function CrmPage() {
       }
     } catch (error: any) {
       console.error('Import error:', error);
-      alert(`Import failed: ${error.message || 'Network error occurred'}`);
+      
+      // Better error handling for different types of errors
+      let errorMessage = 'Import failed';
+      if (error.response?.status === 401) {
+        errorMessage = 'Authentication failed. Please refresh the page and try again.';
+      } else if (error.response?.status === 422) {
+        errorMessage = 'Invalid data format. Please check your CSV file.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(`Import failed: ${errorMessage}`);
     }
   };
 

@@ -393,6 +393,11 @@ export const crmApi = {
   deleteContact: (id: number) => apiService.delete(`/crm/contacts/${id}`),
   exportContacts: () => apiService.get('/crm/contacts/export'),
   
+  // Contact Import
+  importContacts: (data: { contacts: any[], duplicate_handling: string }) => apiService.post('/crm/contacts/import', data),
+  validateImportData: (data: { contacts: any[] }) => apiService.post('/crm/contacts/import/validate', data),
+  getImportTemplate: () => apiService.get('/crm/contacts/import/template'),
+  
   // Sales Opportunities
   getSalesOpportunities: (params?: any) => apiService.get('/crm/opportunities', params),
   createSalesOpportunity: (data: any) => apiService.post('/crm/opportunities', data),
