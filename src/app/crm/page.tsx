@@ -60,6 +60,7 @@ import ProtectedRoute from '../../components/ProtectedRoute';
 const ContactModal = lazy(() => import('../../components/ContactModal'));
 const ContactDetailsModal = lazy(() => import('../../components/ContactDetailsModal'));
 const ContactTypeModal = lazy(() => import('../../components/ContactTypeModal'));
+const ContactImportModal = lazy(() => import('../../components/crm/ContactImportModal'));
 const CustomerSegmentationDashboard = lazy(() => import('../../components/CustomerSegmentationDashboard'));
 const SalesOpportunityModal = lazy(() => import('../../components/SalesOpportunityModal'));
 const SalesPipelineView = lazy(() => import('../../components/SalesPipelineView'));
@@ -98,6 +99,7 @@ export default function CrmPage() {
   const [showContactModal, setShowContactModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showContactTypeModal, setShowContactTypeModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [viewingContact, setViewingContact] = useState<Contact | null>(null);
   const [selectedView, setSelectedView] = useState<'overview' | 'contacts' | 'pipeline' | 'analytics'>('overview');
@@ -262,6 +264,36 @@ export default function CrmPage() {
     setShowDetailsModal(false);
     setEditingContact(contact);
     setShowContactModal(true);
+  };
+
+  const handleImportContacts = async (importData: any[]) => {
+    try {
+      const response = await fetch('/api/crm/contacts/import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          contacts: importData,
+          duplicate_handling: 'skip'
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(`Import completed! Imported: ${result.results.imported}, Updated: ${result.results.updated}, Skipped: ${result.results.skipped}, Failed: ${result.results.failed}`);
+        refetchContacts();
+        refetchSummary();
+        setShowImportModal(false);
+      } else {
+        alert(`Import failed: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      alert('Import failed. Please try again.');
+    }
   };
 
   const handleDeleteContact = async (contactId: number) => {
@@ -632,6 +664,12 @@ export default function CrmPage() {
                   className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
                 >
                   ⚙️ Manage Contact Types
+                </button>
+                <button
+                  onClick={() => setShowImportModal(true)}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  📤 Import Contacts
                 </button>
                 <button
                   onClick={() => exportContactsMutation.mutate()}
@@ -2566,6 +2604,14 @@ export default function CrmPage() {
             <ContactTypeModal
               isOpen={showContactTypeModal}
               onClose={() => setShowContactTypeModal(false)}
+            />
+          )}
+
+          {showImportModal && (
+            <ContactImportModal
+              isOpen={showImportModal}
+              onClose={() => setShowImportModal(false)}
+              onImport={handleImportContacts}
             />
           )}
 
