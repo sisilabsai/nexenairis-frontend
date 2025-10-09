@@ -108,22 +108,62 @@ export default function ContactImportModal({ isOpen, onClose, onImport }: Contac
   }, [importFormat]);
 
   const parseCSV = (content: string): any[] => {
-    const lines = content.split('\n').filter(line => line.trim());
-    if (lines.length < 2) throw new Error('CSV must have at least a header row and one data row');
-    
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-    const data = [];
-    
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-      const row: any = {};
-      headers.forEach((header, index) => {
-        row[header] = values[index] || '';
-      });
-      data.push(row);
+    try {
+      const lines = content.split('\n').filter(line => line.trim());
+      if (lines.length < 2) throw new Error('CSV must have at least a header row and one data row');
+      
+      // More robust CSV parsing that handles quoted fields with commas
+      const parseCSVLine = (line: string): string[] => {
+        const result: string[] = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        
+        result.push(current.trim());
+        return result;
+      };
+      
+      const headers = parseCSVLine(lines[0]).map(h => h.replace(/"/g, '').trim());
+      const data = [];
+      
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue; // Skip empty lines
+        
+        const values = parseCSVLine(lines[i]).map(v => v.replace(/"/g, '').trim());
+        const row: any = {};
+        
+        headers.forEach((header, index) => {
+          const value = values[index] || '';
+          // Clean and normalize the data
+          row[header] = value === 'null' || value === 'NULL' || value === 'undefined' ? '' : value;
+        });
+        
+        // Only add rows that have at least a name
+        if (row[headers[0]] && row[headers[0]].trim()) {
+          data.push(row);
+        }
+      }
+      
+      if (data.length === 0) {
+        throw new Error('No valid data rows found in CSV');
+      }
+      
+      return data;
+    } catch (error: any) {
+      throw new Error(`CSV parsing failed: ${error.message}`);
     }
-    
-    return data;
   };
 
   const parseSQL = (content: string): any[] => {
@@ -148,18 +188,50 @@ export default function ContactImportModal({ isOpen, onClose, onImport }: Contac
   const generateFieldMapping = (sampleRow: any) => {
     const sourceFields = Object.keys(sampleRow);
     const mapping: ImportField[] = sourceFields.map(sourceField => {
-      // Smart field matching
-      const lowerField = sourceField.toLowerCase();
+      // Smart field matching with comprehensive patterns
+      const lowerField = sourceField.toLowerCase().replace(/[^a-z]/g, '');
       let targetField = '';
       
-      if (lowerField.includes('name') || lowerField.includes('full_name')) targetField = 'name';
-      else if (lowerField.includes('email') || lowerField.includes('mail')) targetField = 'email';
-      else if (lowerField.includes('phone') || lowerField.includes('mobile')) targetField = 'phone';
-      else if (lowerField.includes('whatsapp')) targetField = 'whatsapp_number';
-      else if (lowerField.includes('company') || lowerField.includes('organization')) targetField = 'company';
-      else if (lowerField.includes('district') || lowerField.includes('location')) targetField = 'district';
-      else if (lowerField.includes('village') || lowerField.includes('address')) targetField = 'village';
-      else if (lowerField.includes('momo') || lowerField.includes('mobile_money')) targetField = 'mobile_money_number';
+      // Enhanced field matching
+      if (lowerField.includes('fullname') || lowerField.includes('name') || sourceField.toLowerCase() === 'full name') {
+        targetField = 'name';
+      } else if (lowerField.includes('email') || lowerField.includes('mail') || sourceField.toLowerCase() === 'email address') {
+        targetField = 'email';
+      } else if ((lowerField.includes('phone') && !lowerField.includes('mobile')) || sourceField.toLowerCase() === 'phone number') {
+        targetField = 'phone';
+      } else if (lowerField.includes('mobile') && lowerField.includes('number') || sourceField.toLowerCase() === 'mobile number') {
+        targetField = 'mobile';
+      } else if (lowerField.includes('whatsapp') || sourceField.toLowerCase() === 'whatsapp number') {
+        targetField = 'whatsapp_number';
+      } else if (lowerField.includes('company') || lowerField.includes('organization') || sourceField.toLowerCase() === 'company/organization') {
+        targetField = 'company';
+      } else if (lowerField.includes('job') || lowerField.includes('title') || lowerField.includes('position') || sourceField.toLowerCase() === 'job title/position') {
+        targetField = 'job_title';
+      } else if (lowerField.includes('district')) {
+        targetField = 'district';
+      } else if (lowerField.includes('village') || lowerField.includes('location') || sourceField.toLowerCase() === 'village/location') {
+        targetField = 'village';
+      } else if (lowerField.includes('mobilemoneyproviderwhere') || lowerField.includes('provider') || sourceField.toLowerCase() === 'mobile money provider') {
+        targetField = 'mobile_money_provider';
+      } else if (lowerField.includes('mobilemoneynumber') || sourceField.toLowerCase() === 'mobile money number') {
+        targetField = 'mobile_money_number';
+      } else if (lowerField.includes('communication') || lowerField.includes('preferred') || sourceField.toLowerCase() === 'preferred communication') {
+        targetField = 'preferred_communication_channel';
+      } else if (lowerField.includes('language') || sourceField.toLowerCase() === 'primary language') {
+        targetField = 'primary_language';
+      } else if (lowerField.includes('trust') || sourceField.toLowerCase().includes('trust level')) {
+        targetField = 'trust_level';
+      } else if (lowerField.includes('bank') || sourceField.toLowerCase() === 'has bank account') {
+        targetField = 'has_bank_account';
+      } else if (lowerField.includes('cash') || sourceField.toLowerCase() === 'prefers cash') {
+        targetField = 'prefers_cash_transactions';
+      } else if (lowerField.includes('value') || lowerField.includes('clv') || sourceField.toLowerCase() === 'customer lifetime value') {
+        targetField = 'customer_lifetime_value';
+      } else if (lowerField.includes('group') || lowerField.includes('community') || sourceField.toLowerCase() === 'community groups') {
+        targetField = 'community_groups';
+      } else if (lowerField.includes('note') || lowerField.includes('description') || sourceField.toLowerCase() === 'notes/description') {
+        targetField = 'notes';
+      }
       
       const targetFieldInfo = CONTACT_FIELDS.find(f => f.key === targetField);
       
@@ -168,7 +240,7 @@ export default function ContactImportModal({ isOpen, onClose, onImport }: Contac
         target: targetField,
         required: targetFieldInfo?.required || false,
         type: (targetFieldInfo?.type || 'text') as 'text' | 'email' | 'phone' | 'number' | 'boolean' | 'date',
-        sample: sampleRow[sourceField]
+        sample: sampleRow[sourceField] ? String(sampleRow[sourceField]).substring(0, 50) : ''
       };
     });
     
@@ -215,24 +287,56 @@ export default function ContactImportModal({ isOpen, onClose, onImport }: Contac
 
     setIsProcessing(true);
     try {
-      const mappedData = importData.map(row => {
+      const mappedData = importData.map((row, index) => {
         const mappedRow: any = {};
         fieldMapping.forEach(field => {
           if (field.target && field.source) {
             let value = row[field.source];
             
+            // Clean and sanitize the value
+            if (typeof value === 'string') {
+              value = value.trim();
+              if (value === '' || value === 'null' || value === 'NULL' || value === 'undefined') {
+                value = null;
+              }
+            }
+            
             // Type conversion and validation
             if (field.type === 'boolean') {
-              value = ['true', '1', 'yes', 'y'].includes(String(value).toLowerCase());
+              if (value === null || value === '') {
+                value = false;
+              } else {
+                value = ['true', '1', 'yes', 'y', 'True', 'TRUE', 'Yes', 'YES'].includes(String(value));
+              }
             } else if (field.type === 'number') {
-              value = parseFloat(value) || 0;
+              if (value === null || value === '') {
+                value = 0;
+              } else {
+                const numValue = parseFloat(String(value).replace(/[^0-9.-]/g, ''));
+                value = isNaN(numValue) ? 0 : numValue;
+              }
+            } else if (field.type === 'email' && value) {
+              // Basic email validation and cleaning
+              value = String(value).toLowerCase().trim();
+              if (!value.includes('@') || !value.includes('.')) {
+                value = null; // Invalid email, set to null
+              }
+            } else if (field.type === 'phone' && value) {
+              // Clean phone number
+              value = String(value).replace(/[^0-9+]/g, '');
             }
             
             mappedRow[field.target] = value;
           }
         });
         
-        // Add defaults for Uganda context
+        // Ensure name is always present and clean
+        if (!mappedRow.name || typeof mappedRow.name !== 'string') {
+          throw new Error(`Row ${index + 1}: Name is required`);
+        }
+        mappedRow.name = mappedRow.name.trim();
+        
+        // Add Uganda-specific defaults
         if (!mappedRow.district && mappedRow.village) {
           mappedRow.district = 'Kampala'; // Default district
         }
@@ -242,14 +346,20 @@ export default function ContactImportModal({ isOpen, onClose, onImport }: Contac
         if (!mappedRow.preferred_communication_channel) {
           mappedRow.preferred_communication_channel = 'WhatsApp';
         }
+        if (mappedRow.trust_level === null || mappedRow.trust_level === 0) {
+          mappedRow.trust_level = 5; // Default trust level
+        }
         
         return mappedRow;
       });
 
+      console.log('Processed data for import:', mappedData.slice(0, 2)); // Log first 2 records for debugging
+      
       await onImport(mappedData);
       onClose();
     } catch (error: any) {
-      setErrors([`Import failed: ${error?.message || 'Unknown error'}`]);
+      console.error('Import processing error:', error);
+      setErrors([`Import processing failed: ${error?.message || 'Unknown error'}`]);
     } finally {
       setIsProcessing(false);
     }

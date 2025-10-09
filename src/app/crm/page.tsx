@@ -268,11 +268,22 @@ export default function CrmPage() {
 
   const handleImportContacts = async (importData: any[]) => {
     try {
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        alert('Authentication required. Please login again.');
+        return;
+      }
+
+      console.log('Importing contacts:', importData.length, 'contacts');
+      
       const response = await fetch('/api/crm/contacts/import', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
         },
         body: JSON.stringify({
           contacts: importData,
@@ -280,19 +291,29 @@ export default function CrmPage() {
         }),
       });
 
+      console.log('Import response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Import response error:', errorText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
       const result = await response.json();
+      console.log('Import result:', result);
 
       if (result.success) {
-        alert(`Import completed! Imported: ${result.results.imported}, Updated: ${result.results.updated}, Skipped: ${result.results.skipped}, Failed: ${result.results.failed}`);
+        const { imported, updated, skipped, failed } = result.results;
+        alert(`Import completed successfully!\n\n✅ Imported: ${imported}\n🔄 Updated: ${updated}\n⏭️ Skipped: ${skipped}\n❌ Failed: ${failed}`);
         refetchContacts();
         refetchSummary();
         setShowImportModal(false);
       } else {
-        alert(`Import failed: ${result.message}`);
+        alert(`Import failed: ${result.message || 'Unknown error'}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Import error:', error);
-      alert('Import failed. Please try again.');
+      alert(`Import failed: ${error.message || 'Network error occurred'}`);
     }
   };
 
