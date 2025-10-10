@@ -66,6 +66,7 @@ const ContactImportModal = lazy(() => import('../../components/crm/ContactImport
 const CustomerSegmentationDashboard = lazy(() => import('../../components/CustomerSegmentationDashboard'));
 const SalesOpportunityModal = lazy(() => import('../../components/SalesOpportunityModal'));
 const SalesPipelineView = lazy(() => import('../../components/SalesPipelineView'));
+const EnhancedContactsView = lazy(() => import('../../components/crm/EnhancedContactsView'));
 
 // Loading fallback for lazy components
 const ModalFallback = () => (
@@ -121,6 +122,25 @@ export default function CrmPage() {
     mobile_money_provider: '',
     preferred_channel: '',
   });
+
+  // Enhanced Contacts View State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [sortField, setSortField] = useState<string>('created_at');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [contactViewMode, setContactViewMode] = useState<'table' | 'grid' | 'compact'>('table');
+  const [advancedFilters, setAdvancedFilters] = useState({
+    trustLevels: [] as string[],
+    districts: [] as string[],
+    providers: [] as string[],
+    channels: [] as string[],
+    hasEmail: undefined as boolean | undefined,
+    hasPhone: undefined as boolean | undefined,
+    hasWhatsApp: undefined as boolean | undefined,
+    hasMobileMoney: undefined as boolean | undefined,
+    isActive: undefined as boolean | undefined,
+  });
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // Bulk Operations State
   const [selectedContacts, setSelectedContacts] = useState<number[]>([]);
@@ -185,29 +205,97 @@ export default function CrmPage() {
   const personalization = (personalizationData as any)?.data || {};
 
   // Optimized contact filtering with memoization
+  // Enhanced contact filtering with pagination, sorting, and advanced filters
   const filteredContacts = useMemo(() => {
-    if (!contacts.length) return [];
+    if (!contacts.length) return {
+      filteredContacts: [],
+      paginatedContacts: [],
+      totalPages: 0,
+      uniqueDistricts: [],
+      uniqueProviders: [],
+      uniqueChannels: []
+    };
 
     // Pre-compile regex for search term to avoid repeated compilation
     const searchRegex = searchTerm ? new RegExp(searchTerm.toLowerCase(), 'i') : null;
 
-    return contacts.filter(contact => {
-      // Optimized search matching
+    // Apply all filters
+    let filtered = contacts.filter(contact => {
+      // Basic search matching
       const matchesSearch = !searchRegex ||
         searchRegex.test(contact.name) ||
         (contact.email && searchRegex.test(contact.email)) ||
         (contact.phone && contact.phone.includes(searchTerm));
 
-      // Early return for better performance
       if (!matchesSearch) return false;
 
-      // Filter matching with short-circuit evaluation
-      return (!contactFilters.trust_level || contact.trust_level?.toString() === contactFilters.trust_level) &&
-             (!contactFilters.district || contact.district === contactFilters.district) &&
-             (!contactFilters.mobile_money_provider || contact.mobile_money_provider === contactFilters.mobile_money_provider) &&
-             (!contactFilters.preferred_channel || contact.preferred_communication_channel === contactFilters.preferred_channel);
+      // Basic filters
+      const matchesBasicFilters = 
+        (!contactFilters.trust_level || contact.trust_level?.toString() === contactFilters.trust_level) &&
+        (!contactFilters.district || contact.district === contactFilters.district) &&
+        (!contactFilters.mobile_money_provider || contact.mobile_money_provider === contactFilters.mobile_money_provider) &&
+        (!contactFilters.preferred_channel || contact.preferred_communication_channel === contactFilters.preferred_channel);
+
+      if (!matchesBasicFilters) return false;
+
+      // Advanced filters
+      const matchesAdvancedFilters =
+        (advancedFilters.trustLevels.length === 0 || advancedFilters.trustLevels.includes(contact.trust_level?.toString() || '')) &&
+        (advancedFilters.districts.length === 0 || advancedFilters.districts.includes(contact.district || '')) &&
+        (advancedFilters.providers.length === 0 || advancedFilters.providers.includes(contact.mobile_money_provider || '')) &&
+        (advancedFilters.channels.length === 0 || advancedFilters.channels.includes(contact.preferred_communication_channel || '')) &&
+        (advancedFilters.hasEmail === undefined || (advancedFilters.hasEmail ? !!contact.email : !contact.email)) &&
+        (advancedFilters.hasPhone === undefined || (advancedFilters.hasPhone ? !!contact.phone : !contact.phone)) &&
+        (advancedFilters.hasWhatsApp === undefined || (advancedFilters.hasWhatsApp ? !!contact.whatsapp_number : !contact.whatsapp_number)) &&
+        (advancedFilters.hasMobileMoney === undefined || (advancedFilters.hasMobileMoney ? !!contact.mobile_money_number : !contact.mobile_money_number)) &&
+        (advancedFilters.isActive === undefined || contact.is_active === advancedFilters.isActive);
+
+      return matchesAdvancedFilters;
     });
-  }, [contacts, searchTerm, contactFilters.trust_level, contactFilters.district, contactFilters.mobile_money_provider, contactFilters.preferred_channel]);
+
+    // Sort filtered contacts
+    if (sortField) {
+      filtered = [...filtered].sort((a, b) => {
+        const aValue = (a as any)[sortField];
+        const bValue = (b as any)[sortField];
+        
+        if (aValue === bValue) return 0;
+        if (aValue === null || aValue === undefined) return 1;
+        if (bValue === null || bValue === undefined) return -1;
+        
+        const comparison = aValue < bValue ? -1 : 1;
+        return sortDirection === 'asc' ? comparison : -comparison;
+      });
+    }
+
+    // Calculate pagination
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedContacts = filtered.slice(startIndex, startIndex + itemsPerPage);
+
+    // Extract unique values for filters
+    const uniqueDistricts = [...new Set(contacts.map(c => c.district).filter(Boolean))] as string[];
+    const uniqueProviders = [...new Set(contacts.map(c => c.mobile_money_provider).filter(Boolean))] as string[];
+    const uniqueChannels = [...new Set(contacts.map(c => c.preferred_communication_channel).filter(Boolean))] as string[];
+
+    return {
+      filteredContacts: filtered,
+      paginatedContacts,
+      totalPages,
+      uniqueDistricts,
+      uniqueProviders,
+      uniqueChannels
+    };
+  }, [
+    contacts, 
+    searchTerm, 
+    contactFilters, 
+    advancedFilters,
+    sortField,
+    sortDirection,
+    currentPage,
+    itemsPerPage
+  ]);
 
   const getTrustLevelColor = (level?: number) => {
     if (!level) return 'bg-gray-100 text-gray-800';
@@ -266,6 +354,66 @@ export default function CrmPage() {
     setShowDetailsModal(false);
     setEditingContact(contact);
     setShowContactModal(true);
+  };
+
+  // Enhanced contacts view handlers
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleItemsPerPageChange = (value: number) => {
+    setItemsPerPage(value);
+    setCurrentPage(1); // Reset to first page
+  };
+
+  const clearAllFilters = () => {
+    setContactFilters({
+      trust_level: '',
+      district: '',
+      mobile_money_provider: '',
+      preferred_channel: '',
+    });
+    setAdvancedFilters({
+      trustLevels: [],
+      districts: [],
+      providers: [],
+      channels: [],
+      hasEmail: undefined,
+      hasPhone: undefined,
+      hasWhatsApp: undefined,
+      hasMobileMoney: undefined,
+      isActive: undefined,
+    });
+    setSearchTerm('');
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters = () => {
+    return !!(
+      contactFilters.trust_level ||
+      contactFilters.district ||
+      contactFilters.mobile_money_provider ||
+      contactFilters.preferred_channel ||
+      advancedFilters.trustLevels.length > 0 ||
+      advancedFilters.districts.length > 0 ||
+      advancedFilters.providers.length > 0 ||
+      advancedFilters.channels.length > 0 ||
+      advancedFilters.hasEmail !== undefined ||
+      advancedFilters.hasPhone !== undefined ||
+      advancedFilters.hasWhatsApp !== undefined ||
+      advancedFilters.hasMobileMoney !== undefined ||
+      advancedFilters.isActive !== undefined ||
+      searchTerm
+    );
   };
 
   const handleImportContacts = async (importData: any[]): Promise<ContactImportResponse> => {
@@ -407,7 +555,7 @@ export default function CrmPage() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedContacts(filteredContacts.map(contact => contact.id));
+      setSelectedContacts(filteredContacts.filteredContacts.map((contact: Contact) => contact.id));
       setSelectAll(true);
     } else {
       setSelectedContacts([]);
@@ -441,13 +589,13 @@ export default function CrmPage() {
   const handleBulkExport = () => {
     if (selectedContacts.length === 0) return;
 
-    const selectedContactsData = filteredContacts.filter(contact =>
+    const selectedContactsData = filteredContacts.filteredContacts.filter((contact: Contact) =>
       selectedContacts.includes(contact.id)
     );
 
     const csvContent = [
       ['Name', 'Email', 'Phone', 'District', 'Trust Level', 'Mobile Money', 'WhatsApp', 'Status'].join(','),
-      ...selectedContactsData.map(contact => [
+      ...selectedContactsData.map((contact: Contact) => [
         contact.name,
         contact.email || '',
         contact.phone || '',
@@ -477,7 +625,7 @@ export default function CrmPage() {
 
     try {
       for (const contactId of selectedContacts) {
-        const contact = filteredContacts.find(c => c.id === contactId);
+        const contact = filteredContacts.filteredContacts.find((c: Contact) => c.id === contactId);
         if (contact) {
           await updateContactMutation.mutateAsync({
             id: contactId,
@@ -500,7 +648,7 @@ export default function CrmPage() {
 
     try {
       for (const contactId of selectedContacts) {
-        const contact = filteredContacts.find(c => c.id === contactId);
+        const contact = filteredContacts.filteredContacts.find((c: Contact) => c.id === contactId);
         if (contact) {
           await updateContactMutation.mutateAsync({
             id: contactId,
@@ -521,12 +669,12 @@ export default function CrmPage() {
   const handleBulkSendMessage = () => {
     if (selectedContacts.length === 0) return;
 
-    const selectedContactsData = filteredContacts.filter(contact =>
+    const selectedContactsData = filteredContacts.filteredContacts.filter((contact: Contact) =>
       selectedContacts.includes(contact.id)
     );
 
-    const whatsappContacts = selectedContactsData.filter(c => c.whatsapp_number);
-    const smsContacts = selectedContactsData.filter(c => c.phone && !c.whatsapp_number);
+    const whatsappContacts = selectedContactsData.filter((c: Contact) => c.whatsapp_number);
+    const smsContacts = selectedContactsData.filter((c: Contact) => c.phone && !c.whatsapp_number);
 
     let message = `Bulk messaging for ${selectedContacts.length} contacts:\n\n`;
     message += `WhatsApp: ${whatsappContacts.length} contacts\n`;
@@ -1049,688 +1197,43 @@ export default function CrmPage() {
 
         {/* Contacts Section */}
         {selectedView === 'contacts' && (
-          <div className="space-y-6">
-            {/* Mobile Search Header */}
-            <div className="sm:hidden">
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
-                <div className="relative mb-4">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Search contacts..."
-                    className="block w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl bg-gray-50 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-base"
-                  />
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <button
-                    onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-                  >
-                    <FunnelIcon className="h-4 w-4" />
-                    <span>Filters</span>
-                    <ChevronDownIcon className={`h-4 w-4 transition-transform ${mobileFiltersOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => setIsGridView(!isGridView)}
-                      className={`p-2 rounded-lg transition-colors ${
-                        isGridView ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-600'
-                      }`}
-                    >
-                      <span className="text-sm font-medium">{isGridView ? 'Grid' : 'List'}</span>
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Mobile Filters Dropdown */}
-                {mobileFiltersOpen && (
-                  <div className="mt-4 space-y-3 pt-4 border-t border-gray-200">
-                    <select
-                      value={contactFilters.trust_level}
-                      onChange={(e) => setContactFilters(prev => ({ ...prev, trust_level: e.target.value }))}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                      <option value="">All Trust Levels</option>
-                      <option value="5">Very High (5)</option>
-                      <option value="4">High (4)</option>
-                      <option value="3">Medium (3)</option>
-                      <option value="2">Low (2)</option>
-                      <option value="1">Very Low (1)</option>
-                    </select>
-                    
-                    <div className="grid grid-cols-2 gap-3">
-                      <select
-                        value={contactFilters.mobile_money_provider}
-                        onChange={(e) => setContactFilters(prev => ({ ...prev, mobile_money_provider: e.target.value }))}
-                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      >
-                        <option value="">All Providers</option>
-                        <option value="MTN">MTN Money</option>
-                        <option value="Airtel">Airtel Money</option>
-                        <option value="M-Pesa">M-Pesa</option>
-                      </select>
-                      
-                      <select
-                        value={contactFilters.preferred_channel}
-                        onChange={(e) => setContactFilters(prev => ({ ...prev, preferred_channel: e.target.value }))}
-                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      >
-                        <option value="">All Channels</option>
-                        <option value="whatsapp">WhatsApp</option>
-                        <option value="phone">Phone</option>
-                        <option value="email">Email</option>
-                        <option value="sms">SMS</option>
-                        <option value="in_person">In Person</option>
-                      </select>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Desktop Search and Filters */}
-            <div className="hidden sm:block bg-white shadow rounded-lg p-4">
-              <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
-                <div className="lg:col-span-2">
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Search contacts..."
-                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                <select
-                  value={contactFilters.trust_level}
-                  onChange={(e) => setContactFilters(prev => ({ ...prev, trust_level: e.target.value }))}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="">All Trust Levels</option>
-                  <option value="5">Very High (5)</option>
-                  <option value="4">High (4)</option>
-                  <option value="3">Medium (3)</option>
-                  <option value="2">Low (2)</option>
-                  <option value="1">Very Low (1)</option>
-                </select>
-
-                <select
-                  value={contactFilters.mobile_money_provider}
-                  onChange={(e) => setContactFilters(prev => ({ ...prev, mobile_money_provider: e.target.value }))}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="">All Providers</option>
-                  <option value="MTN">MTN Money</option>
-                  <option value="Airtel">Airtel Money</option>
-                  <option value="M-Pesa">M-Pesa</option>
-                </select>
-
-                <select
-                  value={contactFilters.preferred_channel}
-                  onChange={(e) => setContactFilters(prev => ({ ...prev, preferred_channel: e.target.value }))}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="">All Channels</option>
-                  <option value="whatsapp">WhatsApp</option>
-                  <option value="phone">Phone</option>
-                  <option value="email">Email</option>
-                  <option value="sms">SMS</option>
-                  <option value="in_person">In Person</option>
-                </select>
-
-                <input
-                  type="text"
-                  value={contactFilters.district}
-                  onChange={(e) => setContactFilters(prev => ({ ...prev, district: e.target.value }))}
-                  placeholder="Filter by district..."
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
-            </div>
-            
-            {/* Mobile Contact Cards */}
-            <div className="sm:hidden">
-              {contactsLoading ? (
-                <div className="flex justify-center py-12">
-                  <LoadingSpinner size="lg" />
-                </div>
-              ) : contactsError ? (
-                <div className="p-6">
-                  <ErrorMessage message={contactsError.message || 'Failed to load contacts'} />
-                </div>
-              ) : (
-                <div className={isGridView ? 'grid grid-cols-1 gap-4' : 'space-y-3'}>
-                  {filteredContacts.length > 0 ? (
-                    filteredContacts.slice(0, 20).map((contact) => (
-                      <div key={contact.id} className="bg-white rounded-xl shadow-md border border-gray-200 p-4 hover:shadow-lg transition-shadow">
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-1">{contact.name}</h3>
-                            <p className="text-sm text-gray-500 mb-2">{contact.email || 'No email'}</p>
-                            
-                            <div className="flex items-center space-x-3 mb-3">
-                              <div className="flex items-center space-x-1">
-                                <PhoneIcon className="h-4 w-4 text-gray-400" />
-                                <span className="text-sm text-gray-600">{contact.phone || 'No phone'}</span>
-                              </div>
-                              {contact.whatsapp_number && (
-                                <div className="flex items-center space-x-1">
-                                  <span className="text-green-500">📱</span>
-                                  <span className="text-sm text-green-600">WhatsApp</span>
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div className="flex items-center space-x-2 mb-3">
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTrustLevelColor(contact.trust_level)}`}>
-                                {getTrustLevelText(contact.trust_level)}
-                              </span>
-                              
-                              {contact.mobile_money_provider && (
-                                <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                                  {contact.mobile_money_provider}
-                                </span>
-                              )}
-                            </div>
-                            
-                            <div className="text-sm text-gray-500">
-                              <span>{contact.district}</span>
-                              {contact.village && <span>, {contact.village}</span>}
-                            </div>
-                          </div>
-                          
-                          <div className="flex flex-col space-y-2 ml-4">
-                            <button
-                              onClick={() => handleQuickView(contact)}
-                              className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
-                            >
-                              <EyeIcon className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleEditContact(contact)}
-                              className="p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-                            >
-                              <PencilIcon className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                        
-                        {/* Mobile Action Row */}
-                        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                          <div className="text-sm font-medium text-gray-900">
-                            UGX {(contact.customer_lifetime_value || 0).toLocaleString()}
-                          </div>
-                          
-                          <div className="flex space-x-2">
-                            {contact.whatsapp_number && (
-                              <button 
-                                onClick={() => handleWhatsAppContact(contact.whatsapp_number!, contact.name)}
-                                className="p-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors active:scale-95"
-                                title={`WhatsApp ${contact.name}`}
-                              >
-                                <ChatBubbleLeftRightIcon className="h-4 w-4" />
-                              </button>
-                            )}
-                            {contact.phone && (
-                              <button 
-                                onClick={() => handleCallContact(contact.phone!)}
-                                className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors active:scale-95"
-                                title={`Call ${contact.name}`}
-                              >
-                                <PhoneIcon className="h-4 w-4" />
-                              </button>
-                            )}
-                            {contact.phone && (
-                              <button 
-                                onClick={() => handleSMSContact(contact.phone!, contact.name)}
-                                className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-colors active:scale-95"
-                                title={`SMS ${contact.name}`}
-                              >
-                                <span className="text-sm font-bold">SMS</span>
-                              </button>
-                            )}
-                            {contact.email && (
-                              <button 
-                                onClick={() => handleEmailContact(contact.email!, contact.name)}
-                                className="p-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors active:scale-95"
-                                title={`Email ${contact.name}`}
-                              >
-                                <EnvelopeIcon className="h-4 w-4" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-12">
-                      <UserGroupIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500 font-medium">No contacts found</p>
-                      <p className="text-gray-400 text-sm">Try adjusting your search or filters</p>
-                    </div>
-                  )}
-                  
-                  {filteredContacts.length > 20 && (
-                    <div className="text-center py-4">
-                      <button className="px-6 py-3 bg-indigo-50 text-indigo-600 rounded-xl font-medium hover:bg-indigo-100 transition-colors">
-                        Load More ({filteredContacts.length - 20} remaining)
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-      {/* Bulk Actions Bar */}
-      {selectedContacts.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <span className="text-sm font-medium text-blue-900">
-                {selectedContacts.length} contact{selectedContacts.length > 1 ? 's' : ''} selected
-              </span>
-              <button
-                onClick={() => setSelectedContacts([])}
-                className="text-xs text-blue-600 hover:text-blue-800 underline"
-              >
-                Clear selection
-              </button>
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={handleBulkExport}
-                className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-              >
-                📊 Export Selected
-              </button>
-              <button
-                onClick={handleBulkSendMessage}
-                className="px-3 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
-              >
-                💬 Send Message
-              </button>
-              <div className="relative">
-                <button
-                  onClick={() => setShowBulkActions(!showBulkActions)}
-                  className="px-3 py-1 text-xs bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
-                >
-                  ⚙️ Bulk Actions ▼
-                </button>
-                {showBulkActions && (
-                  <div className="absolute right-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
-                    <div className="py-1">
-                      <button
-                        onClick={() => {
-                          setBulkActionType('update_status');
-                          setShowBulkActions(false);
-                        }}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        Update Status
-                      </button>
-                      <button
-                        onClick={() => {
-                          setBulkActionType('update_trust');
-                          setShowBulkActions(false);
-                        }}
-                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        Update Trust Level
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleBulkDelete();
-                          setShowBulkActions(false);
-                        }}
-                        className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                      >
-                        Delete Selected
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bulk Action Modals */}
-      {bulkActionType === 'update_status' && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Update Status for {selectedContacts.length} Contacts</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">New Status</label>
-                  <select
-                    value={bulkActionValue}
-                    onChange={(e) => setBulkActionValue(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    <option value="">Select Status</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                    <option value="prospect">Prospect</option>
-                    <option value="customer">Customer</option>
-                  </select>
-                </div>
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    onClick={() => {
-                      setBulkActionType(null);
-                      setBulkActionValue('');
-                    }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (bulkActionValue) {
-                        handleBulkUpdateStatus(bulkActionValue);
-                        setBulkActionType(null);
-                        setBulkActionValue('');
-                      }
-                    }}
-                    disabled={!bulkActionValue}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    Update Status
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {bulkActionType === 'update_trust' && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Update Trust Level for {selectedContacts.length} Contacts</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">New Trust Level</label>
-                  <select
-                    value={bulkActionValue}
-                    onChange={(e) => setBulkActionValue(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    <option value="">Select Trust Level</option>
-                    <option value="1">Very Low (1)</option>
-                    <option value="2">Low (2)</option>
-                    <option value="3">Medium (3)</option>
-                    <option value="4">High (4)</option>
-                    <option value="5">Very High (5)</option>
-                  </select>
-                </div>
-                <div className="flex justify-end space-x-3 pt-4">
-                  <button
-                    onClick={() => {
-                      setBulkActionType(null);
-                      setBulkActionValue('');
-                    }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (bulkActionValue) {
-                        handleBulkUpdateTrustLevel(parseInt(bulkActionValue));
-                        setBulkActionType(null);
-                        setBulkActionValue('');
-                      }
-                    }}
-                    disabled={!bulkActionValue}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    Update Trust Level
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Contacts Table */}
-      <div className="bg-white shadow rounded-lg">
-          {contactsLoading ? (
-                <div className="p-8 text-center">
-                  <LoadingSpinner size="lg" />
-                </div>
-          ) : contactsError ? (
-                <div className="p-8">
-                  <ErrorMessage message={contactsError.message || 'Failed to load contacts'} />
-                </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      <input
-                        type="checkbox"
-                        checked={selectAll}
-                        onChange={(e) => handleSelectAll(e.target.checked)}
-                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                      />
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Contact
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Communication
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Trust Level
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Mobile Money
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Location
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Value
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                      {/* Virtual scrolling for large datasets - showing first 50 for performance */}
-                      {filteredContacts.length > 0 ? (
-                        filteredContacts.slice(0, 50).map((contact) => (
-                          <tr key={contact.id} className={`hover:bg-gray-50 ${selectedContacts.includes(contact.id) ? 'bg-blue-50' : ''}`}>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <input
-                                type="checkbox"
-                                checked={selectedContacts.includes(contact.id)}
-                                onChange={(e) => handleSelectContact(contact.id, e.target.checked)}
-                                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                              />
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">{contact.name}</div>
-                                <div className="text-sm text-gray-500">{contact.email}</div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                {(contact as any)?.contact_type?.name || 'Unknown'}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center space-x-3">
-                                <div className="flex items-center space-x-2">
-                                  {contact.whatsapp_number && (
-                                    <button 
-                                      onClick={() => handleWhatsAppContact(contact.whatsapp_number!, contact.name)}
-                                      className="p-1.5 bg-green-50 text-green-600 rounded-md hover:bg-green-100 transition-colors active:scale-95"
-                                      title="WhatsApp"
-                                    >
-                                      <ChatBubbleLeftRightIcon className="h-3 w-3" />
-                                    </button>
-                                  )}
-                                  {contact.phone && (
-                                    <>
-                                      <button 
-                                        onClick={() => handleCallContact(contact.phone!)}
-                                        className="p-1.5 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors active:scale-95"
-                                        title="Call"
-                                      >
-                                        <PhoneIcon className="h-3 w-3" />
-                                      </button>
-                                      <button 
-                                        onClick={() => handleSMSContact(contact.phone!, contact.name)}
-                                        className="p-1.5 bg-purple-50 text-purple-600 rounded-md hover:bg-purple-100 transition-colors active:scale-95"
-                                        title="SMS"
-                                      >
-                                        <span className="text-xs font-bold">SMS</span>
-                                      </button>
-                                    </>
-                                  )}
-                                  {contact.email && (
-                                    <button 
-                                      onClick={() => handleEmailContact(contact.email!, contact.name)}
-                                      className="p-1.5 bg-gray-50 text-gray-600 rounded-md hover:bg-gray-100 transition-colors active:scale-95"
-                                      title="Email"
-                                    >
-                                      <EnvelopeIcon className="h-3 w-3" />
-                                    </button>
-                                  )}
-                                </div>
-                                <div className="ml-2">
-                                  <div className="text-sm text-gray-900 flex items-center">
-                                    <span className="mr-1">{getChannelIcon(contact.preferred_communication_channel)}</span>
-                                    {contact.phone || 'No phone'}
-                                  </div>
-                                  {contact.whatsapp_number && (
-                                    <div className="text-sm text-green-600">📱 WhatsApp</div>
-                                  )}
-                                  {contact.email && (
-                                    <div className="text-sm text-gray-500">{contact.email}</div>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTrustLevelColor(contact.trust_level)}`}>
-                                {getTrustLevelText(contact.trust_level)}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              {contact.mobile_money_provider ? (
-                                <div>
-                                  <div className="text-sm font-medium text-gray-900">{contact.mobile_money_provider}</div>
-                                  <div className="text-sm text-gray-500">{contact.mobile_money_number}</div>
-                                </div>
-                              ) : (
-                                <span className="text-sm text-gray-400">None</span>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div>
-                                <div className="text-sm text-gray-900">{contact.district}</div>
-                                <div className="text-sm text-gray-500">{contact.village}</div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-900">
-                                UGX {(contact.customer_lifetime_value || 0).toLocaleString()}
-                              </div>
-                              <div className="flex space-x-1 mt-1">
-                                {contact.has_bank_account && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                    Bank
-                                  </span>
-                                )}
-                                {contact.prefers_cash_transactions && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                                    Cash
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                              <div className="flex items-center space-x-2">
-                                <button
-                                  onClick={() => handleViewContact(contact)}
-                                  className="text-indigo-600 hover:text-indigo-900"
-                                  title="View contact details"
-                                >
-                                  <EyeIcon className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleEditContact(contact)}
-                                  className="text-indigo-600 hover:text-indigo-900"
-                                  title="Edit contact"
-                                >
-                                  <PencilIcon className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteContact(contact.id)}
-                                  className="text-red-600 hover:text-red-900"
-                                  title="Delete contact"
-                                  disabled={deleteContactMutation.isPending}
-                                >
-                                  <TrashIcon className="h-4 w-4" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      ) : null}
-                </tbody>
-              </table>
-                  {filteredContacts.length === 0 && (
-                    <div className="text-center py-8">
-                      <p className="text-gray-500">No contacts found.</p>
-                    </div>
-                  )}
-
-                  {/* Performance indicator for large datasets */}
-                  {filteredContacts.length > 50 && (
-                    <div className="text-center py-4 bg-blue-50 border-t">
-                      <p className="text-sm text-blue-600">
-                        Showing first 50 of {filteredContacts.length} contacts.
-                        <button
-                          onClick={() => {
-                            // TODO: Implement full pagination
-                            alert('Full pagination coming soon!');
-                          }}
-                          className="ml-2 text-blue-700 underline hover:text-blue-800"
-                        >
-                          Load more
-                        </button>
-                      </p>
-                    </div>
-                  )}
-            </div>
-          )}
-        </div>
-      </div>
+          <Suspense fallback={<ModalFallback />}>
+            <EnhancedContactsView
+              contacts={filteredContacts.paginatedContacts}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              sortField={sortField as keyof Contact}
+              sortDirection={sortDirection}
+              onSort={(field) => handleSort(field as string)}
+              currentPage={currentPage}
+              totalPages={filteredContacts.totalPages}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+              viewMode={contactViewMode}
+              onViewModeChange={setContactViewMode}
+              showAdvancedFilters={showAdvancedFilters}
+              onToggleAdvancedFilters={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              advancedFilters={advancedFilters}
+              onAdvancedFiltersChange={setAdvancedFilters}
+              uniqueDistricts={filteredContacts.uniqueDistricts}
+              uniqueProviders={filteredContacts.uniqueProviders}
+              uniqueChannels={filteredContacts.uniqueChannels}
+              hasActiveFilters={hasActiveFilters()}
+              onClearFilters={clearAllFilters}
+              onViewContact={handleViewContact}
+              onEditContact={handleEditContact}
+              onDeleteContact={handleDeleteContact}
+              isLoading={contactsLoading}
+              getTrustLevelColor={getTrustLevelColor}
+              getTrustLevelText={getTrustLevelText}
+              getChannelIcon={getChannelIcon}
+              handleWhatsAppContact={handleWhatsAppContact}
+              handleCallContact={handleCallContact}
+              handleSMSContact={handleSMSContact}
+              handleEmailContact={handleEmailContact}
+            />
+          </Suspense>
         )}
 
         {/* Pipeline Section */}

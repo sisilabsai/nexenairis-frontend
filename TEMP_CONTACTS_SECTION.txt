@@ -1,0 +1,64 @@
+        {/* Contacts Section */}
+        {selectedView === 'contacts' && (
+          <Suspense fallback={<ModalFallback />}>
+            <EnhancedContactsView
+              contacts={filteredContacts.filteredContacts}
+              paginatedContacts={filteredContacts.paginatedContacts}
+              isLoading={contactsLoading}
+              error={contactsError}
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              contactFilters={contactFilters}
+              onFilterChange={setContactFilters}
+              advancedFilters={advancedFilters}
+              onAdvancedFiltersChange={setAdvancedFilters}
+              viewMode={contactViewMode}
+              onViewModeChange={setContactViewMode}
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={handleSort}
+              currentPage={currentPage}
+              totalPages={filteredContacts.totalPages}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+              uniqueDistricts={filteredContacts.uniqueDistricts}
+              uniqueProviders={filteredContacts.uniqueProviders}
+              uniqueChannels={filteredContacts.uniqueChannels}
+              hasActiveFilters={hasActiveFilters()}
+              onClearFilters={clearAllFilters}
+              onAddContact={handleAddContact}
+              onEditContact={handleEditContact}
+              onViewContact={handleViewContact}
+              onDeleteContact={handleDeleteContact}
+              onImportContacts={() => setShowImportModal(true)}
+              getTrustLevelColor={getTrustLevelColor}
+              getTrustLevelText={getTrustLevelText}
+              getChannelIcon={getChannelIcon}
+              selectedContacts={selectedContacts}
+              onSelectContact={handleSelectContact}
+              onSelectAll={handleSelectAll}
+              selectAll={selectAll}
+              bulkActions={{
+                showBulkActions,
+                bulkActionType,
+                bulkActionValue,
+                onShowBulkActionsChange: setShowBulkActions,
+                onBulkActionTypeChange: setBulkActionType,
+                onBulkActionValueChange: setBulkActionValue,
+                onBulkExport: handleBulkExport,
+                onBulkSendMessage: handleBulkSendMessage,
+                onBulkDelete: handleBulkDelete,
+                onBulkUpdateStatus: handleBulkUpdateStatus,
+                onBulkUpdateTrustLevel: handleBulkUpdateTrustLevel,
+              }}
+              communications={{
+                onWhatsApp: handleWhatsAppContact,
+                onCall: handleCallContact,
+                onSMS: handleSMSContact,
+                onEmail: handleEmailContact,
+              }}
+              deleteContactMutation={deleteContactMutation}
+            />
+          </Suspense>
+        )}
