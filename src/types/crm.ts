@@ -34,10 +34,24 @@ export interface ContactImportResults {
   updated: number;
   skipped: number;
   failed: number;
+  duplicates: number;
   errors: Array<{
     row: number;
     name: string;
     error: string;
+  }>;
+  duplicate_details: Array<{
+    row: number;
+    name: string;
+    existing_contact_id: number;
+    duplicate_basis: string;
+  }>;
+  created_contacts: Array<{
+    id: number;
+    name: string;
+    email?: string | null;
+    phone?: string | null;
+    created_at: string;
   }>;
 }
 

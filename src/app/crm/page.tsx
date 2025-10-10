@@ -268,7 +268,7 @@ export default function CrmPage() {
     setShowContactModal(true);
   };
 
-  const handleImportContacts = async (importData: any[]) => {
+  const handleImportContacts = async (importData: any[]): Promise<ContactImportResponse> => {
     try {
       console.log('Importing contacts:', importData.length, 'contacts');
       
@@ -281,26 +281,34 @@ export default function CrmPage() {
 
       if (result.success && result.data) {
         const importResponse = result.data as ContactImportResponse;
-        const { imported, updated, skipped, failed } = importResponse.results;
         
-        let message = `Import completed successfully!\n\n✅ Imported: ${imported}\n🔄 Updated: ${updated}\n⏭️ Skipped: ${skipped}`;
-        
-        if (failed > 0) {
-          message += `\n❌ Failed: ${failed}`;
-          if (importResponse.results.errors && importResponse.results.errors.length > 0) {
-            message += '\n\nFirst few errors:';
-            importResponse.results.errors.slice(0, 3).forEach(error => {
-              message += `\n• Row ${error.row} (${error.name}): ${error.error}`;
-            });
-          }
-        }
-        
-        alert(message);
+        // Refetch data to show updated contacts
         refetchContacts();
         refetchSummary();
-        setShowImportModal(false);
+        
+        // Return the response for the modal to display
+        return importResponse;
       } else {
-        alert(`Import failed: ${result.message || 'Unknown error'}`);
+        // Return error response
+        return {
+          success: false,
+          message: result.message || 'Unknown error',
+          results: {
+            total_processed: 0,
+            imported: 0,
+            updated: 0,
+            skipped: 0,
+            failed: importData.length,
+            duplicates: 0,
+            errors: [{
+              row: 1,
+              name: 'Import Error',
+              error: result.message || 'Unknown error'
+            }],
+            duplicate_details: [],
+            created_contacts: []
+          }
+        };
       }
     } catch (error: any) {
       console.error('Import error:', error);
@@ -317,7 +325,26 @@ export default function CrmPage() {
         errorMessage = error.message;
       }
       
-      alert(`Import failed: ${errorMessage}`);
+      // Return error response instead of throwing
+      return {
+        success: false,
+        message: errorMessage,
+        results: {
+          total_processed: 0,
+          imported: 0,
+          updated: 0,
+          skipped: 0,
+          failed: importData.length,
+          duplicates: 0,
+          errors: [{
+            row: 1,
+            name: 'System Error',
+            error: errorMessage
+          }],
+          duplicate_details: [],
+          created_contacts: []
+        }
+      };
     }
   };
 
