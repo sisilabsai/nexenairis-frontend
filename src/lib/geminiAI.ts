@@ -1,11 +1,11 @@
 /**
  * Aida AI Service
- * Real AI-powered insights using Google's Gemini 2.5 Flash (branded as Aida)
+ * Real AI-powered insights using Google's Gemini 2.0 Flash (branded as Aida)
  * API: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent
  */
 
 const GEMINI_API_KEY = 'AIzaSyCXWTToQeXV_TQ7q5JtwaSSvPyJVX7Hg7c';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
 interface GeminiRequest {
   contents: Array<{
