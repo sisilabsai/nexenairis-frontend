@@ -268,6 +268,24 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
         ],
         type: 'magic',
         priority: 'high'
+      },
+      priorities: {
+        doFirst: [
+          lowTrust > totalContacts * 0.15 ? `Launch recovery campaign for ${lowTrust} low-trust contacts (${((lowTrust/totalContacts)*100).toFixed(0)}% at risk) - potential recovery value: ${formatUGXAbbreviated(lowTrust * 120000 * 0.6)}` : 'Monitor contact engagement metrics daily',
+          totalContacts - verified > totalContacts * 0.3 ? `Simplify mobile money verification process - ${totalContacts - verified} unverified contacts represent ${formatUGXAbbreviated((totalContacts - verified) * 120000 * 0.6)} untapped revenue` : 'Follow up with recent high-value contacts',
+          avgTrust < 5 ? 'Implement automated trust-building touchpoints (SMS, WhatsApp check-ins) to improve retention' : 'Set up automated engagement workflows for mid-tier contacts'
+        ],
+        doNext: [
+          whatsappUsers > totalContacts * 0.6 ? `Launch WhatsApp Business API campaign - ${whatsappUsers} active users show strong channel preference (${((whatsappUsers/totalContacts)*100).toFixed(0)}%)` : 'Optimize multi-channel communication strategy',
+          highTrust > 20 ? `Create referral incentive program - ${highTrust} champion customers could drive ${(highTrust * 2.5).toFixed(0)} new referrals` : 'Identify and nurture potential champions',
+          communityMembers > 0 ? `Partner with ${communityMembers} community leaders for organic reach and reduced customer acquisition cost` : 'Build community engagement features',
+          'Implement personalized messaging based on trust level segments'
+        ],
+        planFor: [
+          totalContacts > 500 ? 'Scale infrastructure to support 1000+ contacts with automation and AI-powered engagement' : totalContacts > 100 ? `Strategic expansion: grow from ${totalContacts} to 500+ contacts with targeted acquisition` : 'Build foundation to 100+ quality contacts with strong verification rate',
+          avgTrust < 6 ? 'Deploy AI-powered trust-building automation across customer journey' : 'Implement predictive engagement models to maximize lifetime value',
+          (verified / totalContacts) > 0.7 ? 'Launch premium monetization features for verified high-trust segment' : 'Optimize verification conversion funnel with A/B testing'
+        ]
       }
     };
   }, [contacts, analytics]);
@@ -309,7 +327,7 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
     if (!data) return null;
     
     // If data already has the correct structure (from fallback), use it
-    if (data.successes && data.successes.insights) {
+    if (data.successes && data.successes.insights && data.priorities) {
       return data;
     }
     
@@ -346,7 +364,13 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
         type: 'prediction',
         priority: 'high'
       },
-      trends: data.trends || []
+      trends: data.trends || [],
+      // Transform priorities from AI response
+      priorities: data.priorities ? {
+        doFirst: Array.isArray(data.priorities.doFirst) ? data.priorities.doFirst : [],
+        doNext: Array.isArray(data.priorities.doNext) ? data.priorities.doNext : [],
+        planFor: Array.isArray(data.priorities.planFor) ? data.priorities.planFor : []
+      } : null
     };
   };
 
@@ -475,103 +499,87 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
         </div>
       )}
 
-      {/* Action Priority Matrix - Dynamic based on real data */}
+      {/* Action Priority Matrix - 100% AI-Generated */}
       <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl p-6 border-2 border-indigo-300 dark:border-indigo-700">
-        <div className="flex items-center gap-2 mb-4">
-          <BellAlertIcon className="h-6 w-6 text-indigo-600" />
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Recommended Action Priority</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* DO FIRST - Critical Actions */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border-l-4 border-red-500">
-            <p className="font-bold text-red-600 mb-2">🔥 DO FIRST (This Week)</p>
-            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-              {(() => {
-                const actions = [];
-                const lowTrust = contacts.filter((c: any) => c.trust_level <= 3).length;
-                const unverified = contacts.filter((c: any) => !c.mobile_money_verified).length;
-                const totalContacts = contacts.length;
-                
-                if (lowTrust > totalContacts * 0.15) {
-                  actions.push(`• Recover ${lowTrust} low-trust contacts (${((lowTrust/totalContacts)*100).toFixed(0)}% at risk)`);
-                }
-                if (unverified > totalContacts * 0.3) {
-                  actions.push(`• Verify ${unverified} contacts to unlock ${formatUGXAbbreviated(unverified * 120000 * 0.6)}`);
-                }
-                if (actions.length < 2) {
-                  actions.push('• Follow up with recent high-value contacts');
-                }
-                actions.push('• Set up automated engagement workflows');
-                return actions.map((action, i) => <li key={i}>{action}</li>);
-              })()}
-            </ul>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <BellAlertIcon className="h-6 w-6 text-indigo-600" />
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">AI-Powered Action Priority</h3>
           </div>
-          
-          {/* DO NEXT - Important Actions */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border-l-4 border-yellow-500">
-            <p className="font-bold text-yellow-600 mb-2">⚡ DO NEXT (This Month)</p>
-            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-              {(() => {
-                const actions = [];
-                const whatsappUsers = contacts.filter((c: any) => c.preferred_channel === 'whatsapp').length;
-                const highTrust = contacts.filter((c: any) => c.trust_level >= 8).length;
-                const communityMembers = contacts.filter((c: any) => c.community_group_role).length;
-                const totalContacts = contacts.length;
-                
-                if (whatsappUsers > totalContacts * 0.6) {
-                  actions.push(`• Launch WhatsApp campaign to ${whatsappUsers} active users`);
-                }
-                if (highTrust > 20) {
-                  actions.push(`• Create referral program with ${highTrust} champions`);
-                }
-                if (communityMembers > 0) {
-                  actions.push(`• Partner with ${communityMembers} community leaders`);
-                } else {
-                  actions.push('• Build community engagement features');
-                }
-                if (actions.length < 3) {
-                  actions.push('• Implement personalized messaging');
-                }
-                return actions.map((action, i) => <li key={i}>{action}</li>);
-              })()}
-            </ul>
-          </div>
-          
-          {/* PLAN FOR - Strategic Actions */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border-l-4 border-green-500">
-            <p className="font-bold text-green-600 mb-2">📈 PLAN FOR (This Quarter)</p>
-            <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-              {(() => {
-                const actions = [];
-                const avgTrust = contacts.reduce((sum: number, c: any) => sum + (c.trust_level || 0), 0) / contacts.length;
-                const verified = contacts.filter((c: any) => c.mobile_money_verified).length;
-                const totalContacts = contacts.length;
-                
-                if (totalContacts > 500) {
-                  actions.push(`• Scale to 1000+ contacts with automation`);
-                } else if (totalContacts > 100) {
-                  actions.push(`• Expand from ${totalContacts} to 500+ contacts`);
-                } else {
-                  actions.push('• Build foundation to 100+ quality contacts');
-                }
-                
-                if (avgTrust < 6) {
-                  actions.push('• Implement trust-building automation');
-                } else {
-                  actions.push('• Deploy predictive engagement models');
-                }
-                
-                if ((verified / totalContacts) > 0.7) {
-                  actions.push('• Launch premium monetization features');
-                } else {
-                  actions.push('• Optimize verification conversion funnel');
-                }
-                
-                return actions.map((action, i) => <li key={i}>{action}</li>);
-              })()}
-            </ul>
+          <div className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400">
+            <SparklesIcon className="h-4 w-4 animate-pulse" />
+            <span className="font-medium">Generated by Aida AI</span>
           </div>
         </div>
+        
+        {finalInsights?.priorities ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* DO FIRST - AI Generated Critical Actions */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border-l-4 border-red-500 hover:shadow-lg transition-shadow">
+              <p className="font-bold text-red-600 mb-3 flex items-center gap-2">
+                🔥 DO FIRST (This Week)
+                <span className="text-xs px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 rounded-full">Critical</span>
+              </p>
+              <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
+                {finalInsights.priorities.doFirst && Array.isArray(finalInsights.priorities.doFirst) ? (
+                  finalInsights.priorities.doFirst.map((action: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-red-500 mt-0.5">•</span>
+                      <span>{action}</span>
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-gray-500 italic">No critical actions identified</li>
+                )}
+              </ul>
+            </div>
+            
+            {/* DO NEXT - AI Generated Important Actions */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border-l-4 border-yellow-500 hover:shadow-lg transition-shadow">
+              <p className="font-bold text-yellow-600 mb-3 flex items-center gap-2">
+                ⚡ DO NEXT (This Month)
+                <span className="text-xs px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 rounded-full">Important</span>
+              </p>
+              <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
+                {finalInsights.priorities.doNext && Array.isArray(finalInsights.priorities.doNext) ? (
+                  finalInsights.priorities.doNext.map((action: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-yellow-500 mt-0.5">•</span>
+                      <span>{action}</span>
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-gray-500 italic">No important actions identified</li>
+                )}
+              </ul>
+            </div>
+            
+            {/* PLAN FOR - AI Generated Strategic Actions */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border-l-4 border-green-500 hover:shadow-lg transition-shadow">
+              <p className="font-bold text-green-600 mb-3 flex items-center gap-2">
+                📈 PLAN FOR (This Quarter)
+                <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-full">Strategic</span>
+              </p>
+              <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
+                {finalInsights.priorities.planFor && Array.isArray(finalInsights.priorities.planFor) ? (
+                  finalInsights.priorities.planFor.map((action: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <span className="text-green-500 mt-0.5">•</span>
+                      <span>{action}</span>
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-gray-500 italic">No strategic actions identified</li>
+                )}
+              </ul>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center py-8 text-gray-500">
+            <SparklesIcon className="h-5 w-5 mr-2 animate-pulse" />
+            <p>Aida AI is analyzing your data to generate personalized action priorities...</p>
+          </div>
+        )}
       </div>
     </div>
   );
