@@ -16,6 +16,7 @@ import {
   SparklesIcon,
 } from '@heroicons/react/24/outline';
 import { PipelineApiService } from '../../services/PipelineApiService';
+import { crmApi } from '../../lib/api';
 
 interface AddDealModalProps {
   isOpen: boolean;
@@ -26,11 +27,13 @@ interface AddDealModalProps {
 
 interface DealFormData {
   title: string;
+  contact_id: number | null;
   contact_name: string;
   contact_email: string;
   contact_phone: string;
   company: string;
   expected_value: number;
+  currency: string;
   probability: number;
   expected_close_date: string;
   priority: 'low' | 'medium' | 'high';
@@ -48,11 +51,13 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<DealFormData>({
     title: '',
+    contact_id: null,
     contact_name: '',
     contact_email: '',
     contact_phone: '',
     company: '',
     expected_value: 0,
+    currency: 'UGX',
     probability: 50,
     expected_close_date: '',
     priority: 'medium',
@@ -71,11 +76,13 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
     if (isOpen) {
       setFormData({
         title: '',
+        contact_id: null,
         contact_name: '',
         contact_email: '',
         contact_phone: '',
         company: '',
         expected_value: 0,
+        currency: 'UGX',
         probability: 50,
         expected_close_date: '',
         priority: 'medium',
@@ -151,13 +158,43 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
     setIsSubmitting(true);
     
     try {
+      // Step 1: Create or find the contact first (required by backend)
+      let contactId = formData.contact_id;
+      
+      if (!contactId) {
+        // Create a new contact with the provided information
+        try {
+          const contactResponse: any = await crmApi.createContact({
+            name: formData.contact_name,
+            email: formData.contact_email,
+            phone: formData.contact_phone,
+            company: formData.company || null,
+            contact_type_id: 1, // Default to first contact type (you might want to make this configurable)
+            status: 'active',
+          });
+          
+          contactId = contactResponse.data?.id || contactResponse?.id;
+        } catch (contactError: any) {
+          console.error('Failed to create contact:', contactError);
+          setErrors({ submit: 'Failed to create contact. Please try again.' });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Step 2: Create the deal with the contact_id and all required fields
       const dealData = {
-        ...formData,
-        stage_id: Number(stageId), // Use stage_id instead of sales_pipeline_stage_id
-        sales_pipeline_stage_id: Number(stageId), // Keep both for compatibility
-        tags: formData.tags.length > 0 ? formData.tags.join(',') : null,
+        title: formData.title,
+        contact_id: contactId, // Required by backend
+        description: formData.description || null,
         expected_value: Number(formData.expected_value),
+        currency: formData.currency || 'UGX', // Required by backend
         probability: Number(formData.probability),
+        expected_close_date: formData.expected_close_date,
+        sales_pipeline_stage_id: Number(stageId), // Required by backend
+        source: formData.source || null,
+        notes: formData.tags.length > 0 ? `Tags: ${formData.tags.join(', ')}` : null,
+        assigned_to: null, // You might want to add user selection later
       };
 
       const response = await PipelineApiService.createDeal(dealData);
