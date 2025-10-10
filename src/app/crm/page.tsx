@@ -68,6 +68,12 @@ const SalesOpportunityModal = lazy(() => import('../../components/SalesOpportuni
 const SalesPipelineView = lazy(() => import('../../components/SalesPipelineView'));
 const EnhancedContactsView = lazy(() => import('../../components/crm/EnhancedContactsView'));
 const EnhancedCrmAnalytics = lazy(() => import('../../components/crm/EnhancedCrmAnalytics'));
+// 🚀 Advanced Analytics Components
+const PredictiveInsights = lazy(() => import('../../components/crm/PredictiveInsights'));
+const SmartRecommendations = lazy(() => import('../../components/crm/SmartRecommendations'));
+const CustomerSegmentation = lazy(() => import('../../components/crm/CustomerSegmentation'));
+const RealTimeMetrics = lazy(() => import('../../components/crm/RealTimeMetrics'));
+const NaturalLanguageInsights = lazy(() => import('../../components/crm/NaturalLanguageInsights'));
 
 // Loading fallback for lazy components
 const ModalFallback = () => (
@@ -116,7 +122,7 @@ export default function CrmPage() {
   const [isGridView, setIsGridView] = useState(true);
   const [editingOpportunity, setEditingOpportunity] = useState(null);
   const [showOpportunityModal, setShowOpportunityModal] = useState(false);
-  const [selectedAnalyticsTab, setSelectedAnalyticsTab] = useState<'mobile-money' | 'community' | 'communication' | 'regional' | 'ai-insights' | 'segmentation'>('mobile-money');
+  const [selectedAnalyticsTab, setSelectedAnalyticsTab] = useState<'predictive' | 'recommendations' | 'segmentation-advanced' | 'realtime' | 'nl-insights' | 'mobile-money' | 'community' | 'communication' | 'regional' | 'ai-insights' | 'segmentation'>('predictive');
   const [contactFilters, setContactFilters] = useState({
     trust_level: '',
     district: '',
@@ -1266,6 +1272,11 @@ export default function CrmPage() {
             <div className="border-b border-gray-200">
               <nav className="-mb-px flex space-x-8 overflow-x-auto">
                 {[
+                  { key: 'predictive', label: '🔮 Predictive AI', icon: SparklesIcon },
+                  { key: 'recommendations', label: '💡 Smart Recommendations', icon: SparklesIcon },
+                  { key: 'segmentation-advanced', label: '🎯 Customer Segmentation', icon: UsersIcon },
+                  { key: 'realtime', label: '⚡ Real-Time Metrics', icon: ChartBarIcon },
+                  { key: 'nl-insights', label: '🗣️ Natural Language Insights', icon: ChatBubbleLeftRightIcon },
                   { key: 'mobile-money', label: 'Mobile Money', icon: DevicePhoneMobileIcon },
                   { key: 'community', label: 'Community Groups', icon: UserGroupIcon },
                   { key: 'communication', label: 'Communication', icon: ChatBubbleLeftRightIcon },
@@ -1306,6 +1317,73 @@ export default function CrmPage() {
               
             {/* Analytics Content */}
             <div className="space-y-6">
+              {/* 🔮 Predictive AI Insights */}
+              {selectedAnalyticsTab === 'predictive' && (
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <PredictiveInsights
+                    contacts={contacts || []}
+                    analytics={{
+                      mobileMoneyAnalytics,
+                      communityAnalytics,
+                      communicationAnalytics,
+                      regionalInsights
+                    }}
+                  />
+                </Suspense>
+              )}
+
+              {/* 💡 Smart Recommendations */}
+              {selectedAnalyticsTab === 'recommendations' && (
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <SmartRecommendations
+                    contacts={contacts || []}
+                    analytics={{
+                      mobileMoneyAnalytics,
+                      communityAnalytics,
+                      communicationAnalytics,
+                      regionalInsights
+                    }}
+                  />
+                </Suspense>
+              )}
+
+              {/* 🎯 Advanced Customer Segmentation */}
+              {selectedAnalyticsTab === 'segmentation-advanced' && (
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <CustomerSegmentation contacts={contacts || []} />
+                </Suspense>
+              )}
+
+              {/* ⚡ Real-Time Metrics */}
+              {selectedAnalyticsTab === 'realtime' && (
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <RealTimeMetrics
+                    contacts={contacts || []}
+                    analytics={{
+                      mobileMoneyAnalytics,
+                      communityAnalytics,
+                      communicationAnalytics,
+                      regionalInsights
+                    }}
+                  />
+                </Suspense>
+              )}
+
+              {/* 🗣️ Natural Language Insights */}
+              {selectedAnalyticsTab === 'nl-insights' && (
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <NaturalLanguageInsights
+                    contacts={contacts || []}
+                    analytics={{
+                      mobileMoneyAnalytics,
+                      communityAnalytics,
+                      communicationAnalytics,
+                      regionalInsights
+                    }}
+                  />
+                </Suspense>
+              )}
+
               {/* Mobile Money Analytics */}
               {selectedAnalyticsTab === 'mobile-money' && (
                 <Suspense fallback={<LoadingSpinner size="lg" />}>
