@@ -291,9 +291,17 @@ export default function CrmPage() {
           results: responseData.results
         };
         
-        // Refetch data to show updated contacts
-        refetchContacts();
-        refetchSummary();
+        // Refetch data immediately to show updated contacts
+        await Promise.all([
+          refetchContacts(),
+          refetchSummary()
+        ]);
+        
+        // Force another refetch after a short delay to ensure data is loaded
+        setTimeout(() => {
+          refetchContacts();
+          refetchSummary();
+        }, 2000);
         
         // Return the response for the modal to display
         return importResponse;
@@ -301,9 +309,17 @@ export default function CrmPage() {
         // Alternative format: { success, message, data: { results } }
         const importResponse = result.data as ContactImportResponse;
         
-        // Refetch data to show updated contacts
-        refetchContacts();
-        refetchSummary();
+        // Refetch data immediately to show updated contacts
+        await Promise.all([
+          refetchContacts(),
+          refetchSummary()
+        ]);
+        
+        // Force another refetch after a short delay to ensure data is loaded
+        setTimeout(() => {
+          refetchContacts();
+          refetchSummary();
+        }, 2000);
         
         // Return the response for the modal to display
         return importResponse;
