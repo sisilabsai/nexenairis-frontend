@@ -64,11 +64,16 @@ const InsightCard = ({ icon: Icon, title, insights, type, priority }: any) => {
         <div className="flex-1">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{title}</h3>
           <div className="space-y-2">
-            {insights.map((insight: string, index: number) => (
+            {insights && Array.isArray(insights) && insights.map((insight: string, index: number) => (
               <p key={index} className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                 • {insight}
               </p>
             ))}
+            {(!insights || !Array.isArray(insights) || insights.length === 0) && (
+              <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                No insights available
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -293,8 +298,54 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
     );
   }
 
-  // Use AI data or fallback
-  const finalInsights = aiInsights || insights;
+  // Transform AI data to match expected format if needed
+  const transformAIData = (data: any) => {
+    if (!data) return null;
+    
+    // If data already has the correct structure (from fallback), use it
+    if (data.successes && data.successes.insights) {
+      return data;
+    }
+    
+    // Transform AI response to component format
+    return {
+      executive: data.executive || {
+        healthScore: data.healthScore || 75,
+        healthStatus: data.healthStatus || 'Good',
+        growthRate: data.growthRate || 12,
+        revenuePotential: data.revenuePotential || '0',
+        summary: data.executiveSummary || data.summary || 'Analysis in progress...'
+      },
+      successes: {
+        title: '🎉 What\'s Working Great',
+        insights: Array.isArray(data.successes) ? data.successes : [],
+        type: 'success',
+        priority: 'high'
+      },
+      opportunities: {
+        title: '💡 Growth Opportunities',
+        insights: Array.isArray(data.opportunities) ? data.opportunities : [],
+        type: 'info',
+        priority: 'medium'
+      },
+      warnings: {
+        title: '⚠️ Attention Required',
+        insights: Array.isArray(data.warnings) ? data.warnings : [],
+        type: 'warning',
+        priority: data.warnings && data.warnings.length > 2 ? 'critical' : 'medium'
+      },
+      predictions: {
+        title: '🔮 Predictive Intelligence',
+        insights: Array.isArray(data.predictions) ? data.predictions : [],
+        type: 'prediction',
+        priority: 'high'
+      },
+      trends: data.trends || []
+    };
+  };
+
+  // Use AI data or fallback, transform if needed
+  const finalInsights = transformAIData(aiInsights || insights);
 
   if (!finalInsights) {
     return (
