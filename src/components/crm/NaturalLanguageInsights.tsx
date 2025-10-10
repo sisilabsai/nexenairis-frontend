@@ -23,51 +23,57 @@ interface NaturalLanguageInsightsProps {
   analytics: any;
 }
 
-// Insight Card Component
+// Insight Card Component with enhanced animations
 const InsightCard = ({ icon: Icon, title, insights, type, priority }: any) => {
   const getTypeStyles = () => {
     switch (type) {
       case 'success':
-        return 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-300 dark:border-green-700';
+        return 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-300 dark:border-green-700 shadow-green-200 dark:shadow-green-900/50';
       case 'warning':
-        return 'from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-300 dark:border-yellow-700';
+        return 'from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-300 dark:border-yellow-700 shadow-yellow-200 dark:shadow-yellow-900/50';
       case 'danger':
-        return 'from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border-red-300 dark:border-red-700';
+        return 'from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border-red-300 dark:border-red-700 shadow-red-200 dark:shadow-red-900/50';
       case 'info':
-        return 'from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-300 dark:border-blue-700';
+        return 'from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-blue-300 dark:border-blue-700 shadow-blue-200 dark:shadow-blue-900/50';
       default:
-        return 'from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-300 dark:border-purple-700';
+        return 'from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-300 dark:border-purple-700 shadow-purple-200 dark:shadow-purple-900/50';
     }
   };
 
   const getPriorityBadge = () => {
     const colors = {
-      critical: 'bg-red-500',
-      high: 'bg-orange-500',
-      medium: 'bg-yellow-500',
-      low: 'bg-green-500'
+      critical: 'bg-red-500 shadow-red-500/50',
+      high: 'bg-orange-500 shadow-orange-500/50',
+      medium: 'bg-yellow-500 shadow-yellow-500/50',
+      low: 'bg-green-500 shadow-green-500/50'
     };
     return colors[priority as keyof typeof colors] || colors.medium;
   };
 
   return (
-    <div className={`relative overflow-hidden rounded-xl p-6 bg-gradient-to-br border-2 ${getTypeStyles()} shadow-lg hover:shadow-xl transition-all duration-300`}>
+    <div className={`relative overflow-hidden rounded-xl p-6 bg-gradient-to-br border-2 ${getTypeStyles()} shadow-lg hover:shadow-2xl transition-all duration-300`}>
       {priority && (
         <div className="absolute top-3 right-3">
-          <div className={`h-3 w-3 rounded-full ${getPriorityBadge()} animate-pulse`} />
+          <div className={`h-3 w-3 rounded-full ${getPriorityBadge()} animate-pulse shadow-lg`} />
         </div>
       )}
       <div className="flex items-start gap-4 mb-4">
-        <div className={`p-3 rounded-lg ${type === 'success' ? 'bg-green-100 dark:bg-green-900/30' : type === 'warning' ? 'bg-yellow-100 dark:bg-yellow-900/30' : type === 'danger' ? 'bg-red-100 dark:bg-red-900/30' : type === 'info' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-purple-100 dark:bg-purple-900/30'}`}>
+        <div className={`p-3 rounded-lg transform transition-transform hover:scale-110 ${type === 'success' ? 'bg-green-100 dark:bg-green-900/30' : type === 'warning' ? 'bg-yellow-100 dark:bg-yellow-900/30' : type === 'danger' ? 'bg-red-100 dark:bg-red-900/30' : type === 'info' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-purple-100 dark:bg-purple-900/30'}`}>
           <Icon className={`h-6 w-6 ${type === 'success' ? 'text-green-600' : type === 'warning' ? 'text-yellow-600' : type === 'danger' ? 'text-red-600' : type === 'info' ? 'text-blue-600' : 'text-purple-600'}`} />
         </div>
         <div className="flex-1">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{title}</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+            {title}
+            {priority === 'critical' && <span className="text-xs px-2 py-1 bg-red-500 text-white rounded-full animate-pulse">URGENT</span>}
+          </h3>
           <div className="space-y-2">
             {insights && Array.isArray(insights) && insights.map((insight: string, index: number) => (
-              <p key={index} className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                • {insight}
-              </p>
+              <div key={index} className="flex items-start gap-2 group">
+                <span className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 group-hover:text-purple-600 transition-colors">•</span>
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed flex-1">
+                  {insight}
+                </p>
+              </div>
             ))}
             {(!insights || !Array.isArray(insights) || insights.length === 0) && (
               <p className="text-sm text-gray-500 dark:text-gray-400 italic">
@@ -360,22 +366,29 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-6 text-white">
+      {/* Header with Live Indicator */}
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-6 text-white shadow-2xl">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <LightBulbIcon className="h-8 w-8" />
+              <div className="relative">
+                <LightBulbIcon className="h-8 w-8 animate-pulse" />
+                <div className="absolute -top-1 -right-1 h-3 w-3 bg-green-400 rounded-full animate-ping" />
+              </div>
               <h2 className="text-2xl font-bold">Natural Language Insights</h2>
             </div>
-            <p className="text-purple-100">
-              Powered by <span className="font-semibold">Aida AI</span> - AI-powered analysis in plain English
+            <p className="text-purple-100 flex items-center gap-2">
+              Powered by <span className="font-semibold">Aida AI</span> • 
+              <span className="flex items-center gap-1">
+                <span className="h-2 w-2 bg-green-400 rounded-full animate-pulse" />
+                AI-powered analysis in plain English
+              </span>
             </p>
           </div>
           <button
             onClick={refetch}
             disabled={aiLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transform"
             title="Refresh AI Insights"
           >
             <ArrowPathIcon className={`h-4 w-4 ${aiLoading ? 'animate-spin' : ''}`} />
@@ -387,55 +400,63 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
       {/* Executive Summary */}
       {finalInsights?.executive && <ExecutiveSummary data={finalInsights.executive} />}
 
-      {/* Quick Insights Grid */}
+      {/* Quick Insights Grid - Enhanced with animations */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+        <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
           <TrophyIcon className="h-6 w-6 text-green-600 mb-2" />
           <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{finalInsights?.executive?.healthScore || 'N/A'}</p>
           <p className="text-sm text-gray-600 dark:text-gray-400">Health Score</p>
         </div>
-        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
           <ArrowTrendingUpIcon className="h-6 w-6 text-blue-600 mb-2" />
           <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{finalInsights?.executive?.growthRate || '0'}%</p>
           <p className="text-sm text-gray-600 dark:text-gray-400">Growth Rate</p>
         </div>
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
           <FireIcon className="h-6 w-6 text-purple-600 mb-2" />
           <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{contacts.filter((c: any) => c.trust_level >= 8).length}</p>
           <p className="text-sm text-gray-600 dark:text-gray-400">Champions</p>
         </div>
-        <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
+        <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
           <RocketLaunchIcon className="h-6 w-6 text-orange-600 mb-2" />
           <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{formatUGXAbbreviated(parseFloat(finalInsights?.executive?.revenuePotential || '0'))}</p>
           <p className="text-sm text-gray-600 dark:text-gray-400">Q1 Potential (UGX)</p>
         </div>
       </div>
 
-      {/* Main Insights */}
+      {/* Main Insights with improved styling */}
       <div className="grid grid-cols-1 gap-6">
         {finalInsights?.successes && (
-          <InsightCard
-            icon={TrophyIcon}
-            {...finalInsights.successes}
-          />
+          <div className="transform transition-all duration-300 hover:scale-[1.02]">
+            <InsightCard
+              icon={TrophyIcon}
+              {...finalInsights.successes}
+            />
+          </div>
         )}
         {finalInsights?.opportunities && (
-          <InsightCard
-            icon={LightBulbIcon}
-            {...finalInsights.opportunities}
-          />
+          <div className="transform transition-all duration-300 hover:scale-[1.02]">
+            <InsightCard
+              icon={LightBulbIcon}
+              {...finalInsights.opportunities}
+            />
+          </div>
         )}
         {finalInsights?.warnings && (
-          <InsightCard
-            icon={ExclamationTriangleIcon}
-            {...finalInsights.warnings}
-          />
+          <div className="transform transition-all duration-300 hover:scale-[1.02]">
+            <InsightCard
+              icon={ExclamationTriangleIcon}
+              {...finalInsights.warnings}
+            />
+          </div>
         )}
         {finalInsights?.predictions && (
-          <InsightCard
-            icon={SparklesIcon}
-            {...finalInsights.predictions}
-          />
+          <div className="transform transition-all duration-300 hover:scale-[1.02]">
+            <InsightCard
+              icon={SparklesIcon}
+              {...finalInsights.predictions}
+            />
+          </div>
         )}
       </div>
 
@@ -454,35 +475,100 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
         </div>
       )}
 
-      {/* Action Priority Matrix */}
+      {/* Action Priority Matrix - Dynamic based on real data */}
       <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl p-6 border-2 border-indigo-300 dark:border-indigo-700">
         <div className="flex items-center gap-2 mb-4">
           <BellAlertIcon className="h-6 w-6 text-indigo-600" />
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">Recommended Action Priority</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* DO FIRST - Critical Actions */}
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border-l-4 border-red-500">
             <p className="font-bold text-red-600 mb-2">🔥 DO FIRST (This Week)</p>
             <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-              <li>• Launch low-trust recovery campaign</li>
-              <li>• Simplify mobile money verification</li>
-              <li>• Set up churn prevention alerts</li>
+              {(() => {
+                const actions = [];
+                const lowTrust = contacts.filter((c: any) => c.trust_level <= 3).length;
+                const unverified = contacts.filter((c: any) => !c.mobile_money_verified).length;
+                const totalContacts = contacts.length;
+                
+                if (lowTrust > totalContacts * 0.15) {
+                  actions.push(`• Recover ${lowTrust} low-trust contacts (${((lowTrust/totalContacts)*100).toFixed(0)}% at risk)`);
+                }
+                if (unverified > totalContacts * 0.3) {
+                  actions.push(`• Verify ${unverified} contacts to unlock ${formatUGXAbbreviated(unverified * 120000 * 0.6)}`);
+                }
+                if (actions.length < 2) {
+                  actions.push('• Follow up with recent high-value contacts');
+                }
+                actions.push('• Set up automated engagement workflows');
+                return actions.map((action, i) => <li key={i}>{action}</li>);
+              })()}
             </ul>
           </div>
+          
+          {/* DO NEXT - Important Actions */}
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border-l-4 border-yellow-500">
             <p className="font-bold text-yellow-600 mb-2">⚡ DO NEXT (This Month)</p>
             <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-              <li>• Implement WhatsApp Business API</li>
-              <li>• Create champion referral program</li>
-              <li>• Build community partnerships</li>
+              {(() => {
+                const actions = [];
+                const whatsappUsers = contacts.filter((c: any) => c.preferred_channel === 'whatsapp').length;
+                const highTrust = contacts.filter((c: any) => c.trust_level >= 8).length;
+                const communityMembers = contacts.filter((c: any) => c.community_group_role).length;
+                const totalContacts = contacts.length;
+                
+                if (whatsappUsers > totalContacts * 0.6) {
+                  actions.push(`• Launch WhatsApp campaign to ${whatsappUsers} active users`);
+                }
+                if (highTrust > 20) {
+                  actions.push(`• Create referral program with ${highTrust} champions`);
+                }
+                if (communityMembers > 0) {
+                  actions.push(`• Partner with ${communityMembers} community leaders`);
+                } else {
+                  actions.push('• Build community engagement features');
+                }
+                if (actions.length < 3) {
+                  actions.push('• Implement personalized messaging');
+                }
+                return actions.map((action, i) => <li key={i}>{action}</li>);
+              })()}
             </ul>
           </div>
+          
+          {/* PLAN FOR - Strategic Actions */}
           <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border-l-4 border-green-500">
             <p className="font-bold text-green-600 mb-2">📈 PLAN FOR (This Quarter)</p>
             <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-              <li>• Regional expansion strategy</li>
-              <li>• Advanced segmentation automation</li>
-              <li>• Predictive churn modeling</li>
+              {(() => {
+                const actions = [];
+                const avgTrust = contacts.reduce((sum: number, c: any) => sum + (c.trust_level || 0), 0) / contacts.length;
+                const verified = contacts.filter((c: any) => c.mobile_money_verified).length;
+                const totalContacts = contacts.length;
+                
+                if (totalContacts > 500) {
+                  actions.push(`• Scale to 1000+ contacts with automation`);
+                } else if (totalContacts > 100) {
+                  actions.push(`• Expand from ${totalContacts} to 500+ contacts`);
+                } else {
+                  actions.push('• Build foundation to 100+ quality contacts');
+                }
+                
+                if (avgTrust < 6) {
+                  actions.push('• Implement trust-building automation');
+                } else {
+                  actions.push('• Deploy predictive engagement models');
+                }
+                
+                if ((verified / totalContacts) > 0.7) {
+                  actions.push('• Launch premium monetization features');
+                } else {
+                  actions.push('• Optimize verification conversion funnel');
+                }
+                
+                return actions.map((action, i) => <li key={i}>{action}</li>);
+              })()}
             </ul>
           </div>
         </div>
