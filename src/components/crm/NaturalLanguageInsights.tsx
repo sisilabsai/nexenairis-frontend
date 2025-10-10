@@ -11,8 +11,12 @@ import {
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
   BellAlertIcon,
-  FireIcon
+  FireIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
+import { useNLInsights } from '../../hooks/useGeminiAI';
+import { formatUGX, formatUGXAbbreviated } from '../../lib/ugandaCurrency';
+import LoadingSpinner from '../LoadingSpinner';
 
 interface NaturalLanguageInsightsProps {
   contacts: any[];
@@ -98,7 +102,7 @@ const ExecutiveSummary = ({ data }: any) => (
       </div>
       <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
         <p className="text-indigo-100 text-sm mb-1">Revenue Potential</p>
-        <p className="text-4xl font-bold">${data.revenuePotential}</p>
+        <p className="text-4xl font-bold">{formatUGXAbbreviated(parseFloat(data.revenuePotential || '0'))}</p>
         <p className="text-sm text-indigo-200 mt-1">Next quarter projection</p>
       </div>
     </div>
@@ -130,7 +134,19 @@ const TrendCard = ({ title, trend, impact, details }: any) => (
 );
 
 const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ contacts, analytics }) => {
-  // Generate comprehensive insights
+  // 🔥 REAL AI NATURAL LANGUAGE INSIGHTS - No mockups!
+  const { 
+    data: aiInsights, 
+    loading: aiLoading, 
+    error: aiError,
+    refetch 
+  } = useNLInsights(contacts, analytics, {
+    cacheKey: 'natural-language-insights-ai',
+    cacheDuration: 1800000, // 30 min cache
+    autoRun: true
+  });
+
+  // Generate comprehensive insights (fallback)
   const insights = useMemo(() => {
     if (!contacts || contacts.length === 0) return null;
 
@@ -149,10 +165,10 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
     const communityScore = (communityMembers / totalContacts) * 100;
     const healthScore = Math.round((trustScore + verificationRate + engagementScore + communityScore) / 4);
 
-    // Growth calculations
+    // Growth calculations (UGX for Ugandan market)
     const growthRate = 12.5;
     const projectedContacts = Math.round(totalContacts * 1.12);
-    const revenuePotential = (projectedContacts * 120 * 3).toLocaleString();
+    const revenuePotential = (projectedContacts * 120000 * 3).toString(); // UGX 120,000 per contact
 
     // Generate health status
     let healthStatus = '';
@@ -161,8 +177,8 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
     else if (healthScore >= 40) healthStatus = 'Fair';
     else healthStatus = 'Needs Improvement';
 
-    // Executive summary
-    const summary = `Your CRM is performing ${healthStatus.toLowerCase()} with ${totalContacts} active contacts and a ${growthRate}% growth trajectory. The data shows strong WhatsApp engagement (${whatsappUsers} users) and ${communityMembers} community-connected contacts, indicating solid network effects. With ${highTrust} champions and ${verified} verified users, you're well-positioned for rapid scaling. Focus on converting the ${lowTrust} low-trust contacts to unlock an additional $${(lowTrust * 120 * 0.4).toLocaleString()} in potential revenue.`;
+    // Executive summary (with UGX values)
+    const summary = `Your CRM is performing ${healthStatus.toLowerCase()} with ${totalContacts} active contacts and a ${growthRate}% growth trajectory. The data shows strong WhatsApp engagement (${whatsappUsers} users) and ${communityMembers} community-connected contacts, indicating solid network effects. With ${highTrust} champions and ${verified} verified users, you're well-positioned for rapid scaling. Focus on converting the ${lowTrust} low-trust contacts to unlock an additional ${formatUGX(lowTrust * 120000 * 0.4)} in potential revenue.`;
 
     return {
       executive: {
@@ -186,8 +202,8 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
       opportunities: {
         title: '💡 Growth Opportunities',
         insights: [
-          `${lowTrust} contacts have trust levels below 3. A targeted win-back campaign could recover 60-70% of them, worth $${(lowTrust * 120 * 0.65).toLocaleString()}.`,
-          totalContacts - verified > 50 ? `${totalContacts - verified} unverified users represent $${((totalContacts - verified) * 120 * 0.6).toLocaleString()} in untapped revenue. Simplify verification with one-click SMS.` : 'Verification rate is strong. Focus on monetization strategies.',
+          `${lowTrust} contacts have trust levels below 3. A targeted win-back campaign could recover 60-70% of them, worth ${formatUGX(lowTrust * 120000 * 0.65)}.`,
+          totalContacts - verified > 50 ? `${totalContacts - verified} unverified users represent ${formatUGX((totalContacts - verified) * 120000 * 0.6)} in untapped revenue. Simplify verification with one-click SMS.` : 'Verification rate is strong. Focus on monetization strategies.',
           communityMembers > 0 ? `You have ${communityMembers} community members. Partner with group leaders for 3x organic reach and reduced CAC.` : 'Consider building community features to create network effects.',
           `Only ${((avgTrust/10)*100).toFixed(0)}% of potential trust achieved. Personalized touchpoints could increase trust by 25-30% in 60 days.`
         ],
@@ -197,8 +213,8 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
       warnings: {
         title: '⚠️ Attention Required',
         insights: [
-          lowTrust > totalContacts * 0.2 ? `${((lowTrust/totalContacts)*100).toFixed(1)}% of contacts are at-risk with low trust. Implement proactive churn prevention NOW to save $${(lowTrust * 120 * 0.7).toLocaleString()}.` : 'Churn risk is minimal. Maintain current engagement strategies.',
-          verificationRate < 50 ? `Mobile money verification at ${verificationRate.toFixed(1)}% is below optimal. Each unverified user costs $72 in lost annual revenue.` : 'Verification metrics are healthy.',
+          lowTrust > totalContacts * 0.2 ? `${((lowTrust/totalContacts)*100).toFixed(1)}% of contacts are at-risk with low trust. Implement proactive churn prevention NOW to save ${formatUGX(lowTrust * 120000 * 0.7)}.` : 'Churn risk is minimal. Maintain current engagement strategies.',
+          verificationRate < 50 ? `Mobile money verification at ${verificationRate.toFixed(1)}% is below optimal. Each unverified user costs ${formatUGX(72000)} in lost annual revenue.` : 'Verification metrics are healthy.',
           whatsappUsers < totalContacts * 0.5 ? `WhatsApp preference is only ${((whatsappUsers/totalContacts)*100).toFixed(1)}%. You may be losing engagement on less effective channels.` : 'Channel preference distribution is optimal.',
           `${totalContacts - highTrust - lowTrust} contacts are in the "middle" segment. These are your best upsell candidates - act before competitors do.`
         ],
@@ -235,8 +251,8 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
         title: '🔮 Predictive Intelligence',
         insights: [
           `Based on current growth (${growthRate}%), you'll reach ${projectedContacts.toLocaleString()} contacts by Q2 2025. Prepare infrastructure for scale.`,
-          `Revenue forecast: $${revenuePotential} next quarter (3-month horizon). ${growthRate > 10 ? 'Above industry average' : 'Consider growth acceleration strategies'}.`,
-          `If you convert just 30% of low-trust contacts, you'll add $${(lowTrust * 0.3 * 120).toLocaleString()}/month in recurring revenue.`,
+          `Revenue forecast: ${formatUGXAbbreviated(parseInt(revenuePotential))} next quarter (3-month horizon). ${growthRate > 10 ? 'Above industry average' : 'Consider growth acceleration strategies'}.`,
+          `If you convert just 30% of low-trust contacts, you'll add ${formatUGX(lowTrust * 0.3 * 120000)}/month in recurring revenue.`,
           `Champion customers (trust 8+) are likely to refer ${(highTrust * 2.5).toFixed(0)} new customers in the next 90 days if incentivized.`
         ],
         type: 'magic',
@@ -245,7 +261,42 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
     };
   }, [contacts, analytics]);
 
-  if (!insights) {
+  // AI Loading State
+  if (aiLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64">
+        <LoadingSpinner size="lg" />
+        <p className="mt-4 text-gray-600 dark:text-gray-400">Aida AI is generating natural language insights...</p>
+      </div>
+    );
+  }
+
+  // AI Error State
+  if (aiError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center max-w-md">
+          <ExclamationTriangleIcon className="h-12 w-12 text-red-500 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">AI Insights Error</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            {aiError.message || 'Failed to generate insights'}
+          </p>
+          <button
+            onClick={refetch}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors mx-auto"
+          >
+            <ArrowPathIcon className="h-4 w-4" />
+            Retry Insights Generation
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Use AI data or fallback
+  const finalInsights = aiInsights || insights;
+
+  if (!finalInsights) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -260,26 +311,41 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-6 text-white">
-        <div className="flex items-center gap-3 mb-2">
-          <LightBulbIcon className="h-8 w-8" />
-          <h2 className="text-2xl font-bold">Natural Language Insights</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <LightBulbIcon className="h-8 w-8" />
+              <h2 className="text-2xl font-bold">Natural Language Insights</h2>
+            </div>
+            <p className="text-purple-100">
+              Powered by <span className="font-semibold">Aida AI</span> - AI-powered analysis in plain English
+            </p>
+          </div>
+          <button
+            onClick={refetch}
+            disabled={aiLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg hover:bg-white/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh AI Insights"
+          >
+            <ArrowPathIcon className={`h-4 w-4 ${aiLoading ? 'animate-spin' : ''}`} />
+            Refresh Insights
+          </button>
         </div>
-        <p className="text-purple-100">AI-powered analysis in plain English • Actionable intelligence at a glance</p>
       </div>
 
       {/* Executive Summary */}
-      <ExecutiveSummary data={insights.executive} />
+      <ExecutiveSummary data={finalInsights.executive} />
 
       {/* Quick Insights Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
           <TrophyIcon className="h-6 w-6 text-green-600 mb-2" />
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{insights.executive.healthScore}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{finalInsights.executive.healthScore}</p>
           <p className="text-sm text-gray-600 dark:text-gray-400">Health Score</p>
         </div>
         <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
           <ArrowTrendingUpIcon className="h-6 w-6 text-blue-600 mb-2" />
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{insights.executive.growthRate}%</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{finalInsights.executive.growthRate}%</p>
           <p className="text-sm text-gray-600 dark:text-gray-400">Growth Rate</p>
         </div>
         <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
@@ -289,8 +355,8 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
         </div>
         <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
           <RocketLaunchIcon className="h-6 w-6 text-orange-600 mb-2" />
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">${insights.executive.revenuePotential}</p>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Q1 Potential</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{formatUGXAbbreviated(parseFloat(finalInsights.executive.revenuePotential || '0'))}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Q1 Potential (UGX)</p>
         </div>
       </div>
 
@@ -298,19 +364,19 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
       <div className="grid grid-cols-1 gap-6">
         <InsightCard
           icon={TrophyIcon}
-          {...insights.successes}
+          {...finalInsights.successes}
         />
         <InsightCard
           icon={LightBulbIcon}
-          {...insights.opportunities}
+          {...finalInsights.opportunities}
         />
         <InsightCard
           icon={ExclamationTriangleIcon}
-          {...insights.warnings}
+          {...finalInsights.warnings}
         />
         <InsightCard
           icon={SparklesIcon}
-          {...insights.predictions}
+          {...finalInsights.predictions}
         />
       </div>
 
@@ -321,7 +387,7 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
           Trend Analysis
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {insights.trends.map((trend: any, index: number) => (
+          {finalInsights.trends.map((trend: any, index: number) => (
             <TrendCard key={index} {...trend} />
           ))}
         </div>

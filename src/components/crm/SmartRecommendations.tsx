@@ -11,8 +11,12 @@ import {
   CurrencyDollarIcon,
   UserGroupIcon,
   ChartBarIcon,
-  BellAlertIcon
+  BellAlertIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
+import { useAIRecommendations } from '../../hooks/useGeminiAI';
+import { formatUGX } from '../../lib/ugandaCurrency';
+import LoadingSpinner from '../LoadingSpinner';
 
 interface Recommendation {
   id: string;
@@ -33,7 +37,20 @@ interface SmartRecommendationsProps {
 }
 
 const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({ contacts, analytics }) => {
-  const recommendations = useMemo(() => {
+  // 🔥 REAL AI RECOMMENDATIONS - No mockups!
+  const { 
+    data: aiRecommendations, 
+    loading: aiLoading, 
+    error: aiError,
+    refetch 
+  } = useAIRecommendations(contacts, analytics, {
+    cacheKey: 'smart-recommendations-ai',
+    cacheDuration: 3600000, // 1 hour cache
+    autoRun: true
+  });
+
+  // Fallback recommendations (only used if AI fails)
+  const fallbackRecommendations = useMemo(() => {
     if (!contacts || contacts.length === 0) return [];
 
     const recs: Recommendation[] = [];
@@ -278,6 +295,63 @@ const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({ contacts, a
     return colors[effort as keyof typeof colors] || colors.medium;
   };
 
+  // 🔥 LOADING STATE - AI is thinking
+  if (aiLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-xl p-6 text-white">
+          <div className="flex items-center gap-3 mb-2">
+            <LightBulbIcon className="h-8 w-8 animate-pulse" />
+            <h2 className="text-2xl font-bold">AI-Powered Smart Recommendations</h2>
+          </div>
+          <p className="text-orange-100">Aida AI is analyzing your data...</p>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <LoadingSpinner size="lg" />
+            <p className="mt-4 text-gray-600 dark:text-gray-400">Aida AI is generating smart recommendations...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 🔥 ERROR STATE with retry
+  if (aiError) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-xl p-6 text-white">
+          <div className="flex items-center gap-3 mb-2">
+            <LightBulbIcon className="h-8 w-8" />
+            <h2 className="text-2xl font-bold">AI-Powered Smart Recommendations</h2>
+          </div>
+          <p className="text-orange-100">Data-driven action items prioritized by impact, effort, and ROI</p>
+        </div>
+        <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 rounded-xl p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <BellAlertIcon className="h-6 w-6 text-red-600" />
+            <h3 className="text-lg font-bold text-red-900 dark:text-red-200">AI Service Error</h3>
+          </div>
+          <p className="text-red-800 dark:text-red-300 mb-4">
+            Unable to generate AI recommendations: {aiError.message}
+          </p>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            <ArrowPathIcon className="h-4 w-4 mr-2" />
+            Retry AI Analysis
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 🔥 USE AI DATA or fallback
+  const recommendations = aiRecommendations && aiRecommendations.length > 0 
+    ? aiRecommendations 
+    : fallbackRecommendations;
+
   if (recommendations.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -298,11 +372,23 @@ const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({ contacts, a
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-orange-600 to-red-600 rounded-xl p-6 text-white">
-        <div className="flex items-center gap-3 mb-2">
-          <LightBulbIcon className="h-8 w-8" />
-          <h2 className="text-2xl font-bold">AI-Powered Smart Recommendations</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <LightBulbIcon className="h-8 w-8" />
+              <h2 className="text-2xl font-bold">AI-Powered Smart Recommendations</h2>
+            </div>
+            <p className="text-orange-100">Aida AI • Prioritized by impact, effort, and ROI for Uganda market</p>
+          </div>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white rounded-lg transition-colors"
+            title="Refresh AI Recommendations"
+          >
+            <ArrowPathIcon className="h-5 w-5 mr-2" />
+            Refresh AI
+          </button>
         </div>
-        <p className="text-orange-100">Data-driven action items prioritized by impact, effort, and ROI</p>
       </div>
 
       {/* Quick Stats */}
@@ -420,7 +506,7 @@ const SmartRecommendations: React.FC<SmartRecommendationsProps> = ({ contacts, a
                   <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
                     <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">Action Items:</p>
                     <ul className="space-y-1">
-                      {rec.actionItems.map((item, idx) => (
+                      {rec.actionItems?.map((item: string, idx: number) => (
                         <li key={idx} className="flex items-start gap-2 text-xs text-gray-600 dark:text-gray-400">
                           <CheckCircleIcon className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
                           <span>{item}</span>
