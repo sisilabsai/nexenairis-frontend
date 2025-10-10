@@ -279,7 +279,26 @@ export default function CrmPage() {
 
       console.log('Import result:', result);
 
-      if (result.success && result.data) {
+      // Cast to any to access dynamic properties from backend
+      const responseData = result as any;
+
+      // Check if the response has results directly (backend format)
+      if (result.success && responseData.results) {
+        // Backend returns: { success, message, results }
+        const importResponse: ContactImportResponse = {
+          success: result.success,
+          message: result.message,
+          results: responseData.results
+        };
+        
+        // Refetch data to show updated contacts
+        refetchContacts();
+        refetchSummary();
+        
+        // Return the response for the modal to display
+        return importResponse;
+      } else if (result.success && result.data) {
+        // Alternative format: { success, message, data: { results } }
         const importResponse = result.data as ContactImportResponse;
         
         // Refetch data to show updated contacts
