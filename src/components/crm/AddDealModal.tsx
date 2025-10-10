@@ -14,9 +14,11 @@ import {
   DocumentTextIcon,
   FireIcon,
   SparklesIcon,
+  MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
 import { PipelineApiService } from '../../services/PipelineApiService';
 import { crmApi } from '../../lib/api';
+import { useContacts } from '../../hooks/useApi';
 
 interface AddDealModalProps {
   isOpen: boolean;
@@ -70,6 +72,12 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [currentTag, setCurrentTag] = useState('');
+  const [contactSearch, setContactSearch] = useState('');
+  const [showContactDropdown, setShowContactDropdown] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<any>(null);
+  
+  // Fetch contacts for dropdown
+  const { data: contactsData, isLoading: contactsLoading } = useContacts();
 
   // Reset form when modal opens
   useEffect(() => {
@@ -92,8 +100,26 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
         source: '',
       });
       setErrors({});
+      setSelectedContact(null);
+      setContactSearch('');
+      setShowContactDropdown(false);
     }
   }, [isOpen]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.contact-dropdown-container')) {
+        setShowContactDropdown(false);
+      }
+    };
+
+    if (showContactDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showContactDropdown]);
 
   const handleInputChange = (field: keyof DealFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -119,6 +145,39 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
     }));
   };
 
+  // Filter contacts based on search
+  const filteredContacts = React.useMemo(() => {
+    if (!contactsData?.data?.data) return [];
+    const contacts = Array.isArray(contactsData.data.data) ? contactsData.data.data : [];
+    
+    if (!contactSearch.trim()) return contacts.slice(0, 10); // Show first 10 if no search
+    
+    const searchLower = contactSearch.toLowerCase();
+    return contacts.filter((contact: any) => 
+      contact.name?.toLowerCase().includes(searchLower) ||
+      contact.email?.toLowerCase().includes(searchLower) ||
+      contact.phone?.includes(contactSearch) ||
+      contact.company?.toLowerCase().includes(searchLower)
+    ).slice(0, 10);
+  }, [contactsData, contactSearch]);
+
+  const handleContactSelect = (contact: any) => {
+    setSelectedContact(contact);
+    setFormData(prev => ({
+      ...prev,
+      contact_id: contact.id,
+      contact_name: contact.name,
+      contact_email: contact.email || '',
+      contact_phone: contact.phone || '',
+      company: contact.company || '',
+    }));
+    setShowContactDropdown(false);
+    setContactSearch('');
+    if (errors.contact_id) {
+      setErrors(prev => ({ ...prev, contact_id: '' }));
+    }
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -126,14 +185,8 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
       newErrors.title = 'Deal title is required';
     }
 
-    if (!formData.contact_name.trim()) {
-      newErrors.contact_name = 'Contact name is required';
-    }
-
-    if (!formData.contact_email.trim()) {
-      newErrors.contact_email = 'Contact email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contact_email)) {
-      newErrors.contact_email = 'Please enter a valid email address';
+    if (!formData.contact_id) {
+      newErrors.contact_id = 'Please select a contact';
     }
 
     if (formData.expected_value <= 0) {
@@ -158,34 +211,10 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
     setIsSubmitting(true);
     
     try {
-      // Step 1: Create or find the contact first (required by backend)
-      let contactId = formData.contact_id;
-      
-      if (!contactId) {
-        // Create a new contact with the provided information
-        try {
-          const contactResponse: any = await crmApi.createContact({
-            name: formData.contact_name,
-            email: formData.contact_email,
-            phone: formData.contact_phone,
-            company: formData.company || null,
-            contact_type_id: 1, // Default to first contact type (you might want to make this configurable)
-            status: 'active',
-          });
-          
-          contactId = contactResponse.data?.id || contactResponse?.id;
-        } catch (contactError: any) {
-          console.error('Failed to create contact:', contactError);
-          setErrors({ submit: 'Failed to create contact. Please try again.' });
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
-      // Step 2: Create the deal with the contact_id and all required fields
+      // Create the deal with all required fields
       const dealData = {
         title: formData.title,
-        contact_id: contactId, // Required by backend
+        contact_id: formData.contact_id!, // Required by backend - validated above
         description: formData.description || null,
         expected_value: Number(formData.expected_value),
         currency: formData.currency || 'UGX', // Required by backend
@@ -194,8 +223,10 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
         sales_pipeline_stage_id: Number(stageId), // Required by backend
         source: formData.source || null,
         notes: formData.tags.length > 0 ? `Tags: ${formData.tags.join(', ')}` : null,
-        assigned_to: null, // You might want to add user selection later
+        assigned_to: null,
       };
+
+      console.log('Creating deal with data:', dealData); // Debug log
 
       const response = await PipelineApiService.createDeal(dealData);
       
@@ -319,67 +350,110 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
                       {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title}</p>}
                     </div>
 
-                    {/* Contact Information */}
-                    <div>
+                    {/* Contact Selection */}
+                    <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         <UserIcon className="w-4 h-4 inline mr-1" />
-                        Contact Name *
+                        Select Contact *
                       </label>
-                      <input
-                        type="text"
-                        value={formData.contact_name}
-                        onChange={(e) => handleInputChange('contact_name', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                          errors.contact_name ? 'border-red-300' : 'border-gray-300'
-                        }`}
-                        placeholder="John Doe"
-                      />
-                      {errors.contact_name && <p className="mt-1 text-sm text-red-600">{errors.contact_name}</p>}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        <BuildingOfficeIcon className="w-4 h-4 inline mr-1" />
-                        Company
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.company}
-                        onChange={(e) => handleInputChange('company', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        placeholder="ABC Corporation"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        <EnvelopeIcon className="w-4 h-4 inline mr-1" />
-                        Contact Email *
-                      </label>
-                      <input
-                        type="email"
-                        value={formData.contact_email}
-                        onChange={(e) => handleInputChange('contact_email', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                          errors.contact_email ? 'border-red-300' : 'border-gray-300'
-                        }`}
-                        placeholder="john@company.com"
-                      />
-                      {errors.contact_email && <p className="mt-1 text-sm text-red-600">{errors.contact_email}</p>}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        <PhoneIcon className="w-4 h-4 inline mr-1" />
-                        Contact Phone
-                      </label>
-                      <input
-                        type="tel"
-                        value={formData.contact_phone}
-                        onChange={(e) => handleInputChange('contact_phone', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        placeholder="+256 700 000 000"
-                      />
+                      
+                      {selectedContact ? (
+                        <div className="flex items-center justify-between p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                          <div className="flex items-center space-x-3">
+                            <div className="flex-shrink-0">
+                              <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center">
+                                <span className="text-white font-semibold text-sm">
+                                  {selectedContact.name?.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900">{selectedContact.name}</p>
+                              <p className="text-sm text-gray-600">
+                                {selectedContact.email || selectedContact.phone || 'No contact info'}
+                              </p>
+                              {selectedContact.company && (
+                                <p className="text-xs text-gray-500">{selectedContact.company}</p>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedContact(null);
+                              setFormData(prev => ({ ...prev, contact_id: null, contact_name: '', contact_email: '', contact_phone: '', company: '' }));
+                              setShowContactDropdown(true);
+                            }}
+                            className="text-red-600 hover:text-red-700 text-sm font-medium"
+                          >
+                            Change
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="relative contact-dropdown-container">
+                          <div className="relative">
+                            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                            <input
+                              type="text"
+                              value={contactSearch}
+                              onChange={(e) => {
+                                setContactSearch(e.target.value);
+                                setShowContactDropdown(true);
+                              }}
+                              onFocus={() => setShowContactDropdown(true)}
+                              className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
+                                errors.contact_id ? 'border-red-300' : 'border-gray-300'
+                              }`}
+                              placeholder="Search contacts by name, email, phone..."
+                            />
+                          </div>
+                          
+                          {showContactDropdown && (
+                            <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                              {contactsLoading ? (
+                                <div className="p-4 text-center text-gray-500">Loading contacts...</div>
+                              ) : filteredContacts.length > 0 ? (
+                                <ul className="py-1">
+                                  {filteredContacts.map((contact: any) => (
+                                    <li
+                                      key={contact.id}
+                                      onClick={() => handleContactSelect(contact)}
+                                      className="px-4 py-2 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                    >
+                                      <div className="flex items-center space-x-3">
+                                        <div className="flex-shrink-0">
+                                          <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
+                                            <span className="text-indigo-600 font-semibold text-xs">
+                                              {contact.name?.charAt(0).toUpperCase()}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="font-medium text-gray-900 truncate">{contact.name}</p>
+                                          <p className="text-sm text-gray-500 truncate">
+                                            {contact.email || contact.phone || 'No contact info'}
+                                          </p>
+                                          {contact.company && (
+                                            <p className="text-xs text-gray-400 truncate">{contact.company}</p>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <div className="p-4 text-center">
+                                  <p className="text-gray-500 mb-2">No contacts found</p>
+                                  <p className="text-xs text-gray-400">
+                                    {contactSearch ? 'Try a different search term' : 'Start typing to search'}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {errors.contact_id && <p className="mt-1 text-sm text-red-600">{errors.contact_id}</p>}
                     </div>
 
                     {/* Deal Value */}
