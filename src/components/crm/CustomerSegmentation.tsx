@@ -29,6 +29,7 @@ import {
   AdjustmentsHorizontalIcon,
   SparklesIcon
 } from '@heroicons/react/24/outline';
+import { formatUGX, formatUGXAbbreviated } from '../../lib/ugandaCurrency';
 
 // Color palette
 const COLORS = {
@@ -209,20 +210,20 @@ const CustomerSegmentation: React.FC<CustomerSegmentationProps> = ({ contacts })
     });
   }, [contacts]);
 
-  // Customer Lifetime Value Distribution
+  // Customer Lifetime Value Distribution (UGX)
   const clvDistribution = useMemo(() => {
     if (!contacts || contacts.length === 0) return [];
 
     const ranges = [
-      { range: '$0-$500', min: 0, max: 500 },
-      { range: '$500-$1000', min: 500, max: 1000 },
-      { range: '$1000-$2000', min: 1000, max: 2000 },
-      { range: '$2000-$5000', min: 2000, max: 5000 },
-      { range: '$5000+', min: 5000, max: Infinity }
+      { range: 'UGX 0-500K', min: 0, max: 500000 },
+      { range: 'UGX 500K-1M', min: 500000, max: 1000000 },
+      { range: 'UGX 1M-2M', min: 1000000, max: 2000000 },
+      { range: 'UGX 2M-5M', min: 2000000, max: 5000000 },
+      { range: 'UGX 5M+', min: 5000000, max: Infinity }
     ];
 
     return ranges.map(({ range, min, max }) => {
-      const clv = (contact: any) => (contact.trust_level || 0) * 100;
+      const clv = (contact: any) => (contact.trust_level || 0) * 100000; // UGX 100K per trust level
       const count = contacts.filter((c: any) => {
         const value = clv(c);
         return value >= min && value < max;
@@ -300,7 +301,7 @@ const CustomerSegmentation: React.FC<CustomerSegmentationProps> = ({ contacts })
               {segment.count}
             </p>
             <p className="text-xs text-gray-600 dark:text-gray-400">
-              Avg Value: ${segment.avgValue}
+              Avg Value: {formatUGXAbbreviated(segment.avgValue * 1000)} {/* Convert to UGX */}
             </p>
             <p className="text-xs text-gray-600 dark:text-gray-400">
               Avg Trust: {segment.avgTrust}/10

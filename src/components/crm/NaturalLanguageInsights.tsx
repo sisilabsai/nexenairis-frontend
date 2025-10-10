@@ -334,18 +334,18 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
       </div>
 
       {/* Executive Summary */}
-      <ExecutiveSummary data={finalInsights.executive} />
+      {finalInsights?.executive && <ExecutiveSummary data={finalInsights.executive} />}
 
       {/* Quick Insights Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
           <TrophyIcon className="h-6 w-6 text-green-600 mb-2" />
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{finalInsights.executive.healthScore}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{finalInsights?.executive?.healthScore || 'N/A'}</p>
           <p className="text-sm text-gray-600 dark:text-gray-400">Health Score</p>
         </div>
         <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
           <ArrowTrendingUpIcon className="h-6 w-6 text-blue-600 mb-2" />
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{finalInsights.executive.growthRate}%</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{finalInsights?.executive?.growthRate || '0'}%</p>
           <p className="text-sm text-gray-600 dark:text-gray-400">Growth Rate</p>
         </div>
         <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
@@ -355,43 +355,53 @@ const NaturalLanguageInsights: React.FC<NaturalLanguageInsightsProps> = ({ conta
         </div>
         <div className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
           <RocketLaunchIcon className="h-6 w-6 text-orange-600 mb-2" />
-          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{formatUGXAbbreviated(parseFloat(finalInsights.executive.revenuePotential || '0'))}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{formatUGXAbbreviated(parseFloat(finalInsights?.executive?.revenuePotential || '0'))}</p>
           <p className="text-sm text-gray-600 dark:text-gray-400">Q1 Potential (UGX)</p>
         </div>
       </div>
 
       {/* Main Insights */}
       <div className="grid grid-cols-1 gap-6">
-        <InsightCard
-          icon={TrophyIcon}
-          {...finalInsights.successes}
-        />
-        <InsightCard
-          icon={LightBulbIcon}
-          {...finalInsights.opportunities}
-        />
-        <InsightCard
-          icon={ExclamationTriangleIcon}
-          {...finalInsights.warnings}
-        />
-        <InsightCard
-          icon={SparklesIcon}
-          {...finalInsights.predictions}
-        />
+        {finalInsights?.successes && (
+          <InsightCard
+            icon={TrophyIcon}
+            {...finalInsights.successes}
+          />
+        )}
+        {finalInsights?.opportunities && (
+          <InsightCard
+            icon={LightBulbIcon}
+            {...finalInsights.opportunities}
+          />
+        )}
+        {finalInsights?.warnings && (
+          <InsightCard
+            icon={ExclamationTriangleIcon}
+            {...finalInsights.warnings}
+          />
+        )}
+        {finalInsights?.predictions && (
+          <InsightCard
+            icon={SparklesIcon}
+            {...finalInsights.predictions}
+          />
+        )}
       </div>
 
       {/* Trend Analysis */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-          <ChartBarIcon className="h-5 w-5 text-blue-500" />
-          Trend Analysis
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {finalInsights.trends.map((trend: any, index: number) => (
-            <TrendCard key={index} {...trend} />
-          ))}
+      {finalInsights?.trends && finalInsights.trends.length > 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-lg">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <ChartBarIcon className="h-5 w-5 text-blue-500" />
+            Trend Analysis
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {finalInsights.trends.map((trend: any, index: number) => (
+              <TrendCard key={index} {...trend} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Action Priority Matrix */}
       <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl p-6 border-2 border-indigo-300 dark:border-indigo-700">
