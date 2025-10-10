@@ -67,6 +67,7 @@ const CustomerSegmentationDashboard = lazy(() => import('../../components/Custom
 const SalesOpportunityModal = lazy(() => import('../../components/SalesOpportunityModal'));
 const SalesPipelineView = lazy(() => import('../../components/SalesPipelineView'));
 const EnhancedContactsView = lazy(() => import('../../components/crm/EnhancedContactsView'));
+const EnhancedCrmAnalytics = lazy(() => import('../../components/crm/EnhancedCrmAnalytics'));
 
 // Loading fallback for lazy components
 const ModalFallback = () => (
@@ -1304,146 +1305,49 @@ export default function CrmPage() {
               </div>
               
             {/* Analytics Content */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {selectedAnalyticsTab === 'mobile-money' && !mobileMoneyLoading && (
-                <>
-                  <div className="bg-white shadow rounded-lg p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Mobile Money Overview</h3>
-                    <div className="space-y-4">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Total Users:</span>
-                        <span className="text-sm font-medium">{mobileMoneyAnalytics.total_mobile_money_users || 0}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Verified Users:</span>
-                        <span className="text-sm font-medium">{mobileMoneyAnalytics.verified_mobile_money_users || 0}</span>
-                      </div>
-                    </div>
-                </div>
-                
-                  <div className="bg-white shadow rounded-lg p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Provider Breakdown</h3>
-                    <div className="space-y-3">
-                      {mobileMoneyAnalytics.provider_breakdown?.map((provider: any, index: number) => (
-                        <div key={index} className="flex justify-between items-center">
-                          <span className="text-sm font-medium text-gray-700">{provider.mobile_money_provider}</span>
-                          <div className="text-right">
-                            <div className="text-sm text-gray-900">{provider.count} total</div>
-                            <div className="text-sm text-green-600">{provider.verified_count} verified</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                </div>
-                </>
+            <div className="space-y-6">
+              {/* Mobile Money Analytics */}
+              {selectedAnalyticsTab === 'mobile-money' && (
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <EnhancedCrmAnalytics
+                    analyticsType="mobile-money"
+                    data={mobileMoneyAnalytics}
+                    isLoading={mobileMoneyLoading}
+                  />
+                </Suspense>
               )}
 
-              {selectedAnalyticsTab === 'community' && !communityLoading && (
-                <>
-                  <div className="bg-white shadow rounded-lg p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Community Overview</h3>
-                    <div className="space-y-4">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Total Members:</span>
-                        <span className="text-sm font-medium">{communityAnalytics.total_group_members || 0}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Total Groups:</span>
-                        <span className="text-sm font-medium">{communityAnalytics.total_groups || 0}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Monthly Contributions:</span>
-                        <span className="text-sm font-medium">UGX {(communityAnalytics.total_monthly_contributions || 0).toLocaleString()}</span>
-                      </div>
-                    </div>
-                </div>
-                
-                  <div className="bg-white shadow rounded-lg p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Role Distribution</h3>
-                    <div className="space-y-3">
-                      {Object.entries(communityAnalytics.role_distribution || {}).map(([role, count]: [string, any], index) => (
-                        <div key={index} className="flex justify-between items-center">
-                          <span className="text-sm font-medium text-gray-700 capitalize">{role}</span>
-                          <span className="text-sm text-gray-900">{count} members</span>
-                        </div>
-                      ))}
-                    </div>
-                </div>
-                </>
+              {/* Community Analytics */}
+              {selectedAnalyticsTab === 'community' && (
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <EnhancedCrmAnalytics
+                    analyticsType="community"
+                    data={communityAnalytics}
+                    isLoading={communityLoading}
+                  />
+                </Suspense>
               )}
 
-              {selectedAnalyticsTab === 'communication' && !communicationLoading && (
-                <>
-                  <div className="bg-white shadow rounded-lg p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Channel Preferences</h3>
-                    <div className="space-y-3">
-                      {communicationAnalytics.preferred_channels?.map((channel: any, index: number) => (
-                        <div key={index} className="flex justify-between items-center">
-                          <span className="text-sm font-medium text-gray-700 capitalize flex items-center">
-                            <span className="mr-2">{getChannelIcon(channel.preferred_communication_channel)}</span>
-                            {channel.preferred_communication_channel}
-                          </span>
-                          <span className="text-sm text-gray-900">{channel.count} contacts</span>
-                </div>
-                      ))}
-                </div>
-                  </div>
-                  
-                  <div className="bg-white shadow rounded-lg p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">WhatsApp Adoption</h3>
-                    <div className="space-y-4">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">WhatsApp Users:</span>
-                        <span className="text-sm font-medium">{communicationAnalytics.whatsapp_adoption?.total_whatsapp_users || 0}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Business Verified:</span>
-                        <span className="text-sm font-medium">{communicationAnalytics.whatsapp_adoption?.verified_whatsapp_business || 0}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Preferred WhatsApp:</span>
-                        <span className="text-sm font-medium">{communicationAnalytics.whatsapp_adoption?.whatsapp_preferred || 0}</span>
-                      </div>
-                    </div>
-                  </div>
-                </>
+              {/* Communication Analytics */}
+              {selectedAnalyticsTab === 'communication' && (
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <EnhancedCrmAnalytics
+                    analyticsType="communication"
+                    data={communicationAnalytics}
+                    isLoading={communicationLoading}
+                  />
+                </Suspense>
               )}
 
-              {selectedAnalyticsTab === 'regional' && !regionalLoading && (
-                <>
-                  <div className="bg-white shadow rounded-lg p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Location Distribution</h3>
-                    <div className="space-y-3">
-                      {regionalInsights.location_distribution?.by_district?.slice(0, 5).map((district: any, index: number) => (
-                        <div key={index} className="flex justify-between items-center">
-                          <span className="text-sm font-medium text-gray-700">{district.district}</span>
-                          <div className="text-right">
-                            <div className="text-sm text-gray-900">{district.count} contacts</div>
-                            <div className="text-sm text-gray-500">Avg CLV: UGX {Math.round(district.avg_clv || 0).toLocaleString()}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="bg-white shadow rounded-lg p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Financial Inclusion</h3>
-                    <div className="space-y-4">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Bank Account Holders:</span>
-                        <span className="text-sm font-medium">{regionalInsights.financial_inclusion?.bank_account_holders || 0}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Mobile Money Users:</span>
-                        <span className="text-sm font-medium">{regionalInsights.financial_inclusion?.mobile_money_users || 0}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Cash Preferred:</span>
-                        <span className="text-sm font-medium">{regionalInsights.financial_inclusion?.cash_preferred || 0}</span>
-                      </div>
-                    </div>
-                  </div>
-                </>
+              {/* Regional Analytics */}
+              {selectedAnalyticsTab === 'regional' && (
+                <Suspense fallback={<LoadingSpinner size="lg" />}>
+                  <EnhancedCrmAnalytics
+                    analyticsType="regional"
+                    data={regionalInsights}
+                    isLoading={regionalLoading}
+                  />
+                </Suspense>
               )}
 
               {selectedAnalyticsTab === 'segmentation' && (
