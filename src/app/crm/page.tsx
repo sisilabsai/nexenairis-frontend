@@ -155,7 +155,8 @@ export default function CrmPage() {
   const [selectedContactForAI, setSelectedContactForAI] = useState<number | null>(null);
 
   // API hooks - optimized with conditional loading
-  const { data: contactsData, isLoading: contactsLoading, error: contactsError, refetch: refetchContacts } = useCrmContacts();
+  // Fetch all contacts by passing a large per_page value
+  const { data: contactsData, isLoading: contactsLoading, error: contactsError, refetch: refetchContacts } = useCrmContacts({ per_page: 500 });
   const { data: summaryData, isLoading: summaryLoading, refetch: refetchSummary } = useCrmSummary();
 
   // Lazy load analytics data only when needed

@@ -340,12 +340,12 @@ export default function EnhancedContactsView({
                     <label key={option.value} className="flex items-center">
                       <input
                         type="checkbox"
-                        checked={advancedFilters.trust_level.includes(option.value)}
+                        checked={advancedFilters.trustLevels?.includes(option.value) || false}
                         onChange={(e) => {
                           const newValues = e.target.checked
-                            ? [...advancedFilters.trust_level, option.value]
-                            : advancedFilters.trust_level.filter((v: string) => v !== option.value);
-                          onAdvancedFiltersChange({ ...advancedFilters, trust_level: newValues });
+                            ? [...(advancedFilters.trustLevels || []), option.value]
+                            : (advancedFilters.trustLevels || []).filter((v: string) => v !== option.value);
+                          onAdvancedFiltersChange({ ...advancedFilters, trustLevels: newValues });
                         }}
                         className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                       />
@@ -363,12 +363,12 @@ export default function EnhancedContactsView({
                     <label key={district} className="flex items-center">
                       <input
                         type="checkbox"
-                        checked={advancedFilters.district.includes(district)}
+                        checked={advancedFilters.districts?.includes(district) || false}
                         onChange={(e) => {
                           const newValues = e.target.checked
-                            ? [...advancedFilters.district, district]
-                            : advancedFilters.district.filter((d: string) => d !== district);
-                          onAdvancedFiltersChange({ ...advancedFilters, district: newValues });
+                            ? [...(advancedFilters.districts || []), district]
+                            : (advancedFilters.districts || []).filter((d: string) => d !== district);
+                          onAdvancedFiltersChange({ ...advancedFilters, districts: newValues });
                         }}
                         className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                       />
@@ -386,12 +386,12 @@ export default function EnhancedContactsView({
                     <label key={provider} className="flex items-center">
                       <input
                         type="checkbox"
-                        checked={advancedFilters.mobile_money_provider.includes(provider)}
+                        checked={advancedFilters.providers?.includes(provider) || false}
                         onChange={(e) => {
                           const newValues = e.target.checked
-                            ? [...advancedFilters.mobile_money_provider, provider]
-                            : advancedFilters.mobile_money_provider.filter((p: string) => p !== provider);
-                          onAdvancedFiltersChange({ ...advancedFilters, mobile_money_provider: newValues });
+                            ? [...(advancedFilters.providers || []), provider]
+                            : (advancedFilters.providers || []).filter((p: string) => p !== provider);
+                          onAdvancedFiltersChange({ ...advancedFilters, providers: newValues });
                         }}
                         className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                       />
@@ -406,11 +406,11 @@ export default function EnhancedContactsView({
                 <label className="block text-sm font-medium text-gray-700 mb-2">Contact Attributes</label>
                 <div className="space-y-2">
                   {[
-                    { key: 'has_email', label: 'Has Email' },
-                    { key: 'has_phone', label: 'Has Phone' },
-                    { key: 'has_whatsapp', label: 'Has WhatsApp' },
-                    { key: 'has_mobile_money', label: 'Has Mobile Money' },
-                    { key: 'is_active', label: 'Is Active' }
+                    { key: 'hasEmail', label: 'Has Email' },
+                    { key: 'hasPhone', label: 'Has Phone' },
+                    { key: 'hasWhatsApp', label: 'Has WhatsApp' },
+                    { key: 'hasMobileMoney', label: 'Has Mobile Money' },
+                    { key: 'isActive', label: 'Is Active' }
                   ].map(attr => (
                     <label key={attr.key} className="flex items-center">
                       <input
@@ -419,7 +419,7 @@ export default function EnhancedContactsView({
                         onChange={(e) => {
                           onAdvancedFiltersChange({
                             ...advancedFilters,
-                            [attr.key]: e.target.checked ? true : null
+                            [attr.key]: e.target.checked ? true : undefined
                           });
                         }}
                         className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
