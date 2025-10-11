@@ -766,17 +766,25 @@ const AdvancedAnalyticsDashboard = ({
       const loadAnalyticsData = async () => {
         setIsLoading(true);
         try {
-          // Get real data from hooks
-          const opportunities = Array.isArray(opportunitiesData?.data) ? opportunitiesData.data : 
-                               Array.isArray(opportunitiesData) ? opportunitiesData : [];
-          const stages = Array.isArray(stagesData?.data) ? stagesData.data : 
-                        Array.isArray(stagesData) ? stagesData : [];
+          // Get real data from hooks - handle multiple response structures
+          const opportunitiesResponse = opportunitiesData as any;
+          const stagesResponse = stagesData as any;
+          
+          const opportunities = Array.isArray(opportunitiesResponse?.data?.data) ? opportunitiesResponse.data.data :
+                               Array.isArray(opportunitiesResponse?.data) ? opportunitiesResponse.data : 
+                               Array.isArray(opportunitiesResponse) ? opportunitiesResponse : [];
+          const stages = Array.isArray(stagesResponse?.data?.data) ? stagesResponse.data.data :
+                        Array.isArray(stagesResponse?.data) ? stagesResponse.data : 
+                        Array.isArray(stagesResponse) ? stagesResponse : [];
           const crmStats = crmStatsData?.data || crmStatsData || {};
 
           console.log('📊 Loading Analytics Dashboard Data:', {
+            rawOpportunitiesData: opportunitiesResponse,
+            rawStagesData: stagesResponse,
             opportunities: opportunities.length,
             stages: stages.length,
-            crmStats: Object.keys(crmStats).length
+            crmStats: Object.keys(crmStats).length,
+            sampleOpportunity: opportunities[0]
           });
 
           // Generate analytics from real API data
@@ -785,7 +793,9 @@ const AdvancedAnalyticsDashboard = ({
           console.log('✅ Analytics Data Generated:', {
             totalDeals: realAnalyticsData.pipeline_metrics.total_deals,
             totalValue: realAnalyticsData.pipeline_metrics.total_value,
-            stages: realAnalyticsData.stage_analytics.length
+            stages: realAnalyticsData.stage_analytics.length,
+            topPerformers: realAnalyticsData.performance_metrics.top_performers.length,
+            dealHealthScores: realAnalyticsData.predictive_insights.deal_health_scores.length
           });
 
           setAnalyticsData(realAnalyticsData);
@@ -812,6 +822,14 @@ const AdvancedAnalyticsDashboard = ({
   };
 
   if (!isOpen) return null;
+
+  console.log('🎨 Rendering Analytics Dashboard:', {
+    isLoading,
+    totalLoading,
+    hasAnalyticsData: !!analyticsData,
+    totalDeals: analyticsData?.pipeline_metrics?.total_deals,
+    condition: !analyticsData || analyticsData?.pipeline_metrics?.total_deals === 0
+  });
 
   return (
     <AnimatePresence>
