@@ -18,7 +18,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { PipelineApiService } from '../../services/PipelineApiService';
 import { crmApi } from '../../lib/api';
-import { useContacts, useAuth } from '../../hooks/useApi';
+import { useContacts, useAuth, useUsers } from '../../hooks/useApi';
 
 interface AddDealModalProps {
   isOpen: boolean;
@@ -43,6 +43,7 @@ interface DealFormData {
   description: string;
   tags: string[];
   source: string;
+  assigned_to: number | null;
 }
 
 const AddDealModal: React.FC<AddDealModalProps> = ({ 
@@ -67,6 +68,7 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
     description: '',
     tags: [],
     source: '',
+    assigned_to: null,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -75,17 +77,26 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
   const [contactSearch, setContactSearch] = useState('');
   const [showContactDropdown, setShowContactDropdown] = useState(false);
   const [selectedContact, setSelectedContact] = useState<any>(null);
+  const [userSearch, setUserSearch] = useState('');
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
   
   // Fetch contacts for dropdown
   const { data: contactsData, isLoading: contactsLoading } = useContacts();
   
-  // Get current user for assigned_to field
+  // Fetch users for assignment dropdown
+  const { data: usersData, isLoading: usersLoading } = useUsers();
+  
+  // Get current user for default assignment
   const { me } = useAuth();
   const currentUser = me?.data as any;
 
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
+      // Default assigned_to to current user
+      const defaultUserId = currentUser?.user?.id || currentUser?.id || null;
+      
       setFormData({
         title: '',
         contact_id: null,
@@ -102,13 +113,17 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
         description: '',
         tags: [],
         source: '',
+        assigned_to: defaultUserId,
       });
       setErrors({});
       setSelectedContact(null);
       setContactSearch('');
       setShowContactDropdown(false);
+      setSelectedUser(currentUser?.user || currentUser || null);
+      setUserSearch('');
+      setShowUserDropdown(false);
     }
-  }, [isOpen]);
+  }, [isOpen, currentUser]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -117,13 +132,16 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
       if (!target.closest('.contact-dropdown-container')) {
         setShowContactDropdown(false);
       }
+      if (!target.closest('.user-dropdown-container')) {
+        setShowUserDropdown(false);
+      }
     };
 
-    if (showContactDropdown) {
+    if (showContactDropdown || showUserDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [showContactDropdown]);
+  }, [showContactDropdown, showUserDropdown]);
 
   const handleInputChange = (field: keyof DealFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -165,6 +183,20 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
     ).slice(0, 10);
   }, [contactsData, contactSearch]);
 
+  // Filter users based on search
+  const filteredUsers = React.useMemo(() => {
+    if (!usersData?.data) return [];
+    const users = Array.isArray(usersData.data) ? usersData.data : [];
+    
+    if (!userSearch.trim()) return users.slice(0, 10); // Show first 10 if no search
+    
+    const searchLower = userSearch.toLowerCase();
+    return users.filter((user: any) => 
+      user.name?.toLowerCase().includes(searchLower) ||
+      user.email?.toLowerCase().includes(searchLower)
+    ).slice(0, 10);
+  }, [usersData, userSearch]);
+
   const handleContactSelect = (contact: any) => {
     setSelectedContact(contact);
     setFormData(prev => ({
@@ -179,6 +211,19 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
     setContactSearch('');
     if (errors.contact_id) {
       setErrors(prev => ({ ...prev, contact_id: '' }));
+    }
+  };
+
+  const handleUserSelect = (user: any) => {
+    setSelectedUser(user);
+    setFormData(prev => ({
+      ...prev,
+      assigned_to: user.id,
+    }));
+    setShowUserDropdown(false);
+    setUserSearch('');
+    if (errors.assigned_to) {
+      setErrors(prev => ({ ...prev, assigned_to: '' }));
     }
   };
 
@@ -227,7 +272,7 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
         sales_pipeline_stage_id: Number(stageId), // Required by backend
         source: formData.source || null,
         notes: formData.tags.length > 0 ? `Tags: ${formData.tags.join(', ')}` : null,
-        assigned_to: currentUser?.user?.id || currentUser?.id || null, // Use current user's ID (database requires NOT NULL)
+        assigned_to: formData.assigned_to || currentUser?.user?.id || currentUser?.id || null, // Backend will default to current user if null
       };
 
       console.log('Creating deal with data:', dealData); // Debug log
@@ -458,6 +503,102 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
                         </div>
                       )}
                       {errors.contact_id && <p className="mt-1 text-sm text-red-600">{errors.contact_id}</p>}
+                    </div>
+
+                    {/* Assign To User Selection */}
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <UserIcon className="w-4 h-4 inline mr-1" />
+                        Assign To *
+                      </label>
+                      
+                      {selectedUser ? (
+                        <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex items-center space-x-3">
+                            <div className="flex-shrink-0">
+                              <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
+                                <span className="text-white font-semibold text-sm">
+                                  {selectedUser.name?.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900">{selectedUser.name}</p>
+                              <p className="text-sm text-gray-600">{selectedUser.email}</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedUser(null);
+                              setFormData(prev => ({ ...prev, assigned_to: null }));
+                              setShowUserDropdown(true);
+                            }}
+                            className="text-red-600 hover:text-red-700 text-sm font-medium"
+                          >
+                            Change
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="relative user-dropdown-container">
+                          <div className="relative">
+                            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                            <input
+                              type="text"
+                              value={userSearch}
+                              onChange={(e) => {
+                                setUserSearch(e.target.value);
+                                setShowUserDropdown(true);
+                              }}
+                              onFocus={() => setShowUserDropdown(true)}
+                              className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+                                errors.assigned_to ? 'border-red-300' : 'border-gray-300'
+                              }`}
+                              placeholder="Search users by name or email..."
+                            />
+                          </div>
+                          
+                          {showUserDropdown && (
+                            <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                              {usersLoading ? (
+                                <div className="p-4 text-center text-gray-500">Loading users...</div>
+                              ) : filteredUsers.length > 0 ? (
+                                <ul className="py-1">
+                                  {filteredUsers.map((user: any) => (
+                                    <li
+                                      key={user.id}
+                                      onClick={() => handleUserSelect(user)}
+                                      className="px-4 py-2 hover:bg-green-50 cursor-pointer transition-colors"
+                                    >
+                                      <div className="flex items-center space-x-3">
+                                        <div className="flex-shrink-0">
+                                          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                            <span className="text-green-600 font-semibold text-xs">
+                                              {user.name?.charAt(0).toUpperCase()}
+                                            </span>
+                                          </div>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="font-medium text-gray-900 truncate">{user.name}</p>
+                                          <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                                        </div>
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <div className="p-4 text-center">
+                                  <p className="text-gray-500 mb-2">No users found</p>
+                                  <p className="text-xs text-gray-400">
+                                    {userSearch ? 'Try a different search term' : 'Start typing to search'}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {errors.assigned_to && <p className="mt-1 text-sm text-red-600">{errors.assigned_to}</p>}
                     </div>
 
                     {/* Deal Value */}
