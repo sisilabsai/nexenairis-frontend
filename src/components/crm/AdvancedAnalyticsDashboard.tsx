@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PipelineApiService } from '../../services/PipelineApiService';
 import { useCrmStats, useSalesOpportunities, useSalesPipelineStages } from '../../hooks/useApi';
+import { GeminiAIService } from '../../services/GeminiAIService';
 import {
   ChartBarIcon,
   ArrowTrendingUpIcon,
@@ -536,7 +537,7 @@ const PipelineFunnel = ({ stages }: { stages: AnalyticsData['stage_analytics'] }
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-600">{stage.deal_count} deals</span>
                   <span className="text-sm font-semibold text-gray-900">
-                    ${(stage.total_value / 1000).toFixed(0)}K
+                    USh {(stage.total_value / 1000000).toFixed(1)}M
                   </span>
                 </div>
               </div>
@@ -593,7 +594,7 @@ const RevenueForecast = ({ forecast }: { forecast: AnalyticsData['forecasting'][
             <div className="flex items-center space-x-4">
               <div className="text-right">
                 <p className="text-sm font-semibold text-gray-900">
-                  ${(month.predicted_revenue / 1000).toFixed(0)}K
+                  USh {(month.predicted_revenue / 1000000).toFixed(1)}M
                 </p>
                 <p className="text-xs text-gray-500">{month.deals_expected} deals</p>
               </div>
@@ -650,7 +651,7 @@ const TopPerformers = ({ performers }: { performers: AnalyticsData['performance_
             
             <div className="text-right">
               <p className="text-sm font-semibold text-gray-900">
-                ${(performer.revenue_generated / 1000).toFixed(0)}K
+                USh {(performer.revenue_generated / 1000000).toFixed(1)}M
               </p>
               <p className="text-xs text-gray-500">{performer.win_rate.toFixed(1)}% win rate</p>
               {performer.ai_performance_score && (
@@ -772,12 +773,24 @@ const AdvancedAnalyticsDashboard = ({
                         Array.isArray(stagesData) ? stagesData : [];
           const crmStats = crmStatsData?.data || crmStatsData || {};
 
+          console.log('📊 Loading Analytics Dashboard Data:', {
+            opportunities: opportunities.length,
+            stages: stages.length,
+            crmStats: Object.keys(crmStats).length
+          });
+
           // Generate analytics from real API data
           const realAnalyticsData = generateAnalyticsFromApiData(opportunities, stages, crmStats);
 
+          console.log('✅ Analytics Data Generated:', {
+            totalDeals: realAnalyticsData.pipeline_metrics.total_deals,
+            totalValue: realAnalyticsData.pipeline_metrics.total_value,
+            stages: realAnalyticsData.stage_analytics.length
+          });
+
           setAnalyticsData(realAnalyticsData);
         } catch (error) {
-          console.error('Failed to load analytics data:', error);
+          console.error('❌ Failed to load analytics data:', error);
           // Fallback to empty real data structure
           setAnalyticsData(generateAnalyticsFromApiData([], [], {}));
         } finally {
@@ -852,11 +865,28 @@ const AdvancedAnalyticsDashboard = ({
 
           {/* Content */}
           <div className="flex-1 overflow-auto p-6">
-            {isLoading ? (
+            {isLoading || totalLoading ? (
               <div className="flex items-center justify-center h-full">
-                <div className="flex items-center space-x-3">
-                  <ArrowPathIcon className="w-6 h-6 text-indigo-600 animate-spin" />
-                  <span className="text-lg text-gray-600">Loading analytics...</span>
+                <div className="flex flex-col items-center space-y-4">
+                  <ArrowPathIcon className="w-12 h-12 text-indigo-600 animate-spin" />
+                  <span className="text-lg text-gray-600 font-medium">Loading AI-powered analytics...</span>
+                  <p className="text-sm text-gray-500">Analyzing your pipeline data with AI</p>
+                </div>
+              </div>
+            ) : !analyticsData || analyticsData.pipeline_metrics.total_deals === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center max-w-md">
+                  <ChartBarIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No Analytics Data Available</h3>
+                  <p className="text-gray-600 mb-6">
+                    Start adding deals to your pipeline to see AI-powered insights and analytics.
+                  </p>
+                  <button
+                    onClick={onClose}
+                    className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    Close
+                  </button>
                 </div>
               </div>
             ) : analyticsData && (
