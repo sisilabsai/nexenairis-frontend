@@ -346,6 +346,19 @@ const AdvancedPipeline = () => {
     addComment,
   } = useRealTimeCollaboration(1, 1); // TODO: Get from auth context
 
+  // Helper function to transform API data and ensure numeric fields are numbers
+  const transformDealData = (deal: any): EnhancedOpportunity => {
+    return {
+      ...deal,
+      expected_value: parseFloat(deal.expected_value) || 0,
+      probability: parseFloat(deal.probability) || 0,
+      // Ensure other numeric fields are properly typed
+      contact_id: parseInt(deal.contact_id) || 0,
+      assigned_to: deal.assigned_to?.id || deal.assigned_to || null,
+      sales_pipeline_stage_id: parseInt(deal.sales_pipeline_stage_id) || 0,
+    };
+  };
+
   // Initialize with real data from API
   useEffect(() => {
     const initializeData = async () => {
@@ -359,16 +372,20 @@ const AdvancedPipeline = () => {
         
         // Backend returns paginated data: { success, data: { data: [...], total, current_page, ... } }
         // So we need to access response.data.data to get the actual array of deals
-        const deals = (dealsResponse as any)?.data?.data || (dealsResponse as any)?.data || [];
+        const rawDeals = (dealsResponse as any)?.data?.data || (dealsResponse as any)?.data || [];
         const stages = (stagesResponse as any)?.data?.data || (stagesResponse as any)?.data || [];
         
-        setOpportunities(deals);
+        // Transform deals to ensure numeric fields are proper numbers
+        const transformedDeals = rawDeals.map(transformDealData);
+        
+        setOpportunities(transformedDeals);
         setStages(stages);
         
         console.log('✅ Pipeline data loaded:', {
-          deals: deals.length,
+          deals: transformedDeals.length,
           stages: stages.length,
-          dealsResponse: dealsResponse
+          sampleDeal: transformedDeals[0],
+          totalValue: transformedDeals.reduce((sum: number, d: any) => sum + d.expected_value, 0)
         });
       } catch (error) {
         console.error('❌ Failed to load pipeline data:', error);
@@ -505,7 +522,9 @@ const AdvancedPipeline = () => {
 
   // Handle deal added callback
   const handleDealAdded = useCallback((newDeal: any) => {
-    setOpportunities(prev => [...prev, newDeal]);
+    // Transform the new deal to ensure numeric fields are numbers
+    const transformedDeal = transformDealData(newDeal);
+    setOpportunities(prev => [...prev, transformedDeal]);
   }, []);
 
   const formatCurrency = (amount: number) => {
