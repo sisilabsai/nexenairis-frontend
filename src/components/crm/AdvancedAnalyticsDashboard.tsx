@@ -142,8 +142,15 @@ const generateAnalyticsFromApiData = (
   // Calculate real pipeline metrics
   const safeOpportunities = Array.isArray(opportunities) ? opportunities : [];
   const totalDeals = safeOpportunities.length;
-  const totalValue = safeOpportunities.reduce((sum, opp) => sum + (opp.expected_value || 0), 0);
-  const weightedValue = safeOpportunities.reduce((sum, opp) => sum + ((opp.expected_value || 0) * (opp.probability || 0) / 100), 0);
+  const totalValue = safeOpportunities.reduce((sum, opp) => {
+    const value = parseFloat(opp.expected_value as any) || parseFloat(opp.value as any) || 0;
+    return sum + value;
+  }, 0);
+  const weightedValue = safeOpportunities.reduce((sum, opp) => {
+    const value = parseFloat(opp.expected_value as any) || parseFloat(opp.value as any) || 0;
+    const probability = parseFloat(opp.probability as any) || 50;
+    return sum + (value * probability / 100);
+  }, 0);
   const avgDealSize = totalDeals > 0 ? totalValue / totalDeals : 0;
   const wonDeals = safeOpportunities.filter(opp => opp.stage_name?.toLowerCase().includes('won') || opp.status === 'won');
   const winRate = totalDeals > 0 ? (wonDeals.length / totalDeals) * 100 : 0;
@@ -151,8 +158,8 @@ const generateAnalyticsFromApiData = (
   return {
     pipeline_metrics: {
       total_deals: totalDeals,
-      total_value: totalValue,
-      weighted_value: weightedValue,
+      total_value: Math.round(totalValue),
+      weighted_value: Math.round(weightedValue),
       average_deal_size: Math.round(avgDealSize),
       conversion_rate: crmStats.conversion_rate || 24.5,
       win_rate: Math.round(winRate * 10) / 10,
@@ -160,15 +167,23 @@ const generateAnalyticsFromApiData = (
       velocity: Math.round(weightedValue / 30), // Monthly velocity
     },
     stage_analytics: Array.isArray(stages) ? stages.map((stage, index) => {
-      const stageDeals = safeOpportunities.filter(opp => opp.sales_pipeline_stage_id === stage.id);
-      const stageValue = stageDeals.reduce((sum, deal) => sum + (deal.expected_value || 0), 0);
+      // Match by stage_id OR sales_pipeline_stage_id
+      const stageDeals = safeOpportunities.filter(opp => 
+        String(opp.stage_id) === String(stage.id) || 
+        String(opp.sales_pipeline_stage_id) === String(stage.id)
+      );
+      const stageValue = stageDeals.reduce((sum, deal) => sum + (parseFloat(deal.expected_value as any) || 0), 0);
       const stageAvgSize = stageDeals.length > 0 ? stageValue / stageDeals.length : 0;
+      const stageWeightedValue = stageDeals.reduce((sum, deal) => 
+        sum + ((parseFloat(deal.expected_value as any) || 0) * (parseFloat(deal.probability as any) || stage.probability || 50) / 100), 0
+      );
       
       return {
         stage_id: stage.id,
-        stage_name: stage.name,
+        stage_name: stage.name || `Stage ${index + 1}`,
         deal_count: stageDeals.length,
-        total_value: stageValue,
+        total_value: Math.round(stageValue),
+        weighted_value: Math.round(stageWeightedValue),
         average_deal_size: Math.round(stageAvgSize),
         conversion_rate: Math.round((stageDeals.length / Math.max(totalDeals, 1)) * 100 * (1 + Math.random() * 0.2 - 0.1)), // Based on stage proportion with variance
         average_time_in_stage: Math.round(7 + index * 3 + Math.random() * 5), // Progressive stage timing
@@ -535,12 +550,18 @@ const MetricCard = ({
 const PipelineFunnel = ({ stages }: { stages: AnalyticsData['stage_analytics'] }) => {
   const chartData = stages.map(stage => ({
     name: stage.stage_name,
-    deals: stage.deal_count,
-    value: stage.total_value,
-    conversion: stage.conversion_rate,
-    avgDays: stage.average_time_in_stage,
+    deals: stage.deal_count || 0,
+    value: stage.total_value || 0,
+    conversion: stage.conversion_rate || 0,
+    avgDays: stage.average_time_in_stage || 0,
     color: stage.color
-  }));
+  })).filter(stage => stage.deals > 0 || stage.value > 0); // Only show stages with data
+
+  const totalPipeline = chartData.reduce((sum, s) => sum + (s.value || 0), 0);
+  const totalDeals = chartData.reduce((sum, s) => sum + (s.deals || 0), 0);
+  const avgConversion = chartData.length > 0 
+    ? chartData.reduce((sum, s) => sum + (s.conversion || 0), 0) / chartData.length 
+    : 0;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -618,19 +639,19 @@ const PipelineFunnel = ({ stages }: { stages: AnalyticsData['stage_analytics'] }
         <div className="text-center">
           <p className="text-xs text-gray-500">Total Pipeline</p>
           <p className="text-lg font-bold text-indigo-600">
-            USh {(chartData.reduce((sum, s) => sum + s.value, 0) / 1000000).toFixed(1)}M
+            USh {(totalPipeline / 1000000).toFixed(1)}M
           </p>
         </div>
         <div className="text-center">
           <p className="text-xs text-gray-500">Total Deals</p>
           <p className="text-lg font-bold text-gray-900">
-            {chartData.reduce((sum, s) => sum + s.deals, 0)}
+            {totalDeals}
           </p>
         </div>
         <div className="text-center">
           <p className="text-xs text-gray-500">Avg Conversion</p>
           <p className="text-lg font-bold text-green-600">
-            {(chartData.reduce((sum, s) => sum + s.conversion, 0) / chartData.length).toFixed(1)}%
+            {avgConversion.toFixed(1)}%
           </p>
         </div>
         <div className="text-center">
@@ -990,12 +1011,14 @@ const AdvancedAnalyticsDashboard = ({
   }, [isOpen, selectedTimeRange, totalLoading, opportunitiesData, stagesData, crmStatsData]);
 
   const formatCurrency = (amount: number) => {
+    // Handle NaN, null, undefined
+    const safeAmount = (amount && !isNaN(amount)) ? amount : 0;
     return new Intl.NumberFormat('en-UG', {
       style: 'currency',
       currency: 'UGX',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(amount);
+    }).format(safeAmount);
   };
 
   if (!isOpen) return null;
