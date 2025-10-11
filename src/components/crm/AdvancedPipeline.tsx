@@ -40,6 +40,7 @@ import {
 } from '@heroicons/react/24/solid';
 
 import DealCard from './DealCard';
+import { DealDebugger } from './DealDebugger';
 import {
   OnlineUsers,
   ActivityFeed,
@@ -885,6 +886,9 @@ const AdvancedPipeline = () => {
           }}
         />
       )}
+
+      {/* Deal Creation Debugger */}
+      <DealDebugger />
     </div>
   );
 };

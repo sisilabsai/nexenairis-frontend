@@ -275,9 +275,23 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
         assigned_to: formData.assigned_to || currentUser?.user?.id || currentUser?.id || null, // Backend will default to current user if null
       };
 
-      console.log('Creating deal with data:', dealData); // Debug log
+      console.log('🔍 DEBUG: Creating deal with data:', dealData);
+      console.log('🔍 DEBUG: Field types:', {
+        title: typeof dealData.title,
+        contact_id: typeof dealData.contact_id,
+        expected_value: typeof dealData.expected_value,
+        currency: typeof dealData.currency,
+        probability: typeof dealData.probability,
+        expected_close_date: typeof dealData.expected_close_date,
+        sales_pipeline_stage_id: typeof dealData.sales_pipeline_stage_id,
+        assigned_to: typeof dealData.assigned_to,
+      });
+      console.log('🔍 DEBUG: Current user:', currentUser);
+      console.log('🔍 DEBUG: Form data:', formData);
 
       const response = await PipelineApiService.createDeal(dealData);
+      
+      console.log('✅ DEBUG: Deal created successfully:', response);
       
       // Notify parent component
       onDealAdded(response);
@@ -285,15 +299,25 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
       // Close modal
       onClose();
       
-      // Could show success toast here
-      console.log('Deal created successfully:', response);
-      
     } catch (error: any) {
-      console.error('Failed to create deal:', error);
+      console.error('❌ DEBUG: Failed to create deal:', error);
+      console.error('❌ DEBUG: Error response:', error.response);
+      console.error('❌ DEBUG: Error data:', error.response?.data);
+      console.error('❌ DEBUG: Validation errors:', error.response?.data?.errors);
       
       // Handle 422 validation errors specifically
       if (error.message && error.message.includes('422')) {
-        setErrors({ submit: 'Please check your input fields. Some required fields may be missing or invalid.' });
+        if (error.response?.data?.errors) {
+          // Show specific field errors
+          const fieldErrors: Record<string, string> = {};
+          Object.keys(error.response.data.errors).forEach(field => {
+            fieldErrors[field] = error.response.data.errors[field][0];
+            console.error(`❌ DEBUG: Field error [${field}]:`, error.response.data.errors[field]);
+          });
+          setErrors(fieldErrors);
+        } else {
+          setErrors({ submit: 'Please check your input fields. Some required fields may be missing or invalid.' });
+        }
       } else if (error.response && error.response.data && error.response.data.errors) {
         // Handle Laravel validation errors
         const validationErrors: Record<string, string> = {};
