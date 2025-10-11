@@ -116,13 +116,18 @@ const EditDealModal: React.FC<EditDealModalProps> = ({
   const users = (usersData as any)?.data || [];
   const stages = (stagesData as any)?.data || [];
 
-  const filteredContacts = contacts.filter((contact: any) =>
-    contact.name.toLowerCase().includes(contactSearch.toLowerCase()) ||
+  // Ensure data is always an array
+  const contactsArray = Array.isArray(contacts) ? contacts : [];
+  const usersArray = Array.isArray(users) ? users : [];
+  const stagesArray = Array.isArray(stages) ? stages : [];
+
+  const filteredContacts = contactsArray.filter((contact: any) =>
+    contact.name?.toLowerCase().includes(contactSearch.toLowerCase()) ||
     contact.email?.toLowerCase().includes(contactSearch.toLowerCase())
   );
 
-  const filteredUsers = users.filter((user: any) =>
-    user.name.toLowerCase().includes(userSearch.toLowerCase()) ||
+  const filteredUsers = usersArray.filter((user: any) =>
+    user.name?.toLowerCase().includes(userSearch.toLowerCase()) ||
     user.email?.toLowerCase().includes(userSearch.toLowerCase())
   );
 
@@ -348,7 +353,7 @@ const EditDealModal: React.FC<EditDealModalProps> = ({
                           required
                         >
                           <option value="">Select stage...</option>
-                          {stages.map((stage: any) => (
+                          {stagesArray.map((stage: any) => (
                             <option key={stage.id} value={stage.id}>
                               {stage.name}
                             </option>
