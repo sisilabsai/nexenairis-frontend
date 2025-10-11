@@ -302,9 +302,12 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
       const response = await PipelineApiService.createDeal(dealData);
       
       console.log('✅ DEBUG: Deal created successfully:', response);
+      console.log('✅ DEBUG: Deal data:', (response as any).data);
       
-      // Notify parent component
-      onDealAdded(response);
+      // Notify parent component with the actual deal data
+      // Backend returns { success: true, data: {...deal...} }
+      const dealData_response = (response as any).data || response;
+      onDealAdded(dealData_response);
       
       // Close modal
       onClose();
