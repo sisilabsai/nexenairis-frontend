@@ -134,6 +134,9 @@ export const DealDebugger: React.FC = () => {
     // Try to create the deal
     try {
       console.log('🐛 DEBUG: Sending deal data:', testData);
+      console.log('🐛 DEBUG: API Endpoint:', '/opportunities');
+      console.log('🐛 DEBUG: Request payload:', JSON.stringify(testData, null, 2));
+      
       const response = await PipelineApiService.createDeal(testData);
       console.log('🐛 DEBUG: API Response:', response);
       setApiResponse(response);
@@ -141,13 +144,22 @@ export const DealDebugger: React.FC = () => {
       console.error('🐛 DEBUG: API Error:', error);
       console.error('🐛 DEBUG: Error Response:', error.response);
       console.error('🐛 DEBUG: Error Data:', error.response?.data);
+      console.error('🐛 DEBUG: Full error object:', JSON.stringify({
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        errors: error.response?.data?.errors,
+      }, null, 2));
+      
       setApiError({
         message: error.message,
         status: error.response?.status,
         statusText: error.response?.statusText,
         data: error.response?.data,
         errors: error.response?.data?.errors,
-        fullError: error
+        fullError: error,
+        backendMessage: error.response?.data?.message || 'No backend message',
       });
     } finally {
       setIsLoading(false);
@@ -313,6 +325,16 @@ export const DealDebugger: React.FC = () => {
                             <p className="text-sm text-red-800">{apiError.message}</p>
                           </div>
 
+                          {/* Backend Message */}
+                          {apiError.backendMessage && (
+                            <div>
+                              <h4 className="font-semibold text-red-900 mb-2">Backend Message:</h4>
+                              <p className="text-sm text-red-800 bg-white p-3 rounded border border-red-200">
+                                {apiError.backendMessage}
+                              </p>
+                            </div>
+                          )}
+
                           {/* Laravel Validation Errors */}
                           {apiError.errors && (
                             <div>
@@ -328,6 +350,24 @@ export const DealDebugger: React.FC = () => {
                                     </ul>
                                   </div>
                                 ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* No Validation Errors - Generic Response */}
+                          {!apiError.errors && apiError.data && (
+                            <div>
+                              <h4 className="font-semibold text-red-900 mb-2">
+                                ⚠️ No Validation Errors Returned - This might be a server error:
+                              </h4>
+                              <div className="bg-yellow-50 p-3 rounded border border-yellow-200 text-sm text-yellow-800">
+                                <p>The backend returned a 422 error but didn't provide specific field validation errors.</p>
+                                <p className="mt-2">This usually means:</p>
+                                <ul className="list-disc list-inside mt-1">
+                                  <li>Database constraint violation</li>
+                                  <li>Missing required field not in validation</li>
+                                  <li>Server-side business logic error</li>
+                                </ul>
                               </div>
                             </div>
                           )}
