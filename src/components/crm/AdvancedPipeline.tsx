@@ -53,6 +53,7 @@ import {
 import AdvancedAnalyticsDashboard from './AdvancedAnalyticsDashboard';
 import PipelineInfoModal from './PipelineInfoModal';
 import AddDealModal from './AddDealModal';
+import EditDealModal from './EditDealModal';
 import SmartAutomation from './SmartAutomation';
 import AIInsightsPanel from './AIInsightsPanel';
 import { PipelineApiService } from '../../services/PipelineApiService';
@@ -160,6 +161,8 @@ const PipelineColumn = ({
   collaborationState,
   viewDeal,
   stopViewingDeal,
+  draggingDeal,
+  setDraggingDeal,
 }: {
   stage: PipelineStage;
   opportunities: EnhancedOpportunity[];
@@ -170,6 +173,8 @@ const PipelineColumn = ({
   collaborationState: CollaborationState;
   viewDeal: (dealId: number) => void;
   stopViewingDeal: (dealId: number) => void;
+  draggingDeal: EnhancedOpportunity | null;
+  setDraggingDeal: (deal: EnhancedOpportunity | null) => void;
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -257,22 +262,32 @@ const PipelineColumn = ({
               }
 
             return (
-              <DealCard
+              <div
                 key={opportunity.id}
-                opportunity={opportunity}
-                onEdit={onEditDeal}
-                viewMode={viewMode}
-                viewingUsers={viewingUsers}
-                isLocked={!!dealLock}
-                lockedBy={dealLock?.user}
-                commentCount={comments.length}
-                onViewDeal={viewDeal}
-                onStopViewingDeal={stopViewingDeal}
-                onAIInsights={handleShowAIInsights}
-                onDrag={(opp, info) => {
-                  // Handle drag end logic here if needed
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/plain', opportunity.id.toString());
+                  e.dataTransfer.effectAllowed = 'move';
+                  setDraggingDeal(opportunity);
                 }}
-              />
+                onDragEnd={() => {
+                  setDraggingDeal(null);
+                }}
+              >
+                <DealCard
+                  opportunity={opportunity}
+                  onEdit={onEditDeal}
+                  viewMode={viewMode}
+                  viewingUsers={viewingUsers}
+                  isLocked={!!dealLock}
+                  lockedBy={dealLock?.user}
+                  commentCount={comments.length}
+                  onViewDeal={viewDeal}
+                  onStopViewingDeal={stopViewingDeal}
+                  onAIInsights={handleShowAIInsights}
+                  isDragging={draggingDeal?.id === opportunity.id}
+                />
+              </div>
             );
           }) : null}
         </AnimatePresence>
@@ -330,9 +345,12 @@ const AdvancedPipeline = () => {
   const [showSmartAutomation, setShowSmartAutomation] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showAddDealModal, setShowAddDealModal] = useState(false);
+  const [showEditDealModal, setShowEditDealModal] = useState(false);
+  const [editingDeal, setEditingDeal] = useState<EnhancedOpportunity | null>(null);
   const [addDealStageId, setAddDealStageId] = useState<number>(1);
   const [showAIInsights, setShowAIInsights] = useState(false);
   const [selectedDealForAI, setSelectedDealForAI] = useState<EnhancedOpportunity | null>(null);
+  const [draggingDeal, setDraggingDeal] = useState<EnhancedOpportunity | null>(null);
 
   // Real-time collaboration (mock user and tenant IDs for now)
   const {
@@ -505,7 +523,18 @@ const AdvancedPipeline = () => {
 
   // Handle deal editing
   const handleEditDeal = useCallback((deal: EnhancedOpportunity) => {
-    setSelectedDeal(deal);
+    setEditingDeal(deal);
+    setShowEditDealModal(true);
+  }, []);
+
+  // Handle deal updated callback
+  const handleDealUpdated = useCallback((updatedDeal: any) => {
+    const transformedDeal = transformDealData(updatedDeal);
+    setOpportunities(prev => 
+      prev.map(opp => opp.id === transformedDeal.id ? transformedDeal : opp)
+    );
+    setShowEditDealModal(false);
+    setEditingDeal(null);
   }, []);
 
   // Handle adding new deal
@@ -783,6 +812,8 @@ const AdvancedPipeline = () => {
                   collaborationState={collaborationState}
                   viewDeal={viewDeal}
                   stopViewingDeal={stopViewingDeal}
+                  draggingDeal={draggingDeal}
+                  setDraggingDeal={setDraggingDeal}
                 />
               )) : null}
             </div>
@@ -897,6 +928,19 @@ const AdvancedPipeline = () => {
         stageId={addDealStageId}
         onDealAdded={handleDealAdded}
       />
+
+      {/* Edit Deal Modal */}
+      {editingDeal && (
+        <EditDealModal
+          isOpen={showEditDealModal}
+          onClose={() => {
+            setShowEditDealModal(false);
+            setEditingDeal(null);
+          }}
+          deal={editingDeal}
+          onDealUpdated={handleDealUpdated}
+        />
+      )}
 
       {/* AI Insights Panel */}
       {selectedDealForAI && (
