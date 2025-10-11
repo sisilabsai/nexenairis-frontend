@@ -357,16 +357,21 @@ const AdvancedPipeline = () => {
           PipelineApiService.getStages()
         ]);
         
-        // Set real data from backend
-        setOpportunities((dealsResponse as any)?.data || []);
-        setStages((stagesResponse as any)?.data || []);
+        // Backend returns paginated data: { success, data: { data: [...], total, current_page, ... } }
+        // So we need to access response.data.data to get the actual array of deals
+        const deals = (dealsResponse as any)?.data?.data || (dealsResponse as any)?.data || [];
+        const stages = (stagesResponse as any)?.data?.data || (stagesResponse as any)?.data || [];
         
-        console.log('Pipeline data loaded:', {
-          deals: (dealsResponse as any)?.data?.length || 0,
-          stages: (stagesResponse as any)?.data?.length || 0
+        setOpportunities(deals);
+        setStages(stages);
+        
+        console.log('✅ Pipeline data loaded:', {
+          deals: deals.length,
+          stages: stages.length,
+          dealsResponse: dealsResponse
         });
       } catch (error) {
-        console.error('Failed to load pipeline data:', error);
+        console.error('❌ Failed to load pipeline data:', error);
         // Set empty arrays if API fails - no mock data fallback
         setOpportunities([]);
         setStages([]);
