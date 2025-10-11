@@ -96,44 +96,44 @@ export class PipelineApiService {
     }
     
     const queryString = params.toString();
-    return apiClient.get(`/opportunities${queryString ? `?${queryString}` : ''}`);
+    return apiClient.get(`/crm/opportunities${queryString ? `?${queryString}` : ''}`);
   }
 
   static async getDeal(id: number) {
-    return apiClient.get(`/opportunities/${id}`);
+    return apiClient.get(`/crm/opportunities/${id}`);
   }
 
   static async createDeal(data: any) {
-    return apiClient.post('/opportunities', data);
+    return apiClient.post('/crm/opportunities', data);
   }
 
   static async updateDeal(id: number, data: any) {
-    return apiClient.put(`/opportunities/${id}`, data);
+    return apiClient.put(`/crm/opportunities/${id}`, data);
   }
 
   static async deleteDeal(id: number) {
-    return apiClient.delete(`/opportunities/${id}`);
+    return apiClient.delete(`/crm/opportunities/${id}`);
   }
 
   static async moveDeal(dealId: number, stageId: number) {
-    return apiClient.put(`/opportunities/${dealId}/stage`, { stage_id: stageId });
+    return apiClient.put(`/crm/opportunities/${dealId}/stage`, { stage_id: stageId });
   }
 
   // Pipeline Stages
   static async getStages() {
-    return apiClient.get('/pipeline-stages');
+    return apiClient.get('/crm/sales-pipeline-stages');
   }
 
   static async createStage(data: any) {
-    return apiClient.post('/pipeline-stages', data);
+    return apiClient.post('/crm/sales-pipeline-stages', data);
   }
 
   static async updateStage(id: number, data: any) {
-    return apiClient.put(`/pipeline-stages/${id}`, data);
+    return apiClient.put(`/crm/sales-pipeline-stages/${id}`, data);
   }
 
   static async deleteStage(id: number) {
-    return apiClient.delete(`/pipeline-stages/${id}`);
+    return apiClient.delete(`/crm/sales-pipeline-stages/${id}`);
   }
 
   // Pipeline Analytics
