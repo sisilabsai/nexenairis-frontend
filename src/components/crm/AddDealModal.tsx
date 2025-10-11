@@ -18,7 +18,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { PipelineApiService } from '../../services/PipelineApiService';
 import { crmApi } from '../../lib/api';
-import { useContacts, useAuth, useUsers } from '../../hooks/useApi';
+import { useContacts, useAuth, useUsers, useSalesPipelineStages } from '../../hooks/useApi';
 
 interface AddDealModalProps {
   isOpen: boolean;
@@ -44,6 +44,7 @@ interface DealFormData {
   tags: string[];
   source: string;
   assigned_to: number | null;
+  sales_pipeline_stage_id: number | null;
 }
 
 const AddDealModal: React.FC<AddDealModalProps> = ({ 
@@ -69,6 +70,7 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
     tags: [],
     source: '',
     assigned_to: null,
+    sales_pipeline_stage_id: null,
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,6 +88,9 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
   
   // Fetch users for assignment dropdown
   const { data: usersData, isLoading: usersLoading } = useUsers();
+  
+  // Fetch pipeline stages for dropdown
+  const { data: stagesData, isLoading: stagesLoading } = useSalesPipelineStages();
   
   // Get current user for default assignment
   const { me } = useAuth();
@@ -114,6 +119,7 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
         tags: [],
         source: '',
         assigned_to: defaultUserId,
+        sales_pipeline_stage_id: stageId || null,
       });
       setErrors({});
       setSelectedContact(null);
@@ -238,6 +244,10 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
       newErrors.contact_id = 'Please select a contact';
     }
 
+    if (!formData.sales_pipeline_stage_id) {
+      newErrors.sales_pipeline_stage_id = 'Please select a pipeline stage';
+    }
+
     if (formData.expected_value <= 0) {
       newErrors.expected_value = 'Deal value must be greater than 0';
     }
@@ -269,7 +279,7 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
         currency: formData.currency || 'UGX', // Required by backend
         probability: Number(formData.probability),
         expected_close_date: formData.expected_close_date,
-        sales_pipeline_stage_id: Number(stageId), // Required by backend
+        sales_pipeline_stage_id: Number(formData.sales_pipeline_stage_id || stageId), // Use selected stage or modal's default
         source: formData.source || null,
         notes: formData.tags.length > 0 ? `Tags: ${formData.tags.join(', ')}` : null,
         assigned_to: formData.assigned_to || currentUser?.user?.id || currentUser?.id || null, // Backend will default to current user if null
@@ -623,6 +633,40 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
                         </div>
                       )}
                       {errors.assigned_to && <p className="mt-1 text-sm text-red-600">{errors.assigned_to}</p>}
+                    </div>
+
+                    {/* Pipeline Stage Selection */}
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <SparklesIcon className="w-4 h-4 inline mr-1" />
+                        Pipeline Stage *
+                      </label>
+                      <select
+                        value={formData.sales_pipeline_stage_id || ''}
+                        onChange={(e) => handleInputChange('sales_pipeline_stage_id', Number(e.target.value))}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
+                          errors.sales_pipeline_stage_id ? 'border-red-300' : 'border-gray-300'
+                        }`}
+                      >
+                        <option value="">Select a stage...</option>
+                        {stagesLoading ? (
+                          <option disabled>Loading stages...</option>
+                        ) : (
+                          Array.isArray(stagesData?.data) && stagesData.data.map((stage: any) => (
+                            <option key={stage.id} value={stage.id}>
+                              {stage.name}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                      {errors.sales_pipeline_stage_id && (
+                        <p className="mt-1 text-sm text-red-600">{errors.sales_pipeline_stage_id}</p>
+                      )}
+                      {formData.sales_pipeline_stage_id && Array.isArray(stagesData?.data) && (
+                        <p className="mt-1 text-xs text-gray-500">
+                          Deal will be added to the {stagesData.data.find((s: any) => s.id === formData.sales_pipeline_stage_id)?.name} stage
+                        </p>
+                      )}
                     </div>
 
                     {/* Deal Value */}
