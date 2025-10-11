@@ -18,7 +18,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { PipelineApiService } from '../../services/PipelineApiService';
 import { crmApi } from '../../lib/api';
-import { useContacts } from '../../hooks/useApi';
+import { useContacts, useAuth } from '../../hooks/useApi';
 
 interface AddDealModalProps {
   isOpen: boolean;
@@ -78,6 +78,10 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
   
   // Fetch contacts for dropdown
   const { data: contactsData, isLoading: contactsLoading } = useContacts();
+  
+  // Get current user for assigned_to field
+  const { me } = useAuth();
+  const currentUser = me?.data as any;
 
   // Reset form when modal opens
   useEffect(() => {
@@ -223,7 +227,7 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
         sales_pipeline_stage_id: Number(stageId), // Required by backend
         source: formData.source || null,
         notes: formData.tags.length > 0 ? `Tags: ${formData.tags.join(', ')}` : null,
-        assigned_to: null,
+        assigned_to: currentUser?.user?.id || currentUser?.id || null, // Use current user's ID (database requires NOT NULL)
       };
 
       console.log('Creating deal with data:', dealData); // Debug log
