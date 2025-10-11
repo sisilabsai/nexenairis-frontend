@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import {
   XMarkIcon,
   UserIcon,
@@ -82,6 +83,9 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
   const [userSearch, setUserSearch] = useState('');
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  
+  // Initialize router for redirection
+  const router = useRouter();
   
   // Fetch contacts for dropdown
   const { data: contactsData, isLoading: contactsLoading } = useContacts();
@@ -301,16 +305,17 @@ const AddDealModal: React.FC<AddDealModalProps> = ({
 
       const response = await PipelineApiService.createDeal(dealData);
       
-      console.log('✅ DEBUG: Deal created successfully:', response);
-      console.log('✅ DEBUG: Deal data:', (response as any).data);
+      console.log('✅ SUCCESS: Deal created successfully!', response);
       
-      // Notify parent component with the actual deal data
-      // Backend returns { success: true, data: {...deal...} }
-      const dealData_response = (response as any).data || response;
-      onDealAdded(dealData_response);
-      
-      // Close modal
+      // Close modal immediately
       onClose();
+      
+      // Redirect to refresh the pipeline page and show the new deal
+      // Using router.refresh() to reload the current page data
+      router.refresh();
+      
+      // Alternative: Could redirect to the pipeline page explicitly
+      // router.push('/crm/pipeline');
       
     } catch (error: any) {
       console.error('❌ DEBUG: Failed to create deal:', error);
