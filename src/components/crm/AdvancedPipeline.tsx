@@ -31,6 +31,7 @@ import {
   FireIcon,
   WifiIcon,
   InformationCircleIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline';
 import {
   FireIcon as FireSolidIcon,
@@ -157,6 +158,7 @@ const PipelineColumn = ({
   viewMode,
   onDrop,
   onEditDeal,
+  onDeleteDeal,
   onAddDeal,
   collaborationState,
   viewDeal,
@@ -169,6 +171,7 @@ const PipelineColumn = ({
   viewMode: ViewMode;
   onDrop: (dealId: number, stageId: number) => void;
   onEditDeal: (deal: EnhancedOpportunity) => void;
+  onDeleteDeal: (deal: EnhancedOpportunity) => void;
   onAddDeal: (stageId: number) => void;
   collaborationState: CollaborationState;
   viewDeal: (dealId: number) => void;
@@ -277,6 +280,7 @@ const PipelineColumn = ({
                 <DealCard
                   opportunity={opportunity}
                   onEdit={onEditDeal}
+                  onDelete={onDeleteDeal}
                   viewMode={viewMode}
                   viewingUsers={viewingUsers}
                   isLocked={!!dealLock}
@@ -525,6 +529,33 @@ const AdvancedPipeline = () => {
   const handleEditDeal = useCallback((deal: EnhancedOpportunity) => {
     setEditingDeal(deal);
     setShowEditDealModal(true);
+  }, []);
+
+  // Handle deal deletion
+  const handleDeleteDeal = useCallback(async (deal: EnhancedOpportunity) => {
+    try {
+      // Optimistic update - remove from UI immediately
+      setOpportunities(prev => prev.filter(opp => opp.id !== deal.id));
+      
+      // Call API to delete
+      await PipelineApiService.deleteDeal(deal.id);
+      
+      // Show success notification (you can add a toast notification here)
+      console.log(`✅ Deal "${deal.title}" deleted successfully`);
+    } catch (error) {
+      console.error('❌ Failed to delete deal:', error);
+      
+      // Revert the optimistic update on error
+      // Re-fetch to ensure data consistency
+      const response: any = await PipelineApiService.getDeals();
+      if (response.success && response.data?.data) {
+        const transformedData = response.data.data.map(transformDealData);
+        setOpportunities(transformedData);
+      }
+      
+      // Show error notification (you can add a toast notification here)
+      alert('Failed to delete deal. Please try again.');
+    }
   }, []);
 
   // Handle deal updated callback
@@ -808,6 +839,7 @@ const AdvancedPipeline = () => {
                   viewMode={viewMode}
                   onDrop={handleDrop}
                   onEditDeal={handleEditDeal}
+                  onDeleteDeal={handleDeleteDeal}
                   onAddDeal={handleAddDeal}
                   collaborationState={collaborationState}
                   viewDeal={viewDeal}
@@ -881,15 +913,33 @@ const AdvancedPipeline = () => {
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => handleEditDeal(opportunity)}
-                            className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                            className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
+                            title="View Details"
                           >
                             <EyeIcon className="w-4 h-4" />
                           </button>
-                          <button className="p-1 text-gray-400 hover:text-green-600 transition-colors">
+                          <button 
+                            className="p-1 text-gray-400 hover:text-green-600 transition-colors"
+                            title="Call"
+                          >
                             <PhoneIcon className="w-4 h-4" />
                           </button>
-                          <button className="p-1 text-gray-400 hover:text-blue-600 transition-colors">
+                          <button 
+                            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                            title="Email"
+                          >
                             <EnvelopeIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm(`Are you sure you want to delete "${opportunity.title}"?`)) {
+                                handleDeleteDeal(opportunity);
+                              }
+                            }}
+                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                            title="Delete Deal"
+                          >
+                            <TrashIcon className="w-4 h-4" />
                           </button>
                         </div>
                       </div>

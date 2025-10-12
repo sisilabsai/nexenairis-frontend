@@ -33,6 +33,7 @@ import {
   ChatBubbleBottomCenterTextIcon,
   DocumentDuplicateIcon,
   ShareIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline';
 import { 
   StarIcon as StarSolidIcon,
@@ -111,6 +112,7 @@ const TEMPERATURE_ICONS = {
 interface DealCardProps {
   opportunity: EnhancedOpportunity;
   onEdit: (opp: EnhancedOpportunity) => void;
+  onDelete?: (opp: EnhancedOpportunity) => void;
   onDrag?: (opp: EnhancedOpportunity, info: PanInfo) => void;
   isDragging?: boolean;
   viewMode: ViewMode;
@@ -127,6 +129,7 @@ interface DealCardProps {
 const DealCard = ({ 
   opportunity, 
   onEdit, 
+  onDelete,
   onDrag, 
   isDragging,
   viewMode,
@@ -140,6 +143,7 @@ const DealCard = ({
 }: DealCardProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [showQuickActions, setShowQuickActions] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const dragControls = useDragControls();
 
   const priorityColor = PRIORITY_COLORS[opportunity.priority || 'medium'];
@@ -154,6 +158,24 @@ const DealCard = ({
     if (score >= 60) return 'text-yellow-500';
     if (score >= 40) return 'text-orange-500';
     return 'text-red-500';
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete(opportunity);
+    }
+    setShowDeleteConfirm(false);
+  };
+
+  const cancelDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowDeleteConfirm(false);
   };
 
   const formatCurrency = (amount: number) => {
@@ -283,7 +305,7 @@ const DealCard = ({
 
         {/* Quick action overlay */}
         <AnimatePresence>
-          {isHovered && (
+          {isHovered && !showDeleteConfirm && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -299,6 +321,7 @@ const DealCard = ({
                     e.stopPropagation();
                     onEdit(opportunity);
                   }}
+                  title="View Details"
                 >
                   <EyeIcon className="w-4 h-4 text-indigo-600" />
                 </motion.button>
@@ -310,6 +333,7 @@ const DealCard = ({
                     e.stopPropagation();
                     // Handle quick call action
                   }}
+                  title="Call"
                 >
                   <PhoneIcon className="w-4 h-4 text-green-600" />
                 </motion.button>
@@ -321,6 +345,7 @@ const DealCard = ({
                     e.stopPropagation();
                     // Handle quick email action
                   }}
+                  title="Email"
                 >
                   <EnvelopeIcon className="w-4 h-4 text-blue-600" />
                 </motion.button>
@@ -338,6 +363,46 @@ const DealCard = ({
                     <SparklesIcon className="w-4 h-4 text-purple-600" />
                   </motion.button>
                 )}
+                {onDelete && (
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="p-1.5 bg-white rounded-full shadow-md hover:bg-red-50"
+                    onClick={handleDelete}
+                    title="Delete Deal"
+                  >
+                    <TrashIcon className="w-4 h-4 text-red-600" />
+                  </motion.button>
+                )}
+              </div>
+            </motion.div>
+          )}
+          
+          {/* Delete confirmation dialog */}
+          {showDeleteConfirm && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="absolute inset-0 bg-white rounded-lg flex flex-col items-center justify-center p-3 shadow-xl border-2 border-red-500 z-50"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExclamationTriangleIcon className="w-8 h-8 text-red-600 mb-2" />
+              <p className="text-sm font-semibold text-gray-900 text-center mb-1">Delete this deal?</p>
+              <p className="text-xs text-gray-600 text-center mb-3">This action cannot be undone</p>
+              <div className="flex space-x-2 w-full">
+                <button
+                  onClick={cancelDelete}
+                  className="flex-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="flex-1 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition-colors"
+                >
+                  Delete
+                </button>
               </div>
             </motion.div>
           )}
@@ -518,7 +583,7 @@ const DealCard = ({
 
       {/* Quick actions overlay */}
       <AnimatePresence>
-        {isHovered && (
+        {isHovered && !showDeleteConfirm && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -533,6 +598,7 @@ const DealCard = ({
                 e.stopPropagation();
                 onEdit(opportunity);
               }}
+              title="View Details"
             >
               <EyeIcon className="w-4 h-4" />
             </motion.button>
@@ -544,6 +610,7 @@ const DealCard = ({
                 e.stopPropagation();
                 window.open(`tel:${opportunity.phone}`, '_self');
               }}
+              title="Call"
             >
               <PhoneIcon className="w-4 h-4" />
             </motion.button>
@@ -555,9 +622,57 @@ const DealCard = ({
                 e.stopPropagation();
                 window.open(`mailto:${opportunity.email}`, '_self');
               }}
+              title="Email"
             >
               <EnvelopeIcon className="w-4 h-4" />
             </motion.button>
+            {onDelete && (
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="p-2 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700"
+                onClick={handleDelete}
+                title="Delete Deal"
+              >
+                <TrashIcon className="w-4 h-4" />
+              </motion.button>
+            )}
+          </motion.div>
+        )}
+        
+        {/* Delete confirmation dialog */}
+        {showDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="absolute inset-0 bg-white rounded-xl flex flex-col items-center justify-center p-6 shadow-2xl border-2 border-red-500 z-50"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-red-100 rounded-full p-3 mb-4">
+              <ExclamationTriangleIcon className="w-12 h-12 text-red-600" />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Deal?</h3>
+            <p className="text-sm text-gray-600 text-center mb-2">
+              Are you sure you want to delete <span className="font-semibold">{opportunity.title}</span>?
+            </p>
+            <p className="text-xs text-gray-500 text-center mb-6">
+              This action cannot be undone. All associated data will be permanently removed.
+            </p>
+            <div className="flex space-x-3 w-full max-w-xs">
+              <button
+                onClick={cancelDelete}
+                className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Delete Deal
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
